@@ -12,7 +12,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import H1_2_27DOF as ROBOT_CFG  # isort: skip
+from h1_assets.robots.h1v2 import H1_2_27DOF as ROBOT_CFG  # isort: skip
 
 
 @configclass
