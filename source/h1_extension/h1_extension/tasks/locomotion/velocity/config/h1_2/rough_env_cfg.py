@@ -12,7 +12,7 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from h1_assets.robots.h1v2 import H1_2_27DOF as ROBOT_CFG  # isort: skip
+from h1_assets.robots.h1v2 import H1v2_CFG as ROBOT_CFG  # isort: skip
 
 
 @configclass
@@ -27,7 +27,9 @@ class H12Rewards(RewardsCfg):
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp,
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": 0.5}
     )
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
@@ -50,7 +52,7 @@ class H12Rewards(RewardsCfg):
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint", ".*_ankle_pitch_joint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint", ".*_ankle_pitch_joint"])}
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation_hip = RewTerm(
@@ -60,13 +62,13 @@ class H12Rewards(RewardsCfg):
     )
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.2,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_.*", ".*_elbow_joint"])},
+        weight=-0.3,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_.*", ".*_elbow_joint", ".*_wrist_.*"])}
     )
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")},
+        weight=-0.2,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")}
     )
 
 
@@ -99,6 +101,23 @@ class H12RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             },
         }
 
+        # Terminations
+        self.terminations.base_contact.params["sensor_cfg"].body_names = [
+            ".*_hip_yaw_link",
+            ".*_hip_roll_link",
+            ".*_hip_pitch_link",
+            ".*_knee_link",
+            "torso_link",
+            "pelvis",
+            ".*_shoulder_pitch_link",
+            ".*_shoulder_roll_link",
+            ".*_shoulder_yaw_link",
+            ".*_elbow_link",
+            ".*_wrist_yaw_link",
+            ".*_wrist_roll_link",
+            ".*_wrist_pitch_link",
+        ]
+
         # Rewards
         self.rewards.undesired_contacts = None
         self.rewards.flat_orientation_l2.weight = -1.0
@@ -108,18 +127,11 @@ class H12RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
             "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
         )
+
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
-
-        # terminations
-        self.terminations.base_contact.params["sensor_cfg"].body_names = [
-            ".*pelvis",
-            ".*torso_link",
-            ".*(left|right)_(shoulder|elbow|wrist|hip).*_link",
-        ]
-
 
 @configclass
 class H12RoughEnvCfg_PLAY(H12RoughEnvCfg):
