@@ -21,6 +21,12 @@ class H12FlatEnvCfg(H12RoughEnvCfg):
         # no height scan
         self.scene.height_scanner = None
         self.observations.policy.height_scan = None
+
+        self.observations.policy.base_lin_vel = None
+        self.observations.policy.history_length = 10
+        self.observations.policy.enable_corruption = True
+        # self.observations.policy.concatenate_terms = True
+
         # no terrain curriculum
         self.curriculum.terrain_levels = None
         # self.rewards.feet_air_time.weight = 1.0
