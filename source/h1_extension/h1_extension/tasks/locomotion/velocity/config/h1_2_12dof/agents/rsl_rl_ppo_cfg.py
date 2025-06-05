@@ -12,7 +12,7 @@ class H12_12dof_RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 3000
     save_interval = 50
-    experiment_name = "h12_rough"
+    experiment_name = "h12_12dof_rough"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
@@ -42,6 +42,6 @@ class H12_12dof_FlatPPORunnerCfg(H12_12dof_RoughPPORunnerCfg):
         super().__post_init__()
 
         self.max_iterations = 3000
-        self.experiment_name = "h12_flat"
+        self.experiment_name = "h12_12dof_flat"
         self.policy.actor_hidden_dims = [256, 128, 128]
         self.policy.critic_hidden_dims = [256, 128, 128]
