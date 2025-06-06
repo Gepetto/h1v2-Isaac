@@ -275,7 +275,7 @@ H1_2_SHADOW_CFG = ArticulationCfg(
 
 H1_2_12DOF = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/cperrot/h1v2-Isaac/source/h1_assets/h1_assets/H12_handless_simplified_feet.usd",
+        usd_path="/home/croux/projects/animal2robot/dog2action/h1v2-Isaac/urdfs/12dofs/h1_2_12dof.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -333,6 +333,7 @@ H1_2_12DOF = ArticulationCfg(
                 ".*_hip_pitch_joint": 2.5,
                 # "torso_joint": 5.0,
             },
+            armature=0.1,
         ),
         "knees": IdealPDActuatorCfg(
             joint_names_expr=[".*_knee_joint"],
@@ -344,6 +345,7 @@ H1_2_12DOF = ArticulationCfg(
             damping={
                 ".*_knee_joint": 4.0,
             },
+            armature=0.1,
         ),
         "feet": IdealPDActuatorCfg(
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -357,31 +359,8 @@ H1_2_12DOF = ArticulationCfg(
                 ".*_ankle_pitch_joint": 2.0,
                 ".*_ankle_roll_joint": 2.0,
             },
+            armature=0.1,
         ),
-        # "arms": ImplicitActuatorCfg(
-        # "arms": DelayedPDActuatorCfg(
-        #     joint_names_expr=[".*_shoulder_pitch_joint", ".*_shoulder_roll_joint", ".*_shoulder_yaw_joint", ".*_elbow_joint", ".*_wrist_yaw_joint", ".*_wrist_roll_joint", ".*_wrist_pitch_joint"],
-        #     effort_limit=75,
-        #     velocity_limit=100.0,
-        #     stiffness={
-        #         ".*_shoulder_pitch_joint": 40.0,
-        #         ".*_shoulder_roll_joint": 40.0,
-        #         ".*_shoulder_yaw_joint": 40.0,
-        #         ".*_elbow_joint": 40.0,
-        #         ".*_wrist_yaw_joint": 40.0,
-        #         ".*_wrist_roll_joint": 40.0,
-        #         ".*_wrist_pitch_joint": 40.0,
-        #     },
-        #     damping={
-        #         ".*_shoulder_pitch_joint": 10.0,
-        #         ".*_shoulder_roll_joint": 10.0,
-        #         ".*_shoulder_yaw_joint": 10.0,
-        #         ".*_elbow_joint": 10.0,
-        #         ".*_wrist_yaw_joint": 10.0,
-        #         ".*_wrist_roll_joint": 10.0,
-        #         ".*_wrist_pitch_joint": 10.0,
-        #     },
-        # ),
     },
 )
 H1_2_12DOF_MINIMAL = H1_2_12DOF.copy()
