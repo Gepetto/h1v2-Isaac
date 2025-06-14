@@ -34,9 +34,18 @@ from cat_envs.tasks.utils.cat.manager_constraint_cfg import ConstraintTermCfg as
 import h1_extension.utils.cat.constraints as constraints
 import h1_extension.utils.cat.curriculums as curriculums
 import h1_extension.utils.mdp.observations as observations
+import h1_extension.utils.mdp.commands as commands
 import h1_extension.utils.mdp.events as events
 
 from h1_assets.robots.h1v2 import H1_2_12DOF as ROBOT_CFG  # isort: skip
+
+
+# ========================================================
+# Global Parameters
+# ========================================================
+VELOCITY_DEADZONE = 0.2
+MAX_CURRICULUM_ITERATIONS = 1000
+
 
 # ========================================================
 # Scene Configuration
@@ -86,7 +95,7 @@ class MySceneCfg(InteractiveSceneCfg):
 class CommandsCfg:
     """Command specifications for the MDP."""
 
-    base_velocity = mdp.UniformVelocityCommandCfg(
+    base_velocity = commands.UniformVelocityCommandWithDeadzoneCfg(
         asset_name="robot",
         resampling_time_range=(5.0, 8.0),
         rel_standing_envs=0.02,
@@ -94,8 +103,9 @@ class CommandsCfg:
         heading_command=False,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 1.0), lin_vel_y=(-0.5, 0.5), ang_vel_z=(-1.0, 1.0)
+            lin_vel_x=(-0.7, 0.7), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.5, 0.5)
         ),
+        velocity_deadzone=VELOCITY_DEADZONE
     )
 
 
@@ -153,10 +163,38 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.8, 0.8),
-            "dynamic_friction_range": (0.6, 0.6),
+            "static_friction_range": (0.4, 1.5),
+            "dynamic_friction_range": (0.4, 1.5),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
+        },
+    )
+    scale_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
+            "mass_distribution_params": (0.8, 1.2),
+            "operation": "scale",
+            "recompute_inertia": False,
+        },
+    )
+    move_base_com = EventTerm(
+        func=events.randomize_body_coms,
+        mode="startup",
+        params={
+            "max_displacement": 0.02,
+            "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
+        },
+    )
+    randomize_joint_parameters = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "friction_distribution_params": (0.01, 0.1),
+            "operation": "abs",
+            "distribution": "uniform",
         },
     )
 
@@ -170,30 +208,41 @@ class EventCfg:
             "torque_range": (-0.0, 0.0),
         },
     )
-
     reset_base = EventTerm(
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
             "pose_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5), "yaw": (-3.14, 3.14)},
             "velocity_range": {
-                "x": (-0.0, 0.0),
-                "y": (-0.0, 0.0),
-                "z": (-0.0, 0.0),
-                "roll": (-0.0, 0.0),
-                "pitch": (-0.0, 0.0),
-                "yaw": (-0.0, 0.0),
+                "x": (-0.5, 0.5),
+                "y": (-0.5, 0.5),
+                "z": (-0.5, 0.5),
+                "roll": (-0.5, 0.5),
+                "pitch": (-0.5, 0.5),
+                "yaw": (-0.5, 0.5),
             },
         },
     )
-
     reset_robot_joints = EventTerm(
         func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-            "position_range": (1.0, 1.0),
-            "velocity_range": (1.0, 1.0),
+            "position_range": (0.9, 1.1),
+            "velocity_range": (0.9, 1.1),
         },
+    )
+    
+    # interval
+    push_robot = EventTerm(
+        func=mdp.push_by_setting_velocity,
+        mode="interval",
+        interval_range_s=(5.0, 8.0),
+        params={"velocity_range": {"x": (-0.5, 0.5), 
+                                   "y": (-0.5, 0.5),
+                                   "z": (-0.1, 0.1),
+                                   "yaw": (-0.5, 0.5), 
+                                   "pitch": (-0.5, 0.5), 
+                                   "roll": (-0.5, 0.5)}},
     )
 
 
@@ -212,7 +261,7 @@ class RewardsCfg:
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp,
-        weight=1.0,
+        weight=0.5,
         params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
     )
 
@@ -223,11 +272,6 @@ class RewardsCfg:
 @configclass
 class ConstraintsCfg:
     # Safety Hard constraints
-    # upsidedown = ConstraintTerm(
-    #     func=constraints.upsidedown, 
-    #     max_p=1.0, 
-    #     params={"limit": 0.0}
-    # )
     contact = ConstraintTerm(
         func=constraints.contact,
         max_p=1.0,
@@ -245,80 +289,76 @@ class ConstraintsCfg:
                             ".*_wrist_roll_link",
                             ".*_wrist_pitch_link"]},
     )
-    # foot_contact_force = ConstraintTerm(
-    #     func=constraints.foot_contact_force,
-    #     max_p=1.0,
-    #     params={"limit": 50.0, "names": [".*_FOOT"]},
-    # )
 
     # Safety Soft constraints
-    # joint_torque = ConstraintTerm(
-    #     func=constraints.joint_torque,
-    #     max_p=0.25,
-    #     params={"limit": 4.0, "names": [".*_HAA", ".*_HFE", ".*_KFE"]},
-    # )
-    # joint_velocity = ConstraintTerm(
-    #     func=constraints.joint_velocity,
-    #     max_p=0.25,
-    #     params={"limit": 16.0, "names": [".*_HAA", ".*_HFE", ".*_KFE"]},
-    # )
-    # joint_acceleration = ConstraintTerm(
-    #     func=constraints.joint_acceleration,
-    #     max_p=0.25,
-    #     params={"limit": 800.0, "names": [".*_HAA", ".*_HFE", ".*_KFE"]},
-    # )
-    # action_rate = ConstraintTerm(
-    #     func=constraints.action_rate,
-    #     max_p=0.25,
-    #     params={"limit": 90.0, "names": [".*_HAA", ".*_HFE", ".*_KFE"]},
-    # )
+    foot_contact_force = ConstraintTerm(
+        func=constraints.foot_contact_force,
+        max_p=0.25,
+        params={"limit": 750.0, "names": [".*_ankle_roll_link"]},
+    )
+    hip_joint_torque = ConstraintTerm(
+        func=constraints.joint_torque,
+        max_p=0.25,
+        params={"limit": 220.0, "names": [".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_hip_pitch_joint"]},
+    )
+    knee_joint_torque = ConstraintTerm(
+        func=constraints.joint_torque,
+        max_p=0.25,
+        params={"limit": 360.0, "names": [".*_knee_joint"]},
+    )
+    ankle_joint_torque = ConstraintTerm(
+        func=constraints.joint_torque,
+        max_p=0.25,
+        params={"limit": 45.0, "names": [".*_ankle_pitch_joint", ".*_ankle_roll_joint"]},
+    )
+    joint_velocity = ConstraintTerm(
+        func=constraints.joint_velocity,
+        max_p=0.25,
+        params={"limit": 16.0, "names": [".*"]},
+    )
+    joint_acceleration = ConstraintTerm(
+        func=constraints.joint_acceleration,
+        max_p=0.25,
+        params={"limit": 800.0, "names": [".*"]},
+    )
+    action_rate = ConstraintTerm(
+        func=constraints.action_rate,
+        max_p=0.25,
+        params={"limit": 90.0, "names": [".*"]},
+    )
 
     # Style constraints
-    # base_orientation = ConstraintTerm(
-    #     func=constraints.base_orientation, 
-    #     max_p=0.25, 
-    #     params={"limit": 0.1}
-    # )
-    # air_time = ConstraintTerm(
-    #     func=constraints.air_time,
-    #     max_p=0.25,
-    #     params={"limit": 0.25, "names": [".*_FOOT"], "velocity_deadzone": 0.0},
-    # )
-    # switch these two constraints to change the robot's gait. 
-    # The first is for walking, the second for jumping.
-    # one_foot_contact = ConstraintTerm(
-    #     func=constraints.n_foot_contact,
-    #     max_p=0.25,
-    #     params={
-    #         "names": [".*_FOOT"],
-    #         "number_of_desired_feet": 1,
-    #         "min_command_value": 0.0,
-    #     },
-    # )
-    # mod_n_foot_contact = ConstraintTerm(
-    #     func=constraints.mod_n_foot_contact,
-    #     max_p=0.25,
-    #     params={
-    #         "names": [".*_FOOT"],
-    #         "number_of_desired_feet": 2,
-    #         "min_command_value": 0.0,
-    #     },
-    # )
-    # HAA_position = ConstraintTerm(
-    #     func=constraints.joint_range,
-    #     max_p=0.25,
-    #     params={"limit": 0.3, "names": [".*_HAA"]},
-    # )
-    # HFE_position = ConstraintTerm(
-    #     func=constraints.joint_range,
-    #     max_p=0.25,
-    #     params={"limit": 0.5, "names": [".*_HFE"]},
-    # )
-    # KFE_position = ConstraintTerm(
-    #     func=constraints.joint_range,
-    #     max_p=0.25,
-    #     params={"limit": 0.5, "names": [".*_KFE"]},
-    # )
+    base_orientation = ConstraintTerm(
+        func=constraints.base_orientation, 
+        max_p=0.25, 
+        params={"limit": 0.2}
+    )
+    air_time = ConstraintTerm(
+        func=constraints.air_time,
+        max_p=0.25,
+        params={"limit": 0.5, 
+                "names": [".*_ankle_roll_link"], 
+                "velocity_deadzone": VELOCITY_DEADZONE},
+    )
+    no_move = ConstraintTerm(
+        func=constraints.no_move,
+        max_p=0.25,
+        params={
+            "names": [".*"],
+            "velocity_deadzone": VELOCITY_DEADZONE,
+            "joint_vel_limit": 1.0,
+        },
+    )
+    hip_roll_position = ConstraintTerm(
+        func=constraints.joint_range,
+        max_p=0.25,
+        params={"limit": 0.1, "names": [".*_hip_roll_joint"]},
+    )
+    hip_yaw_position = ConstraintTerm(
+        func=constraints.joint_range,
+        max_p=0.25,
+        params={"limit": 0.1, "names": [".*_hip_yaw_joint"]},
+    )
 
 
 # ========================================================
@@ -357,94 +397,99 @@ class TerminationsCfg:
 # ========================================================
 @configclass
 class CurriculumCfg:
-    pass
     # Soft constraints
-    # joint_torque = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "joint_torque",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # joint_velocity = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "joint_velocity",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # joint_acceleration = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "joint_acceleration",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # action_rate = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={"term_name": "action_rate", "num_steps": 24 * 1000, "init_max_p": 0.25},
-    # )
+    foot_contact_force = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={"term_name": "foot_contact_force", 
+                "num_steps": 24 * MAX_CURRICULUM_ITERATIONS, 
+                "init_max_p": 0.25},
+    )
+    hip_joint_torque = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "hip_joint_torque",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    knee_joint_torque = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "knee_joint_torque",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    ankle_joint_torque = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "ankle_joint_torque",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    joint_velocity = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "joint_velocity",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    joint_acceleration = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "joint_acceleration",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    action_rate = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={"term_name": "action_rate", 
+                "num_steps": 24 * MAX_CURRICULUM_ITERATIONS, 
+                "init_max_p": 0.25},
+    )
 
-    # # Style constraints
-    # base_orientation = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "base_orientation",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # air_time = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={"term_name": "air_time", 
-    #             "num_steps": 24 * 1000, 
-    #             "init_max_p": 0.25},
-    # )
-    # # switch these two curriculums to change the robot's gait. 
-    # # The first is for walking, the second for jumping.
-    # one_foot_contact = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "one_foot_contact",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # # mod_n_foot_contact = CurrTerm(
-    # #     func=curriculums.modify_constraint_p,
-    # #     params={
-    # #         "term_name": "mod_n_foot_contact",
-    # #         "num_steps": 24 * 1000,
-    # #         "init_max_p": 0.25,
-    # #     },
-    # # )
-    # HAA_position = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "HAA_position",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # HFE_position = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "HFE_position",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
-    # KFE_position = CurrTerm(
-    #     func=curriculums.modify_constraint_p,
-    #     params={
-    #         "term_name": "KFE_position",
-    #         "num_steps": 24 * 1000,
-    #         "init_max_p": 0.25,
-    #     },
-    # )
+    # Style constraints
+    base_orientation = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "base_orientation",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    air_time = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={"term_name": "air_time", 
+                "num_steps": 24 * MAX_CURRICULUM_ITERATIONS, 
+                "init_max_p": 0.25},
+    )
+    no_move = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "no_move",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    hip_roll_position = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "hip_roll_position",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    hip_yaw_position = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "hip_yaw_position",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
 
 
 # ========================================================
@@ -506,6 +551,6 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
         # disable randomization for play
         self.observations.policy.enable_corruption = False
         # set velocity command
-        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)

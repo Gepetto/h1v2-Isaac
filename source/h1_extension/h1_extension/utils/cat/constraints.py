@@ -21,44 +21,6 @@ if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedRLEnv
 
 
-def joint_position(
-    env: ManagerBasedRLEnv,
-    limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    robot = env.scene[asset_cfg.name]
-    data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
-    cstr = torch.abs(data.joint_pos[:, joint_ids]) - limit
-    return cstr
-
-
-def joint_position_when_moving_forward(
-    env: ManagerBasedRLEnv,
-    limit: float,
-    names: list[str],
-    velocity_deadzone: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    robot = env.scene[asset_cfg.name]
-    data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
-    cstr = (
-        torch.abs(data.joint_pos[:, joint_ids] - data.default_joint_pos[:, joint_ids])
-        - limit
-    )
-    cstr *= (
-        (
-            torch.abs(env.command_manager.get_command("base_velocity")[:, 1])
-            < velocity_deadzone
-        )
-        .float()
-        .unsqueeze(1)
-    )
-    return cstr
-
-
 def joint_torque(
     env: ManagerBasedRLEnv,
     limit: float,
@@ -94,15 +56,6 @@ def joint_acceleration(
     data = env.scene[asset_cfg.name].data
     joint_ids, _ = robot.find_joints(names, preserve_order=True)
     return torch.abs(data.joint_acc[:, joint_ids]) - limit
-
-
-def upsidedown(
-    env: ManagerBasedRLEnv,
-    limit: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    data = env.scene[asset_cfg.name].data
-    return data.projected_gravity_b[:, 2] > limit
 
 
 def contact(
@@ -144,52 +97,17 @@ def air_time(
     feet_ids, _ = contact_sensor.find_bodies(names, preserve_order=True)
     touchdown = contact_sensor.compute_first_contact(env.step_dt)[:, feet_ids]
     last_air_time = contact_sensor.data.last_air_time[:, feet_ids]
-    # Like in CaT
-    command_more_than_limit = (
-        (
-            torch.norm(env.command_manager.get_command("base_velocity")[:, :3], dim=1)
-            > velocity_deadzone
-        )
-        .float()
-        .unsqueeze(1)
-    )
-    # Like in Isaaclab
-    # command_more_than_limit = (
-    #     torch.norm(env.command_manager.get_command("base_velocity")[:, :2], dim=1) > 0.1
-    # )
-    cstr = (limit - last_air_time) * touchdown.float() * command_more_than_limit
+    
+    # Get velocity command and check ALL components against deadzone
+    velocity_cmd = env.command_manager.get_command("base_velocity")[:, :3]
+    cmd_active = torch.any(
+        torch.abs(velocity_cmd) > velocity_deadzone,  # Check x,y,z separately
+        dim=1
+    ).float().unsqueeze(1)  # Shape: (num_envs, 1)
+    
+    # Apply constraint only when command is active (any component > deadzone)
+    cstr = (limit - last_air_time) * touchdown.float() * cmd_active
     return cstr
-
-
-def n_foot_contact(
-    env: ManagerBasedRLEnv,
-    names: list[str],
-    number_of_desired_feet: int,
-    min_command_value: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
-) -> torch.Tensor:
-    contact_sensor = env.scene[asset_cfg.name]
-    undesired_contact_body_ids, _ = contact_sensor.find_bodies(
-        names, preserve_order=True
-    )
-    net_contact_forces = contact_sensor.data.net_forces_w_history
-    contact_cstr = torch.abs(
-        (
-            torch.max(
-                torch.norm(
-                    net_contact_forces[:, :, undesired_contact_body_ids], dim=-1
-                ),
-                dim=1,
-            )[0]
-            > 1.0
-        ).sum(1)
-        - number_of_desired_feet
-    )
-    command_more_than_limit = (
-        torch.norm(env.command_manager.get_command("base_velocity")[:, :3], dim=1)
-        > min_command_value
-    ).float()
-    return contact_cstr * command_more_than_limit
 
 
 def joint_range(
@@ -241,15 +159,6 @@ def foot_contact_force(
     )
 
 
-def min_base_height(
-    env: ManagerBasedRLEnv,
-    limit: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-) -> torch.Tensor:
-    robot = env.scene[asset_cfg.name]
-    return limit - robot.data.root_pos_w[:, 2]
-
-
 def no_move(
     env: ManagerBasedRLEnv,
     names: list[str],
@@ -257,48 +166,22 @@ def no_move(
     joint_vel_limit: float,
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
+    """Constraint that penalizes joint movement when the robot should be stationary.
+    
+    Now only activates when ALL velocity command components (x,y,z) are below deadzone.
+    """
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
     joint_ids, _ = robot.find_joints(names, preserve_order=True)
-    cstr_nomove = (torch.abs(data.joint_vel[:, joint_ids]) - joint_vel_limit) * (
-        torch.norm(env.command_manager.get_command("base_velocity")[:, :3], dim=1)
-        < velocity_deadzone
-    ).float().unsqueeze(1)
+    
+    # Get velocity command and check ALL components against deadzone
+    velocity_cmd = env.command_manager.get_command("base_velocity")[:, :3]
+    cmd_inactive = (
+        torch.all(torch.abs(velocity_cmd) < velocity_deadzone, dim=1)  # All components must be below
+        .float()
+        .unsqueeze(1)  # Shape: (num_envs, 1)
+    )
+    
+    # Apply constraint only when command is inactive (all components < deadzone)
+    cstr_nomove = (torch.abs(data.joint_vel[:, joint_ids]) - joint_vel_limit) * cmd_inactive
     return cstr_nomove
-
-class wasserstein_distance(ManagerTermBase):
-    def __init__(self, cfg: ManagerTermBaseCfg, env: ManagerBasedRLEnv):
-        super().__init__(cfg, env)
-        self.obs_buf = env.observation_manager.compute()["discriminator"].clone()
-
-    def __call__(self, env: ManagerBasedRLEnv, limit: float,
-                 asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
-        # get current robot state    
-        next_obs_buf = env.obs_buf["discriminator"].clone()
-        
-        # reset state of resetted envs
-        reset_env_ids = self._env.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-        if len(reset_env_ids) > 0:
-            self.obs_buf[reset_env_ids, :] = next_obs_buf[reset_env_ids, :]
-        
-        # Compute wasserstein_distance
-        if hasattr(env, "discriminator"):
-            # get fake
-            transition_fake = torch.cat((env.amp_normalizer.normalize_torch(self.obs_buf, env.device), env.amp_normalizer.normalize_torch(next_obs_buf, env.device)), dim=-1)
-            disc_fake = env.discriminator.reward(transition_fake).squeeze(1)
-            self.obs_buf = next_obs_buf
-            
-            # get expert
-            amp_expert_generator = env.vae.feed_forward_generator(1, env.num_envs, sequence_length=env.vae_cfg.data.sequence_length)
-            for sequences in amp_expert_generator:
-                state_expert = sequences[0]
-                next_state_expert = sequences[1]
-            indices = torch.randperm(state_expert.shape[0])[:env.num_envs]
-            state_expert = state_expert[indices]
-            next_state_expert = next_state_expert[indices]
-            transition_expert = torch.cat((env.amp_normalizer.normalize_torch(state_expert[:, 2:], env.device), env.amp_normalizer.normalize_torch(next_state_expert[:, 2:], env.device)), dim=-1)
-            disc_expert = env.discriminator.reward(transition_expert).squeeze(1)
-            
-            return (disc_expert - disc_fake) > limit
-        else:
-            return torch.zeros((env.num_envs), device=env.device)
