@@ -103,7 +103,7 @@ class CommandsCfg:
         heading_command=False,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-0.7, 0.7), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.5, 0.5)
+            lin_vel_x=(0.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.5, 0.5)
         ),
         velocity_deadzone=VELOCITY_DEADZONE
     )
@@ -145,6 +145,7 @@ class ObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
+            self.history_length = 5
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -294,7 +295,7 @@ class ConstraintsCfg:
     foot_contact_force = ConstraintTerm(
         func=constraints.foot_contact_force,
         max_p=0.25,
-        params={"limit": 750.0, "names": [".*_ankle_roll_link"]},
+        params={"limit": 900.0, "names": [".*_ankle_roll_link"]},
     )
     hip_joint_torque = ConstraintTerm(
         func=constraints.joint_torque,
@@ -358,6 +359,11 @@ class ConstraintsCfg:
         func=constraints.joint_range,
         max_p=0.25,
         params={"limit": 0.1, "names": [".*_hip_yaw_joint"]},
+    )
+    knee_position = ConstraintTerm(
+        func=constraints.joint_range,
+        max_p=0.25,
+        params={"limit": 1.0, "names": [".*_knee_joint"]},
     )
 
 
@@ -490,6 +496,14 @@ class CurriculumCfg:
             "init_max_p": 0.25,
         },
     )
+    knee_position = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "knee_position",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
 
 
 # ========================================================
@@ -549,8 +563,11 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
         # disable randomization for play
-        self.observations.policy.enable_corruption = False
+        # self.observations.policy.enable_corruption = False
         # set velocity command
-        self.commands.base_velocity.ranges.lin_vel_x = (1.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-0., 0.)
