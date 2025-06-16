@@ -1,6 +1,6 @@
-asset_path: /home/cperrot/h1v2-Isaac/urdfs/h1_2_12dof.urdf
+asset_path: /home/cperrot/h1v2-Isaac/urdfs/h12_12dof.urdf
 usd_dir: /home/cperrot/h1v2-Isaac/urdfs/12dofs
-usd_file_name: h1_2_12dof.usd
+usd_file_name: h12_12dof.usd
 force_usd_conversion: true
 make_instanceable: true
 fix_base: false

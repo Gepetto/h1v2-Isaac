@@ -2,7 +2,7 @@
 
 The following configurations are available:
 
-* :obj:`H1_2_CFG`: H1 humanoid robot
+* :obj:`H12_CFG`: H12 humanoid robot
 """
 
 import isaaclab.sim as sim_utils
@@ -14,9 +14,9 @@ from isaaclab.assets.articulation import ArticulationCfg
 ##
 
 
-H1_2_12DOF = ArticulationCfg(
+H12_12DOF = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/croux/projects/animal2robot/dog2action/h1v2-Isaac/urdfs/12dofs/h1_2_12dof.usd",
+        usd_path="/home/cperrot/h1v2-Isaac/source/h1_assets/h1_assets/H12_handless_simplified_feet.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -99,4 +99,4 @@ H1_2_12DOF = ArticulationCfg(
         ),
     },
 )
-H1_2_12DOF_MINIMAL = H1_2_12DOF.copy()
+H12_12DOF_MINIMAL = H12_12DOF.copy()
