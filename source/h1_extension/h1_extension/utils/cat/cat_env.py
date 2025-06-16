@@ -6,12 +6,25 @@
 # needed to import for allowing type-hinting: np.ndarray | None
 from __future__ import annotations
 
+import gymnasium as gym
+import numpy as np
 import torch
 from collections.abc import Sequence
 
+from isaaclab.managers import (
+    CommandManager,
+    CurriculumManager,
+    RewardManager,
+    TerminationManager,
+    ActionManager, 
+    EventManager,
+    RecorderManager
+)
 from isaaclab.envs.common import VecEnvStepReturn
 from isaaclab.envs.manager_based_rl_env import ManagerBasedRLEnv
-from cat_envs.tasks.utils.cat.constraint_manager import ConstraintManager
+
+from h1_extension.utils.cat.constraint_manager import ConstraintManager
+from h1_extension.utils.history.observation_manager import ObservationManager
 
 
 class CaTEnv(ManagerBasedRLEnv):
@@ -31,13 +44,44 @@ class CaTEnv(ManagerBasedRLEnv):
             :meth:`SimulationContext.reset_async` and it isn't possible to call async functions in the constructor.
 
         """
-        super().load_managers()
         # prepare the managers
+        # -- command manager
+        self.command_manager: CommandManager = CommandManager(self.cfg.commands, self)
+        print("[INFO] Command Manager: ", self.command_manager)
+        # -- recorder manager
+        self.recorder_manager = RecorderManager(self.cfg.recorders, self)
+        print("[INFO] Recorder Manager: ", self.recorder_manager)
+        # -- action manager
+        self.action_manager = ActionManager(self.cfg.actions, self)
+        print("[INFO] Action Manager: ", self.action_manager)
+        # -- observation manager
+        self.observation_manager = ObservationManager(self.cfg.observations, self)
+        print("[INFO] Observation Manager:", self.observation_manager)
+        # -- event manager
+        self.event_manager = EventManager(self.cfg.events, self)
+        print("[INFO] Event Manager: ", self.event_manager)
+        # -- termination manager
+        self.termination_manager = TerminationManager(self.cfg.terminations, self)
+        print("[INFO] Termination Manager: ", self.termination_manager)
+        # -- reward manager
+        self.reward_manager = RewardManager(self.cfg.rewards, self)
+        print("[INFO] Reward Manager: ", self.reward_manager)
+        # -- curriculum manager
+        self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
+        print("[INFO] Curriculum Manager: ", self.curriculum_manager)
         # -- constraint manager
-
         if self.cfg.constraints:
             self.constraint_manager = ConstraintManager(self.cfg.constraints, self)
             print("[INFO] Constraint Manager: ", self.constraint_manager)
+        
+        # setup the action and observation spaces for Gym
+        self._configure_gym_env_spaces()
+        
+        # perform events at the start of the simulation
+        # in-case a child implementation creates other managers, the randomization should happen
+        # when all the other managers are created
+        if "startup" in self.event_manager.available_modes:
+            self.event_manager.apply(mode="startup")
 
     def step(self, action: torch.Tensor) -> VecEnvStepReturn:
         """Execute one time-step of the environment's dynamics and reset terminated environments.
@@ -198,3 +242,28 @@ class CaTEnv(ManagerBasedRLEnv):
 
         # reset the episode length buffer
         self.episode_length_buf[env_ids] = 0
+    
+    def _configure_gym_env_spaces(self):
+        """Configure the action and observation spaces for the Gym environment."""
+        # observation space (unbounded since we don't impose any limits)
+        self.single_observation_space = gym.spaces.Dict()
+        for group_name, group_term_names in self.observation_manager.active_terms.items():
+            # extract quantities about the group
+            has_concatenated_obs = self.observation_manager.group_obs_concatenate[group_name]
+            group_dim = self.observation_manager.group_obs_dim[group_name]
+            # check if group is concatenated or not
+            # if not concatenated, then we need to add each term separately as a dictionary
+            if has_concatenated_obs:
+                self.single_observation_space[group_name] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=group_dim)
+            else:
+                self.single_observation_space[group_name] = gym.spaces.Dict({
+                    term_name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=term_dim)
+                    for term_name, term_dim in zip(group_term_names, group_dim)
+                })
+        # action space (unbounded since we don't impose any limits)
+        action_dim = sum(self.action_manager.action_term_dim)
+        self.single_action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(action_dim,))
+
+        # batch the spaces for vectorized environments
+        self.observation_space = gym.vector.utils.batch_space(self.single_observation_space, self.num_envs)
+        self.action_space = gym.vector.utils.batch_space(self.single_action_space, self.num_envs)

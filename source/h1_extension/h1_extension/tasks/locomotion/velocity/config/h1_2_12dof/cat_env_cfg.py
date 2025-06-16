@@ -14,8 +14,11 @@ from isaaclab.managers import (
     RewardTermCfg as RewTerm,
     SceneEntityCfg,
     TerminationTermCfg as DoneTerm,
+)
+
+from h1_extension.utils.history.manager_term_cfg import (
     ObservationGroupCfg as ObsGroup,
-    ObservationTermCfg as ObsTerm
+    ObservationTermCfg as ObsTerm,
 )
 
 from isaaclab.scene import InteractiveSceneCfg
@@ -30,7 +33,7 @@ from isaaclab.utils.noise import (
 
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 
-from cat_envs.tasks.utils.cat.manager_constraint_cfg import ConstraintTermCfg as ConstraintTerm
+from h1_extension.utils.cat.manager_constraint_cfg import ConstraintTermCfg as ConstraintTerm
 import h1_extension.utils.cat.constraints as constraints
 import h1_extension.utils.cat.curriculums as curriculums
 import h1_extension.utils.mdp.observations as observations
@@ -188,6 +191,7 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 5
+            self.history_step = 2
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
