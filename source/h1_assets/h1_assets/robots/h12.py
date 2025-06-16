@@ -5,18 +5,31 @@ The following configurations are available:
 * :obj:`H12_CFG`: H12 humanoid robot
 """
 
+from pathlib import Path
+
 import isaaclab.sim as sim_utils
-from isaaclab.actuators import ActuatorNetMLPCfg, DCMotorCfg, DelayedPDActuatorCfg, IdealPDActuatorCfg
+from isaaclab.actuators import DelayedPDActuatorCfg, IdealPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
+
+# Auto detect USD files that can be in two forms
+# - standalone USD file in "../models"
+# - composite USD files in a directory in "../models"
+MODELS_DIR = Path(__file__).parent.parent / "models"
+USD_PATHS = {}
+for path in MODELS_DIR.iterdir():
+    if path.is_file():
+        USD_PATHS[path.name.removesuffix(".usd")] = str(path)
+    else:
+        usd_file = next(file for file in path.iterdir() if file.name.endswith(".usd"))
+        USD_PATHS[usd_file.name.removesuffix(".usd")] = str(usd_file)
 
 ##
 # Configuration
 ##
 
-
 H12_12DOF = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/cperrot/h1v2-Isaac/source/h1_assets/h1_assets/H12_handless_simplified_feet.usd",
+        usd_path=USD_PATHS["h12_12dof"],
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -28,7 +41,9 @@ H12_12DOF = ArticulationCfg(
             max_depenetration_velocity=1.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=4, solver_velocity_iteration_count=4
+            enabled_self_collisions=True,
+            solver_position_iteration_count=4,
+            solver_velocity_iteration_count=4,
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
@@ -104,7 +119,7 @@ H12_12DOF_MINIMAL = H12_12DOF.copy()
 
 H12_27DOF = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/cperrot/h1v2-Isaac/source/h1_assets/h1_assets/h12.usd",
+        usd_path=USD_PATHS["h12_27dof"],
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -116,7 +131,9 @@ H12_27DOF = ArticulationCfg(
             max_depenetration_velocity=1.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True, solver_position_iteration_count=4, solver_velocity_iteration_count=4
+            enabled_self_collisions=True,
+            solver_position_iteration_count=4,
+            solver_velocity_iteration_count=4,
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
