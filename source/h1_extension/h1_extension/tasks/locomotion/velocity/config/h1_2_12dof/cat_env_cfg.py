@@ -43,9 +43,6 @@ import h1_extension.utils.mdp.events as events
 from h1_assets.robots.h1v2 import H1_2_12DOF as ROBOT_CFG  # isort: skip
 
 
-# ========================================================
-# Global Parameters
-# ========================================================
 VELOCITY_DEADZONE = 0.2
 MAX_CURRICULUM_ITERATIONS = 1000
 
@@ -191,7 +188,7 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 5
-            self.history_step = 2
+            self.history_step = 1
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -611,9 +608,9 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
         # disable randomization for play
         # self.observations.policy.enable_corruption = False
         # set velocity command
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
-        self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-0., 0.)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0., 0.)
