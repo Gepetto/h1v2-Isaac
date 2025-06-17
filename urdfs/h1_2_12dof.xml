@@ -357,4 +357,12 @@
     <motor name="right_ankle_pitch_joint" joint="right_ankle_pitch_joint"/>
     <motor name="right_ankle_roll_joint" joint="right_ankle_roll_joint"/>
   </actuator>
+
+  <keyframe>
+    <key qpos="
+    0 0 1.05
+    1 0 0 0
+    0 -0.16 0 0.36 -0.2 0
+    0 -0.16 0 0.36 -0.2 0"/>
+  </keyframe>
 </mujoco>
