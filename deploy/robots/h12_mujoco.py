@@ -32,15 +32,18 @@ class H1Mujoco:
         self.kp = np.array([200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40])
         self.kd = np.array([2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2])
 
+        self.decimation = 20
+
     def reset(self):
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
     def step(self, q_ref):
-        torques = self._pd_control(q_ref)
-        self._apply_torques(torques)
-        mujoco.mj_step(self.model, self.data)
-        if self.enable_GUI:
-            self.render()
+        for _ in range(self.decimation):
+            torques = self._pd_control(q_ref)
+            self._apply_torques(torques)
+            mujoco.mj_step(self.model, self.data)
+            if self.enable_GUI:
+                self.render()
 
     def _apply_torques(self, torques):
         self.data.ctrl[:] = torques
