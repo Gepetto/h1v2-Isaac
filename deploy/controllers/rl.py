@@ -8,27 +8,38 @@ class InferenceHandler:
         self.ort_sess = ort.InferenceSession(policy_path)
 
     def inference(self, observations):
-        actions = self.ort_sess.run(None, {"obs": observations})[0]
+        observations_unsqueezed = np.expand_dims(observations, axis=0)
+        actions = self.ort_sess.run(None, {"input": observations_unsqueezed})[0]
 
         return actions.flatten()
 
 
 class ObservationHandler:
-    def __init__(self):
-        self.observation_history = deque(maxlen=10)
+    def __init__(self, history_length, default_joint_pos):
+        self.observation_history = deque(maxlen=history_length)
+        self.default_joint_pos = default_joint_pos
 
-    def get_observations(self, state):
+    def get_observations(self, state, actions):
         observation = np.concatenate(
-            self._get_base_ang_vel(state),
-            self._get_gravity_orientation(state[3:7]),
-            self._get_command(),
-            self._get_joint_pos(),
-            self._get_joint_vel(),
-            self._previous_action,
+            [
+                self._get_base_ang_vel(state),
+                self._get_gravity_orientation(state[3:7]),
+                self._get_command(),
+                self._get_joint_pos(state),
+                self._get_joint_vel(state),
+                actions,
+            ]
         )
 
-        self.observation_history.append(observation)
-        observation_history = np.array(self.observation_history)
+        if len(self.observation_history) == 0:
+            for _ in range(self.observation_history.maxlen):
+                self.observation_history.append(observation)
+        else:
+            self.observation_history.append(observation)
+
+        observation_history = np.array(
+            self.observation_history, dtype=np.float32
+        ).flatten()
 
         return observation_history
 
@@ -53,7 +64,7 @@ class ObservationHandler:
         return np.zeros(3)
 
     def _get_joint_pos(self, state):
-        return state[7 : 12 + 7]
+        return state[7 : 12 + 7] - self.default_joint_pos
 
     def _get_joint_vel(self, state):
         return state[12 + 7 + 6 :]
@@ -64,34 +75,40 @@ class ActionHandler:
         self.action_scale = action_scale
         self.default_joint_pos = default_joint_pos
 
-    def get_scaled_action(self, action):
+    def get_scaled_action(self, action) -> np.ndarray:
         return self.action_scale * action + self.default_joint_pos
 
 
 class RLPolicy:
     def __init__(self, policy_path):
+        self._set_config()
+
         self.policy = InferenceHandler(policy_path=policy_path)
 
-        self.observation_handler = ObservationHandler()
-        self.action_handler = ActionHandler(0.5, np.array([0]))
+        self.observation_handler = ObservationHandler(self.history_length, self.default_joint_pos)
+        self.action_handler = ActionHandler(self.action_scale, self.default_joint_pos)
+
+        self.actions = np.zeros_like(self.default_joint_pos)
+
+    def _set_config(self):
+        self.history_length = 5
+
+        self.action_scale = 0.5
+        self.default_joint_pos = np.array(
+            [0, -0.16, 0.0, 0.36, -0.2, 0.0, 0, -0.16, 0.0, 0.36, -0.2, 0.0],
+        )
 
     def step(self, state):
-        observations = self.observation_handler.get_observations(state)
-        actions = self.policy.inference(observations)
-        scaled_actions = self.action_handler.get_scaled_action(actions)
+        observations = self.observation_handler.get_observations(state, self.actions)
+        self.actions = self.policy.inference(observations)
+        scaled_actions = self.action_handler.get_scaled_action(self.actions)
 
         return scaled_actions
 
 
 if __name__ == "__main__":
-    path = "./controllers/rl_utils/policy.onnx"
+    path = "/home/cperrot/h1v2-Isaac/deploy/config/agent_model.onnx"
     policy = RLPolicy(path)
 
-    observation = np.ones((1, 93)).astype(np.float32)
-    print(observation)
-    action = policy.step(observation)
-    print(action)
-
-    from IPython import embed
-
-    embed()
+    state = np.zeros(12 * 2 + 7 + 6)
+    print(policy.step(state))
