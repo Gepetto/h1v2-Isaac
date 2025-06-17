@@ -109,8 +109,24 @@ def main():
     
     actor = Agent(env).to(device)
     actor.load_state_dict(actor_sd)
+    actor.eval()
 
     obs = env.reset()[0]["policy"]
+    
+    dummy_input = torch.randn(1, *obs.shape).to(device)
+    onnx_path = os.path.join(log_dir, "agent_model.onnx")
+    torch.onnx.export(
+        actor,
+        dummy_input,
+        onnx_path,
+        export_params=True,
+        opset_version=11,
+        do_constant_folding=True,
+        input_names=['input'],
+        output_names=['output'],
+        dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+    )
+    print(f"[INFO] Exported ONNX model to {onnx_path}")
 
     for _ in range(args_cli.video_length):
         with torch.no_grad():

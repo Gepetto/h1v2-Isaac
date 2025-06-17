@@ -114,6 +114,10 @@ class Agent(nn.Module):
             probs.entropy().sum(1),
             self.critic(x),
         )
+    
+    def forward(self, x):
+        action, _, _, _ = self.get_action_and_value(self.obs_rms(x, update=False))
+        return action
 
 
 def PPO(envs, ppo_cfg, run_path):
