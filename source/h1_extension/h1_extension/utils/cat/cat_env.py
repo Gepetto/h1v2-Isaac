@@ -142,16 +142,11 @@ class CaTEnv(ManagerBasedRLEnv):
         # -- CaT constraints prob computation
         if self.cfg.constraints:
             cstr_prob = self.constraint_manager.compute()
-            # -- constrained reward computation
-            self.reward_buf = torch.clip(
-                self.reward_manager.compute(dt=self.step_dt) * (1.0 - cstr_prob),
-                min=0.0,
-                max=None,
-            )
             dones = cstr_prob.clone()
         else:
-            self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
             dones = torch.zeros(self.num_envs, device=self.device)
+
+        self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
 
         if len(self.recorder_manager.active_terms) > 0:
             # update observations for recording if needed
