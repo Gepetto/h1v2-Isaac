@@ -16,17 +16,17 @@ class InferenceHandler:
 
 class ObservationHandler:
     def __init__(self, history_length, default_joint_pos, default_joint_vel=None):
-        self.observation_history = deque(maxlen=history_length)
+        self.history_length = history_length
         self.default_joint_pos = default_joint_pos
         self.default_joint_vel = (
             default_joint_vel
             if default_joint_vel is not None
             else np.zeros_like(default_joint_pos)
         )
+        self.observation_histories = {}
 
     def get_observations(self, state, actions):
-        observation = np.concatenate(
-            [
+        observation_elements = [
                 self._get_base_ang_vel(state),
                 self._get_gravity_orientation(state),
                 self._get_command(),
@@ -34,18 +34,17 @@ class ObservationHandler:
                 self._get_joint_vel(state),
                 actions,
             ]
+
+        for i, element in enumerate(observation_elements):
+            if i not in self.observation_histories:
+                self.observation_histories[i] = deque(maxlen=self.history_length)
+                self.observation_histories[i].extend([element] * self.history_length)
+            else:
+                self.observation_histories[i].append(element)
+
+        observation_history = np.concatenate(
+            [np.array(list(self.observation_histories[i]), dtype=np.float32).flatten() for i in range(len(observation_elements))]
         )
-
-        if not self.observation_history:
-            self.observation_history.extend(
-                [observation] * self.observation_history.maxlen
-            )
-        else:
-            self.observation_history.append(observation)
-
-        observation_history = np.array(
-            self.observation_history, dtype=np.float32
-        ).flatten()
 
         return observation_history
 
@@ -96,7 +95,7 @@ class RLPolicy:
         self.actions = np.zeros_like(self.default_joint_pos)
 
     def _set_config(self):
-        self.history_length = 1
+        self.history_length = 5
 
         self.action_scale = 0.5
         self.default_joint_pos = np.array(
