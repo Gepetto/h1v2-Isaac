@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import onnxruntime as ort
 from collections import deque
@@ -111,8 +113,8 @@ class RLPolicy:
 
 
 if __name__ == "__main__":
-    path = "/home/cperrot/h1v2-Isaac/deploy/config/agent_model.onnx"
-    policy = RLPolicy(path)
+    policy_path = Path(__file__) / "config" / "agent_model.onnx"
+    policy = RLPolicy(policy_path)
 
     state = np.zeros(12 * 2 + 7 + 6)
     print(policy.step(state))

@@ -5,23 +5,11 @@ The following configurations are available:
 * :obj:`H12_CFG`: H12 humanoid robot
 """
 
-from pathlib import Path
-
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import DelayedPDActuatorCfg, IdealPDActuatorCfg
 from isaaclab.assets.articulation import ArticulationCfg
 
-# Auto detect USD files that can be in two forms
-# - standalone USD file in "../models"
-# - composite USD files in a directory in "../models"
-MODELS_DIR = Path(__file__).parent.parent / "models"
-USD_PATHS = {}
-for path in MODELS_DIR.iterdir():
-    if path.is_file():
-        USD_PATHS[path.name.removesuffix(".usd")] = str(path)
-    else:
-        usd_file = next(file for file in path.iterdir() if file.name.endswith(".usd"))
-        USD_PATHS[usd_file.name.removesuffix(".usd")] = str(usd_file)
+from ..assets import USD_PATHS
 
 ##
 # Configuration
@@ -29,7 +17,7 @@ for path in MODELS_DIR.iterdir():
 
 H12_12DOF = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=USD_PATHS["h12_12dof"],
+        usd_path=USD_PATHS["h12"]["h12_12dof"],
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
@@ -119,7 +107,7 @@ H12_12DOF_MINIMAL = H12_12DOF.copy()
 
 H12_27DOF = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=USD_PATHS["h12_27dof"],
+        usd_path=USD_PATHS["h12"]["h12_27dof"],
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,

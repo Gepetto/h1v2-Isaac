@@ -2,6 +2,8 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
+from h1_assets import SCENE_PATHS
+
 
 class H1Mujoco:
     def __init__(
@@ -81,7 +83,7 @@ class H1Mujoco:
 
 
 if __name__ == "__main__":
-    scene_path = "/home/cperrot/h1v2-Isaac/urdfs/scene.xml"
+    scene_path = SCENE_PATHS["h12"]
     sim = H1Mujoco(scene_path, enable_GUI=True)
 
     state = sim.get_robot_state()
