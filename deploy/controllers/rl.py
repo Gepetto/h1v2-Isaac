@@ -15,15 +15,20 @@ class InferenceHandler:
 
 
 class ObservationHandler:
-    def __init__(self, history_length, default_joint_pos):
+    def __init__(self, history_length, default_joint_pos, default_joint_vel=None):
         self.observation_history = deque(maxlen=history_length)
         self.default_joint_pos = default_joint_pos
+        self.default_joint_vel = (
+            default_joint_vel
+            if default_joint_vel is not None
+            else np.zeros_like(default_joint_pos)
+        )
 
     def get_observations(self, state, actions):
         observation = np.concatenate(
             [
                 self._get_base_ang_vel(state),
-                self._get_gravity_orientation(state[3:7]),
+                self._get_gravity_orientation(state),
                 self._get_command(),
                 self._get_joint_pos(state),
                 self._get_joint_vel(state),
@@ -31,9 +36,10 @@ class ObservationHandler:
             ]
         )
 
-        if len(self.observation_history) == 0:
-            for _ in range(self.observation_history.maxlen):
-                self.observation_history.append(observation)
+        if not self.observation_history:
+            self.observation_history.extend(
+                [observation] * self.observation_history.maxlen
+            )
         else:
             self.observation_history.append(observation)
 
@@ -44,13 +50,10 @@ class ObservationHandler:
         return observation_history
 
     def _get_base_ang_vel(self, state):
-        return state[12 + 7 + 3 : 12 + 7 + 3 + 3]
+        return state["base_angular_vel"]
 
-    def _get_gravity_orientation(self, quaternion):
-        qw = quaternion[0]
-        qx = quaternion[1]
-        qy = quaternion[2]
-        qz = quaternion[3]
+    def _get_gravity_orientation(self, state):
+        qw, qx, qy, qz = state["base_orientation"]
 
         gravity_orientation = np.zeros(3)
 
@@ -61,13 +64,13 @@ class ObservationHandler:
         return gravity_orientation
 
     def _get_command(self):
-        return np.zeros(3)
+        return np.array([0, 0, 0])
 
     def _get_joint_pos(self, state):
-        return state[7 : 12 + 7] - self.default_joint_pos
+        return state["q_pos"] - self.default_joint_pos
 
     def _get_joint_vel(self, state):
-        return state[12 + 7 + 6 :]
+        return state["q_vel"] - self.default_joint_vel
 
 
 class ActionHandler:
@@ -85,13 +88,15 @@ class RLPolicy:
 
         self.policy = InferenceHandler(policy_path=policy_path)
 
-        self.observation_handler = ObservationHandler(self.history_length, self.default_joint_pos)
+        self.observation_handler = ObservationHandler(
+            self.history_length, self.default_joint_pos
+        )
         self.action_handler = ActionHandler(self.action_scale, self.default_joint_pos)
 
         self.actions = np.zeros_like(self.default_joint_pos)
 
     def _set_config(self):
-        self.history_length = 5
+        self.history_length = 1
 
         self.action_scale = 0.5
         self.default_joint_pos = np.array(
