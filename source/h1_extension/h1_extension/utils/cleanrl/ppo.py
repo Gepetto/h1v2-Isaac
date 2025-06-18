@@ -101,13 +101,16 @@ class Agent(nn.Module):
     def get_value(self, x):
         return self.critic(x)
 
-    def get_action_and_value(self, x, action=None):
+    def get_action_and_value(self, x, action=None, deterministic=False):
         action_mean = self.actor_mean(x)
         action_logstd = self.actor_logstd.expand_as(action_mean)
         action_std = torch.exp(action_logstd)
         probs = Normal(action_mean, action_std)
         if action is None:
-            action = probs.sample()
+            if not deterministic:
+                action = probs.sample()
+            else:
+                action = action_mean
         return (
             action,
             probs.log_prob(action).sum(1),
@@ -115,8 +118,8 @@ class Agent(nn.Module):
             self.critic(x),
         )
     
-    def forward(self, x):
-        action, _, _, _ = self.get_action_and_value(self.obs_rms(x, update=False))
+    def forward(self, x, deterministic=True):
+        action, _, _, _ = self.get_action_and_value(self.obs_rms(x, update=False), deterministic=deterministic)
         return action
 
 

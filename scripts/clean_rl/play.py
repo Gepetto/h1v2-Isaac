@@ -64,6 +64,9 @@ import h1_extension.tasks  # noqa: F401
 
 import torch
 
+import onnxruntime
+import numpy as np
+
 
 def main():
     """Play with CleanRL agent."""
@@ -112,29 +115,29 @@ def main():
     actor.eval()
 
     obs = env.reset()[0]["policy"]
-    
-    dummy_input = torch.randn(1, *obs.shape).to(device)
+
+    dummy_input = torch.randn(1, obs.shape[-1]).to(device)
     onnx_path = os.path.join(log_dir, "agent_model.onnx")
     torch.onnx.export(
         actor,
         dummy_input,
         onnx_path,
         export_params=True,
-        opset_version=11,
+        opset_version=16,
         do_constant_folding=True,
         input_names=['input'],
         output_names=['output'],
-        dynamic_axes={'input': {0: 'batch_size'}, 'output': {0: 'batch_size'}}
+        verbose=True
     )
     print(f"[INFO] Exported ONNX model to {onnx_path}")
 
     for _ in range(args_cli.video_length):
         with torch.no_grad():
             actions, _, _, _ = actor.get_action_and_value(
-                actor.obs_rms(obs, update=False)
+                actor.obs_rms(obs, update=False), deterministic=True
             )
-
         next_obs, rewards, next_done, timeouts, info = env.step(actions)
+    
         obs = next_obs["policy"]
 
     # close the simulator
