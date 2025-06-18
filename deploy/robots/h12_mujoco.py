@@ -9,6 +9,7 @@ class H1Mujoco:
         scene_path,
         dt=1e-3,
         enable_GUI=False,
+        fix_base=False,
     ):
         self.enable_GUI = enable_GUI
 
@@ -25,6 +26,12 @@ class H1Mujoco:
         self.ctrl_ff = self.data.ctrl.copy()
 
         self._set_config()
+
+        # Enable the weld constraint
+        if fix_base:
+            self.model.eq_active0[0] = 1
+        else:
+            self.model.eq_active0[0] = 0
 
         self.reset()
 
@@ -54,7 +61,13 @@ class H1Mujoco:
         return self.kp * q_error + self.kd * q_dot_error
 
     def get_robot_state(self):
-        return np.concatenate([self.data.qpos, self.data.qvel])
+        return {
+            "base_orientation": self.data.qpos[3:7],
+            "q_pos": self.data.qpos[7:],
+            "base_angular_vel": self.data.qvel[3:6],
+            "q_vel": self.data.qvel[6:],
+        }
+        # return np.concatenate([self.data.qpos, self.data.qvel])
 
     def render(self):
         if self.viewer is None:
