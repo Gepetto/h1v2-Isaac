@@ -158,6 +158,31 @@ def foot_contact_force(
         - limit
     )
 
+def foot_contact(
+    env: ManagerBasedRLEnv,
+    names: list[str],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+) -> torch.Tensor:
+    contact_sensor = env.scene[asset_cfg.name]
+    undesired_contact_body_ids, _ = contact_sensor.find_bodies(
+        names, preserve_order=True
+    )
+    net_contact_forces = contact_sensor.data.net_forces_w_history
+
+    # Compute number of feet in contact per environment
+    foot_contacts = (
+        torch.max(
+            torch.norm(
+                net_contact_forces[:, :, undesired_contact_body_ids], dim=-1
+            ),
+            dim=1,
+        )[0] > 1.0  # Boolean: (envs, num_feet)
+    ).sum(1)  # Sum over feet → (envs,)
+
+    # Penalize cases where number of contacts is not 1 or 2
+    contact_cstr = ((foot_contacts < 1) | (foot_contacts > 2)).float()
+
+    return contact_cstr 
 
 def no_move(
     env: ManagerBasedRLEnv,
