@@ -1,5 +1,5 @@
-import time
 import threading
+import time
 
 import mujoco
 import mujoco.viewer
@@ -14,11 +14,13 @@ class H1Mujoco:
         dt=1e-3,
         enable_GUI=False,
         fix_base=False,
+        real_time=False,
     ):
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
         self.model.opt.timestep = dt
         self.data = mujoco.MjData(self.model)
+        self.real_time = real_time
 
         self.lock = threading.Lock()
 
@@ -51,12 +53,18 @@ class H1Mujoco:
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
     def step(self, q_ref):
+        step_start = time.perf_counter()
         for _ in range(self.decimation):
             torques = self._pd_control(q_ref)
             self._apply_torques(torques)
             self.lock.acquire()
             mujoco.mj_step(self.model, self.data)
             self.lock.release()
+
+        if self.real_time:
+            time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
+            if time_to_wait > 0:
+                time.sleep(time_to_wait)
 
     def _apply_torques(self, torques):
         self.data.ctrl[:] = torques
