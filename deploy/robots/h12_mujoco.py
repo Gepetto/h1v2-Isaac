@@ -25,9 +25,6 @@ class H1Mujoco:
         self.lock = threading.Lock()
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
-        self.qpos_des = self.data.qpos.copy()
-        self.qvel_des = self.data.qvel.copy()
-        self.ctrl_ff = self.data.ctrl.copy()
 
         self._set_config()
 
@@ -53,17 +50,18 @@ class H1Mujoco:
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
     def step(self, q_ref):
-        step_start = time.perf_counter()
         for _ in range(self.decimation):
+            step_start = time.perf_counter()
             torques = self._pd_control(q_ref)
             self._apply_torques(torques)
             self.lock.acquire()
             mujoco.mj_step(self.model, self.data)
             self.lock.release()
 
-        if self.real_time:
-            time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
-            if time_to_wait > 0:
+            if self.real_time:
+                time_to_wait = max(
+                    0, step_start - time.perf_counter() + self.model.opt.timestep
+                )
                 time.sleep(time_to_wait)
 
     def _apply_torques(self, torques):
@@ -94,7 +92,7 @@ class H1Mujoco:
 
 if __name__ == "__main__":
     scene_path = SCENE_PATHS["h12"]
-    sim = H1Mujoco(scene_path, enable_GUI=True)
+    sim = H1Mujoco(scene_path, enable_GUI=True, real_time=False)
 
     state = sim.get_robot_state()
     while True:
