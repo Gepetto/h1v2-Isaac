@@ -39,11 +39,11 @@ import h1_extension.utils.cat.curriculums as curriculums
 import h1_extension.utils.mdp.observations as observations
 import h1_extension.utils.mdp.commands as commands
 import h1_extension.utils.mdp.events as events
+from h1_extension.utils.mdp.terrains import ROUGH_TERRAINS_CFG
+from h1_assets.robots.h1v2 import H12_12DOF as ROBOT_CFG  # isort: skip
 
-from h1_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 
-
-VELOCITY_DEADZONE = 0.2
+VELOCITY_DEADZONE = 0.3
 MAX_CURRICULUM_ITERATIONS = 1000
 
 
@@ -56,7 +56,9 @@ class MySceneCfg(InteractiveSceneCfg):
 
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
-        terrain_type="plane",
+        terrain_type="generator",
+        terrain_generator=ROUGH_TERRAINS_CFG,
+        max_init_terrain_level=1,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
             friction_combine_mode="multiply",
@@ -65,7 +67,7 @@ class MySceneCfg(InteractiveSceneCfg):
             dynamic_friction=1.0,
         ),
         visual_material=sim_utils.MdlFileCfg(
-            mdl_path="{NVIDIA_NUCLEUS_DIR}/Materials/Base/Architecture/Shingles_01.mdl",
+            mdl_path="exts/cat_envs/cat_envs/assets/materials/Shingles_01.mdl",
             project_uvw=True,
         ),
         debug_vis=False,
@@ -103,7 +105,7 @@ class CommandsCfg:
         heading_command=False,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 1.0), lin_vel_y=(-0.3, 0.3), ang_vel_z=(-0.5, 0.5)
+            lin_vel_x=(0.0, 1.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(-1.57, 1.57)
         ),
         velocity_deadzone=VELOCITY_DEADZONE
     )
@@ -377,6 +379,11 @@ class ConstraintsCfg:
         max_p=0.25, 
         params={"limit": 0.2}
     )
+    foot_contact = ConstraintTerm(
+        func=constraints.foot_contact,
+        max_p=0.25,
+        params={"names": [".*_ankle_roll_link"]},
+    )
     air_time = ConstraintTerm(
         func=constraints.air_time,
         max_p=0.25,
@@ -509,6 +516,12 @@ class CurriculumCfg:
             "init_max_p": 0.25,
         },
     )
+    foot_contact = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={"term_name": "foot_contact", 
+                "num_steps": 24 * MAX_CURRICULUM_ITERATIONS, 
+                "init_max_p": 0.25},
+    )
     air_time = CurrTerm(
         func=curriculums.modify_constraint_p,
         params={"term_name": "air_time", 
@@ -606,11 +619,12 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
         # disable randomization for play
-        # self.observations.policy.enable_corruption = False
+        self.events.push_robot = self.events.physics_material = self.events.scale_mass = self.events.move_base_com = self.events.randomize_joint_parameters = self.events.base_external_force_torque = None
+        self.observations.policy.enable_corruption = False
         # set velocity command
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
         # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
         self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
-        self.commands.base_velocity.ranges.ang_vel_z = (-0., 0.)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.57, 1.57)
