@@ -80,7 +80,7 @@ class H1Mujoco:
             self.lock.acquire()
             viewer.sync()
             self.lock.release()
-            time.sleep(0.01)
+            time.sleep(0.02)  # 50 Hz
         viewer.close()
 
 
@@ -90,4 +90,4 @@ if __name__ == "__main__":
 
     state = sim.get_robot_state()
     while True:
-        sim.step(state[7:19])
+        sim.step(state["q_pos"])
