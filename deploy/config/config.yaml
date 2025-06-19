@@ -9,6 +9,7 @@ mujoco:
   enable_GUI: True
   fix_base: False
   real_time: True
+  enable_keyboard: True
 
 rl:
   history_length: 5

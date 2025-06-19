@@ -1,6 +1,7 @@
 import threading
 import time
 from pathlib import Path
+from queue import Queue
 
 import mujoco
 import mujoco.viewer
@@ -20,6 +21,9 @@ class H1Mujoco:
         self.model.opt.timestep = config["dt"]
         self.data = mujoco.MjData(self.model)
         self.real_time = config["real_time"]
+
+        self.enable_keyboard = config["enable_keyboard"]
+        self.queue = Queue() if self.enable_keyboard else None
 
         self.lock = threading.Lock()
 
@@ -74,13 +78,27 @@ class H1Mujoco:
         }
 
     def run_render(self):
-        viewer = mujoco.viewer.launch_passive(self.model, self.data)
+        key_cb = self.key_callback if self.enable_keyboard else None
+        viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
         while viewer.is_running():
             self.lock.acquire()
             viewer.sync()
             self.lock.release()
             time.sleep(0.02)  # 50 Hz
         viewer.close()
+
+    def key_callback(self, key):
+        if self.queue is None:
+            return
+        glfw = mujoco.glfw.glfw
+        if key == glfw.KEY_UP:
+            self.queue.put(np.array([0.1, 0.0, 0.0]))
+        elif key == glfw.KEY_DOWN:
+            self.queue.put(np.array([-0.1, 0.0, 0.0]))
+        elif key == glfw.KEY_LEFT:
+            self.queue.put(np.array([0.0, -0.1, 0.0]))
+        elif key == glfw.KEY_RIGHT:
+            self.queue.put(np.array([0.0, 0.1, 0.0]))
 
 
 if __name__ == "__main__":

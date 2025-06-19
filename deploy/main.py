@@ -14,7 +14,7 @@ if __name__ == "__main__":
     sim = H1Mujoco(scene_path, config["mujoco"])
 
     policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
-    policy = RLPolicy(policy_path, config["rl"])
+    policy = RLPolicy(policy_path, config["rl"], sim.queue)
 
     while True:
         state = sim.get_robot_state()

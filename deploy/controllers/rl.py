@@ -18,13 +18,15 @@ class InferenceHandler:
 
 
 class ObservationHandler:
-    def __init__(self, history_length, default_joint_pos, default_joint_vel=None):
+    def __init__(self, history_length, default_joint_pos, default_joint_vel=None, /, queue=None):
         self.history_length = history_length
         self.default_joint_pos = default_joint_pos
         self.default_joint_vel = (
             default_joint_vel if default_joint_vel is not None else np.zeros_like(default_joint_pos)
         )
         self.observation_histories = {}
+        self.queue = queue
+        self.command = np.array([0.0, 0.0, 0.0])
 
     def get_observations(self, state, actions):
         observation_elements = [
@@ -66,7 +68,11 @@ class ObservationHandler:
         return gravity_orientation
 
     def _get_command(self):
-        return np.array([0, 0, 0])
+        print(self.command)
+        if self.queue is not None:
+            while not self.queue.empty():
+                self.command += self.queue.get()
+        return self.command
 
     def _get_joint_pos(self, state):
         return state["q_pos"] - self.default_joint_pos
@@ -85,11 +91,11 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path, config):
+    def __init__(self, policy_path, config, queue=None):
         self.policy = InferenceHandler(policy_path=policy_path)
 
         default_joint_pos = np.array(config["default_joint_pos"])
-        self.observation_handler = ObservationHandler(config["history_length"], default_joint_pos)
+        self.observation_handler = ObservationHandler(config["history_length"], default_joint_pos, queue=queue)
         self.action_handler = ActionHandler(config["action_scale"], default_joint_pos)
 
         self.actions = np.zeros_like(default_joint_pos)
