@@ -19,4 +19,4 @@ description="Module adding assets for isaac envs"
 # NOTE: Add additional dependencies here
 
 [[python.module]]
-name = "h1_assets"
+name = "biped_assets"

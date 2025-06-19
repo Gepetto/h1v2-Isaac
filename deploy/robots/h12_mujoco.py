@@ -4,7 +4,7 @@ import time
 import mujoco
 import mujoco.viewer
 import numpy as np
-from h1_assets import SCENE_PATHS
+from biped_assets import SCENE_PATHS
 
 
 class H1Mujoco:

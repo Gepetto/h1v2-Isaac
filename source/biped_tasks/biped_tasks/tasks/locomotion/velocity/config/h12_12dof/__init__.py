@@ -6,7 +6,7 @@
 import gymnasium as gym
 
 from . import agents
-from h1_extension.utils.cat.cat_env import CaTEnv
+from biped_tasks.utils.cat.cat_env import CaTEnv
 
 ##
 # Register Gym environments.

@@ -23,8 +23,8 @@ from isaaclab.managers import (
 from isaaclab.envs.common import VecEnvStepReturn
 from isaaclab.envs.manager_based_rl_env import ManagerBasedRLEnv
 
-from h1_extension.utils.cat.constraint_manager import ConstraintManager
-from h1_extension.utils.history.observation_manager import ObservationManager
+from biped_tasks.utils.cat.constraint_manager import ConstraintManager
+from biped_tasks.utils.history.observation_manager import ObservationManager
 
 
 class CaTEnv(ManagerBasedRLEnv):

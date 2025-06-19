@@ -1,4 +1,4 @@
-"""Installation script for the 'h1_assets' python package."""
+"""Installation script for the 'biped_assets' python package."""
 
 import os
 import toml
@@ -18,8 +18,8 @@ INSTALL_REQUIRES = [
 
 # Installation operation
 setup(
-    name="h1_assets",
-    packages=["h1_assets"],
+    name="biped_assets",
+    packages=["biped_assets"],
     # author=EXTENSION_TOML_DATA["package"]["author"],
     # maintainer=EXTENSION_TOML_DATA["package"]["maintainer"],
     # url=EXTENSION_TOML_DATA["package"]["repository"],

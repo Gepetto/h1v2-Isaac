@@ -12,11 +12,11 @@ from isaaclab_tasks.manager_based.locomotion.velocity.velocity_env_cfg import Lo
 ##
 # Pre-defined configs
 ##
-from h1_assets.robots.h12 import H12_27DOF as ROBOT_CFG  # isort: skip
+from biped_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 
 
 @configclass
-class H12Rewards(RewardsCfg):
+class H12_12dof_Rewards(RewardsCfg):
     """Reward terms for the MDP."""
 
     termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
@@ -60,21 +60,11 @@ class H12Rewards(RewardsCfg):
         weight=-0.2,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"])},
     )
-    joint_deviation_arms = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.3,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_.*", ".*_elbow_joint", ".*_wrist_.*"])}
-    )
-    joint_deviation_torso = RewTerm(
-        func=mdp.joint_deviation_l1,
-        weight=-0.2,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")}
-    )
 
 
 @configclass
-class H12RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
-    rewards: H12Rewards = H12Rewards()
+class H12_12dof_RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
+    rewards: H12_12dof_Rewards = H12_12dof_Rewards()
 
     def __post_init__(self):
         # post init of parent
@@ -134,7 +124,7 @@ class H12RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
 
 @configclass
-class H12RoughEnvCfg_PLAY(H12RoughEnvCfg):
+class H12_12dof_RoughEnvCfg_PLAY(H12_12dof_RoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

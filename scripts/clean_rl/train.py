@@ -62,11 +62,14 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
-import gymnasium as gym
 import os
-import torch
 from datetime import datetime
 
+# Import extensions to set up environment tasks
+import biped_tasks.tasks  # noqa: F401
+import gymnasium as gym
+import torch
+from biped_tasks.utils.cleanrl.ppo import PPO
 from isaaclab.envs import (
     DirectMARLEnvCfg,
     DirectRLEnvCfg,
@@ -74,14 +77,7 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
-from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
-
-
-from h1_extension.utils.cleanrl.ppo import PPO
-
-# Import extensions to set up environment tasks
-import h1_extension.tasks  # noqa: F401
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True

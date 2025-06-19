@@ -1,4 +1,4 @@
-"""Installation script for the 'h1_extension' python package."""
+"""Installation script for the 'biped_tasks' python package."""
 
 import os
 import toml
@@ -18,8 +18,8 @@ INSTALL_REQUIRES = [
 
 # Installation operation
 setup(
-    name="h1_extension",
-    packages=["h1_extension"],
+    name="biped_tasks",
+    packages=["biped_tasks"],
     author=EXTENSION_TOML_DATA["package"]["author"],
     maintainer=EXTENSION_TOML_DATA["package"]["maintainer"],
     url=EXTENSION_TOML_DATA["package"]["repository"],

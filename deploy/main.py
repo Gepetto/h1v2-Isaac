@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from biped_assets import SCENE_PATHS
 from controllers.rl import RLPolicy
-from h1_assets import SCENE_PATHS
 from robots.h12_mujoco import H1Mujoco
 
 if __name__ == "__main__":

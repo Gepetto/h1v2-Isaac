@@ -57,10 +57,10 @@ from isaaclab.utils.dict import print_dict
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 
-from h1_extension.utils.cleanrl.ppo import Agent
+from biped_tasks.utils.cleanrl.ppo import Agent
 
 # Import extensions to set up environment tasks
-import h1_extension.tasks  # noqa: F401
+import biped_tasks.tasks  # noqa: F401
 
 import torch
 

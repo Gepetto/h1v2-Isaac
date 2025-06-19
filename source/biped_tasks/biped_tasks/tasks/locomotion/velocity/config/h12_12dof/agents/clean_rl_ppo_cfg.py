@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 from isaaclab.utils import configclass
-from h1_extension.utils.cleanrl.rl_cfg import CleanRlPpoActorCriticCfg
+from biped_tasks.utils.cleanrl.rl_cfg import CleanRlPpoActorCriticCfg
 
 
 @configclass
