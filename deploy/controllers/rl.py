@@ -68,7 +68,6 @@ class ObservationHandler:
         return gravity_orientation
 
     def _get_command(self):
-        print(self.command)
         if self.queue is not None:
             while not self.queue.empty():
                 self.command += self.queue.get()

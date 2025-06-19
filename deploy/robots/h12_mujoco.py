@@ -91,14 +91,18 @@ class H1Mujoco:
         if self.queue is None:
             return
         glfw = mujoco.glfw.glfw
-        if key == glfw.KEY_UP:
+        if key == glfw.KEY_W:
             self.queue.put(np.array([0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_DOWN:
+        elif key == glfw.KEY_S:
             self.queue.put(np.array([-0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_LEFT:
+        elif key == glfw.KEY_Q:
             self.queue.put(np.array([0.0, -0.1, 0.0]))
-        elif key == glfw.KEY_RIGHT:
+        elif key == glfw.KEY_E:
             self.queue.put(np.array([0.0, 0.1, 0.0]))
+        elif key == glfw.KEY_A:
+            self.queue.put(np.array([0.0, 0.0, 0.1]))
+        elif key == glfw.KEY_D:
+            self.queue.put(np.array([0.0, 0.0, -0.1]))
 
 
 if __name__ == "__main__":
