@@ -1,8 +1,9 @@
+from collections import deque
 from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
-from collections import deque
+import yaml
 
 
 class InferenceHandler:
@@ -21,21 +22,19 @@ class ObservationHandler:
         self.history_length = history_length
         self.default_joint_pos = default_joint_pos
         self.default_joint_vel = (
-            default_joint_vel
-            if default_joint_vel is not None
-            else np.zeros_like(default_joint_pos)
+            default_joint_vel if default_joint_vel is not None else np.zeros_like(default_joint_pos)
         )
         self.observation_histories = {}
 
     def get_observations(self, state, actions):
         observation_elements = [
-                self._get_base_ang_vel(state),
-                self._get_gravity_orientation(state),
-                self._get_command(),
-                self._get_joint_pos(state),
-                self._get_joint_vel(state),
-                actions,
-            ]
+            self._get_base_ang_vel(state),
+            self._get_gravity_orientation(state),
+            self._get_command(),
+            self._get_joint_pos(state),
+            self._get_joint_vel(state),
+            actions,
+        ]
 
         for i, element in enumerate(observation_elements):
             if i not in self.observation_histories:
@@ -45,9 +44,11 @@ class ObservationHandler:
                 self.observation_histories[i].append(element)
 
         observation_history = np.concatenate(
-            [np.array(list(self.observation_histories[i]), dtype=np.float32).flatten() for i in range(len(observation_elements))]
+            [
+                np.array(list(self.observation_histories[i]), dtype=np.float32).flatten()
+                for i in range(len(observation_elements))
+            ],
         )
-
         return observation_history
 
     def _get_base_ang_vel(self, state):
@@ -84,37 +85,28 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path):
-        self._set_config()
-
+    def __init__(self, policy_path, config):
         self.policy = InferenceHandler(policy_path=policy_path)
 
-        self.observation_handler = ObservationHandler(
-            self.history_length, self.default_joint_pos
-        )
-        self.action_handler = ActionHandler(self.action_scale, self.default_joint_pos)
+        default_joint_pos = np.array(config["default_joint_pos"])
+        self.observation_handler = ObservationHandler(config["history_length"], default_joint_pos)
+        self.action_handler = ActionHandler(config["action_scale"], default_joint_pos)
 
-        self.actions = np.zeros_like(self.default_joint_pos)
-
-    def _set_config(self):
-        self.history_length = 5
-
-        self.action_scale = 0.5
-        self.default_joint_pos = np.array(
-            [0, -0.16, 0.0, 0.36, -0.2, 0.0, 0, -0.16, 0.0, 0.36, -0.2, 0.0],
-        )
+        self.actions = np.zeros_like(default_joint_pos)
 
     def step(self, state):
         observations = self.observation_handler.get_observations(state, self.actions)
         self.actions = self.policy.inference(observations)
-        scaled_actions = self.action_handler.get_scaled_action(self.actions)
-
-        return scaled_actions
+        return self.action_handler.get_scaled_action(self.actions)
 
 
 if __name__ == "__main__":
+    config_path = Path(__file__).parent / "config" / "config.yaml"
+    with config_path.open() as file:
+        config = yaml.safe_load(file)
+
     policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
-    policy = RLPolicy(policy_path)
+    policy = RLPolicy(policy_path, config["rl"])
 
     state = np.zeros(12 * 2 + 7 + 6)
     print(policy.step(state))
