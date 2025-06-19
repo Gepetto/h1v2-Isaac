@@ -2,6 +2,7 @@
   <compiler angle="radian" meshdir="meshes/" autolimits="true"/>
   <statistic meansize="0.144785" extent="1.23314" center="0.025392 2.0634e-05 -0.245975"/>
   <default>
+    <geom contype="1" conaffinity="2" solref="0.005 1"/>
     <joint damping="0.001" armature="0.01" frictionloss="0.1"/>
   </default>
 
