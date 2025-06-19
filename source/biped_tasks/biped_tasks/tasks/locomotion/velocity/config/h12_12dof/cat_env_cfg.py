@@ -36,6 +36,7 @@ import biped_tasks.utils.mdp.commands as commands
 import biped_tasks.utils.mdp.events as events
 
 from biped_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
+from biped_tasks.utils.mdp.terrains import ROUGH_TERRAINS_CFG  # isort: skip
 
 
 VELOCITY_DEADZONE = 0.3
