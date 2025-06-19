@@ -40,7 +40,7 @@ import h1_extension.utils.mdp.observations as observations
 import h1_extension.utils.mdp.commands as commands
 import h1_extension.utils.mdp.events as events
 from h1_extension.utils.mdp.terrains import ROUGH_TERRAINS_CFG
-from h1_assets.robots.h1v2 import H12_12DOF as ROBOT_CFG  # isort: skip
+from h1_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 
 
 VELOCITY_DEADZONE = 0.3

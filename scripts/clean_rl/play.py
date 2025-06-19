@@ -64,9 +64,6 @@ import h1_extension.tasks  # noqa: F401
 
 import torch
 
-import onnxruntime
-import numpy as np
-
 
 def main():
     """Play with CleanRL agent."""
