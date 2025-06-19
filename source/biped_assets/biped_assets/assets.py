@@ -17,4 +17,4 @@ for robot_dir in MODELS_DIR.iterdir():
             robot_path[usd_file.name.removesuffix(".usd")] = str(usd_file)
     USD_PATHS[robot_dir.name] = robot_path
 
-    SCENE_PATHS[robot_dir.name] = robot_dir / "scene" / "scene.xml"
+    SCENE_PATHS[robot_dir.name] = str(robot_dir / "scene" / "scene.xml")

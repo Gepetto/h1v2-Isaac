@@ -1,1 +1,1 @@
-from assets import SCENE_PATHS, USD_PATHS
+from .assets import SCENE_PATHS, USD_PATHS

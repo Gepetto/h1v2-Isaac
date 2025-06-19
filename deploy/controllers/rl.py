@@ -113,7 +113,7 @@ class RLPolicy:
 
 
 if __name__ == "__main__":
-    policy_path = Path(__file__).parent / "config" / "agent_model.onnx"
+    policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
     policy = RLPolicy(policy_path)
 
     state = np.zeros(12 * 2 + 7 + 6)

@@ -8,7 +8,7 @@ if __name__ == "__main__":
     scene_path = SCENE_PATHS["h12"]
     sim = H1Mujoco(scene_path, enable_GUI=False)
 
-    policy_path = Path(__file__).parent / "config" / "agent_model.onnx"
+    policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
     policy = RLPolicy(policy_path)
 
     while True:
