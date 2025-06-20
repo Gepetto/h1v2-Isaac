@@ -11,7 +11,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 class H12_12dof_RoughPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
     max_iterations = 3000
-    save_interval = 50
+    save_interval = 100
     experiment_name = "h12_12dof_rough"
     empirical_normalization = False
     policy = RslRlPpoActorCriticCfg(
@@ -43,5 +43,5 @@ class H12_12dof_FlatPPORunnerCfg(H12_12dof_RoughPPORunnerCfg):
 
         self.max_iterations = 3000
         self.experiment_name = "h12_12dof_flat"
-        self.policy.actor_hidden_dims = [256, 128, 128]
-        self.policy.critic_hidden_dims = [256, 128, 128]
+        self.policy.actor_hidden_dims = [512, 256, 128]
+        self.policy.critic_hidden_dims = [512, 256, 128]

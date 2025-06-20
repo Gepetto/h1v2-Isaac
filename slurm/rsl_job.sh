@@ -8,10 +8,15 @@
 #SBATCH --time=5:00:00                    # Maximum execution time (HH:MM:SS). Maximum 20h
 #SBATCH --output=logs/out/%x_%A_%a.out        # Output log
 #SBATCH --error=logs/err/%x_%A_%a.err         # Error log
-#SBATCH --array=0-4                       # Create an array of jobs. Will affect the value of $SLURM_ARRAY_TASK_ID
+#SBATCH --array=0                       # Create an array of jobs. Will affect the value of $SLURM_ARRAY_TASK_ID
 
-# Activate python venv
-source ${ALL_CCFRWORK}/envIsaac/bin/activate
+export GIT_PYTHON_REFRESH=quiet
+
+# Activate conda environment
+module purge
+module load miniforge
+conda activate $WORK/env_h1v2
+set -x
 
 # Define seeds
 declare -A CONFIGURATIONS=(
@@ -30,12 +35,12 @@ EXPERIMENT_NAME="${SLURM_JOB_NAME}_${SLURM_ARRAY_TASK_ID}"
 
 # Run training
 set -x
-python scripts/reinforcement_learning/rsl_rl/train.py \
-    --task=Isaac-Velocity-Flat-H1-v0 \
+python $WORK/v1.0/h1v2-Isaac/scripts/rsl_rl/train.py \
+    --task=Isaac-Velocity-Rsl-H12_12dof-v0 \
     --headless \
-    --num_envs=4096 \
-    agent.max_iterations=1000 \
-    agent.experiment_name="${EXPERIMENT_NAME}" \
-    ${CONFIG}
+    --num_envs=8192 \
+    #agent.max_iterations=1000 \
+    #agent.experiment_name="${EXPERIMENT_NAME}" \
+    #${CONFIG}
 
 echo "Job ${SLURM_ARRAY_TASK_ID} completed successfully"
