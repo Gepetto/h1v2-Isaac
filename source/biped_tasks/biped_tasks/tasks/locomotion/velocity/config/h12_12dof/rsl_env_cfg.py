@@ -16,11 +16,8 @@ from isaaclab.managers import (
     TerminationTermCfg as DoneTerm,
 )
 
-from biped_tasks.utils.history.manager_term_cfg import (
-    ObservationGroupCfg as ObsGroup,
-    ObservationTermCfg as ObsTerm,
-)
-
+from isaaclab.managers import ObservationGroupCfg as ObsGroup
+from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.terrains import TerrainImporterCfg
@@ -174,7 +171,7 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 5
-            self.history_step = 1
+            #self.history_step = 1
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -287,12 +284,12 @@ class RewardsCfg:
     track_lin_vel_xy_exp = RewTerm(
         func=mdp.track_lin_vel_xy_exp,
         weight=1.0,
-        params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+        params={"command_name": "base_velocity", "std": math.sqrt(0.5)},
     )
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_exp,
-        weight=0.5,
-        params={"command_name": "base_velocity", "std": math.sqrt(0.25)},
+        weight=1.0,
+        params={"command_name": "base_velocity", "std": math.sqrt(0.5)},
     )
     feet_air_time = RewTerm(
         func=mdp.feet_air_time,
@@ -344,7 +341,7 @@ class RewardsCfg:
     #     func=mdp.base_height_l2,
     #     target_height=0.8,
     # )
-    #termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
+    termination_penalty = RewTerm(func=mdp.is_terminated, weight=-200.0)
 
 # ========================================================
 # Terminations Configuration
