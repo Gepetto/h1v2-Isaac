@@ -1,17 +1,20 @@
-
 mujoco:
+  experiment_name: "h12_locomotion"
+
   dt: 0.001
   decimation: 20
+  episode_length: 5
 
-  kp: [200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40]
-  kd: [2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2]
+  kp: [ 200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40 ]
+  kd: [ 2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2 ]
 
   enable_GUI: True
   fix_base: False
   real_time: True
   enable_keyboard: True
+  safety_checker_verbose: False
 
 rl:
   history_length: 5
   action_scale: 0.5
-  default_joint_pos: [0, -0.16, 0.0, 0.36, -0.2, 0.0, 0, -0.16, 0.0, 0.36, -0.2, 0.0]
+  default_joint_pos: [ 0, -0.16, 0.0, 0.36, -0.2, 0.0, 0, -0.16, 0.0, 0.36, -0.2, 0.0 ]
