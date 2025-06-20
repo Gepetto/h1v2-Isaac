@@ -1,8 +1,9 @@
 import argparse
 import struct
+import time
+
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,
     ChannelPublisher,
@@ -14,6 +15,7 @@ from unitree_sdk2py.idl.default import (
 )
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
+from unitree_sdk2py.utils.crc import CRC
 
 
 class KeyMap:
@@ -64,6 +66,7 @@ class H12Real:
 
         self.low_cmd = unitree_hg_msg_dds__LowCmd_()
         self.low_state = unitree_hg_msg_dds__LowState_()
+        self.mode_pr_ = 0  # MotorMode.PR in unitree code
         self.mode_machine_ = 0
 
         self.lowcmd_publisher_ = ChannelPublisher("rt/lowcmd", LowCmdHG)
@@ -72,11 +75,36 @@ class H12Real:
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
         self.lowstate_subscriber.Init(self.LowStateHgHandler, 10)
 
+        # Wait for the subscriber to receive data
         self.wait_for_low_state()
+
+        self.num_joints_total = len(self.low_cmd.motor_cmd)
+
+        # Initialize the command msg
         self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
 
     def _set_config(self):
         self.leg_joint2motor_idx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
+        self.kps = [200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40]
+        self.kds = [2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2]
+        self.default_angles = np.array(
+            [
+                0,
+                -0.16,
+                0.0,
+                0.36,
+                -0.2,
+                0.0,
+                0,
+                -0.16,
+                0.0,
+                0.36,
+                -0.2,
+                0.0,
+            ]
+        )
+
         self.arm_waist_joint2motor_idx = [
             12,
             13,
@@ -94,6 +122,51 @@ class H12Real:
             25,
             26,
         ]
+        self.arm_waist_kps = [
+            300,
+            120,
+            120,
+            120,
+            80,
+            80,
+            80,
+            80,
+            120,
+            120,
+            120,
+            80,
+            80,
+            80,
+            80,
+        ]
+
+        self.arm_waist_kds = [3, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1]
+
+        self.arm_waist_target = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+
+        self.control_dt = 0.02
+
+    def LowStateHgHandler(self, msg: LowStateHG):
+        self.low_state = msg
+        self.mode_machine_ = self.low_state.mode_machine
+        self.remote_controller.set(self.low_state.wireless_remote)
+
+    def wait_for_low_state(self):
+        while self.low_state.tick == 0:
+            time.sleep(self.control_dt)
+        print("Successfully connected to the robot.")
+
+    def set_motor_commands(self, motor_indices, positions, kps, kds):
+        for i, motor_idx in enumerate(motor_indices):
+            self.low_cmd.motor_cmd[motor_idx].q = positions[i]
+            self.low_cmd.motor_cmd[motor_idx].qd = 0
+            self.low_cmd.motor_cmd[motor_idx].kp = kps[i]
+            self.low_cmd.motor_cmd[motor_idx].kd = kds[i]
+            self.low_cmd.motor_cmd[motor_idx].tau = 0
+
+    def send_cmd(self, cmd: LowCmdHG):
+        cmd.crc = CRC().Crc(cmd)
+        self.lowcmd_publisher_.Write(cmd)
 
     def get_controller_command(self):
         return np.array(
@@ -155,8 +228,98 @@ class H12Real:
 
         return (q_pos, q_vel)
 
-    def enter_zero_torque_state():
-        pass
+    def init_cmd_hg(self, cmd: LowCmdHG, mode_machine: int, mode_pr: int):
+        cmd.mode_machine = mode_machine
+        cmd.mode_pr = mode_pr
+        for i in range(len(cmd.motor_cmd)):
+            cmd.motor_cmd[i].mode = 1
+        self.set_motor_commands(
+            motor_indices=range(self.num_joints_total),
+            positions=np.zeros(self.num_joints_total),
+            kps=np.zeros(self.num_joints_total),
+            kds=np.zeros(self.num_joints_total),
+        )
+
+    def enter_zero_torque_state(self):
+        print("Entering zero torque state.")
+        print("Waiting for the start signal...")
+        while self.remote_controller.button[KeyMap.start] != 1:
+            self.set_motor_commands(
+                motor_indices=range(self.num_joints_total),
+                positions=np.zeros(self.num_joints_total),
+                kps=np.zeros(self.num_joints_total),
+                kds=np.zeros(self.num_joints_total),
+            )
+            self.send_cmd(self.low_cmd)
+            time.sleep(self.control_dt)
+
+    def move_to_default_pos(self):
+        print("Moving to default pos.")
+        total_time = 2  # move time 2s
+        num_step = int(total_time / self.control_dt)
+
+        dof_idx = self.leg_joint2motor_idx + self.arm_waist_joint2motor_idx
+        kps = self.kps + self.arm_waist_kps
+        kds = self.kds + self.arm_waist_kds
+        default_pos = np.concatenate(
+            (self.default_angles, self.arm_waist_target), axis=0
+        )
+
+        # record the current pos
+        init_dof_pos = np.zeros(self.num_joints_total, dtype=np.float32)
+        for i, dof_id in enumerate(dof_idx):
+            init_dof_pos[i] = self.low_state.motor_state[dof_idx[i]].q
+
+        # move to default pos
+        for i in range(num_step):
+            alpha = i / num_step
+            target_pos = init_dof_pos * (1 - alpha) + default_pos * alpha
+            self.set_motor_commands(
+                dof_idx, target_pos, kps, kds, np.zeros(self.num_joints_total)
+            )
+            self.send_cmd(self.low_cmd)
+            time.sleep(self.control_dt)
+
+        print("Enter default pos state.")
+        print("Waiting for the Button A signal...")
+        while self.remote_controller.button[KeyMap.A] != 1:
+            self.set_motor_commands(
+                self.config.leg_joint2motor_idx,
+                self.config.default_angles,
+                self.config.kps,
+                self.config.kds,
+                np.zeros(len(self.config.leg_joint2motor_idx)),
+            )
+            self.set_motor_commands(
+                self.config.arm_waist_joint2motor_idx,
+                self.config.arm_waist_target,
+                self.config.arm_waist_kps,
+                self.config.arm_waist_kds,
+                np.zeros(len(self.config.arm_waist_joint2motor_idx)),
+            )
+            self.send_cmd(self.low_cmd)
+            time.sleep(self.config.control_dt)
+
+    def step(self, target_dof_pos):
+        self.set_motor_commands(
+            self.config.leg_joint2motor_idx,
+            target_dof_pos,
+            self.config.kps,
+            self.config.kds,
+            np.zeros(len(self.config.leg_joint2motor_idx)),
+        )
+        self.set_motor_commands(
+            self.config.arm_waist_joint2motor_idx,
+            self.config.arm_waist_target,
+            self.config.arm_waist_kps,
+            self.config.arm_waist_kds,
+            np.zeros(len(self.config.arm_waist_joint2motor_idx)),
+        )
+
+        # send the command
+        self.send_cmd(self.low_cmd)
+
+        time.sleep(self.config.control_dt)
 
 
 if __name__ == "__main__":
