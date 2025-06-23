@@ -29,7 +29,7 @@ import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 import biped_tasks.utils.mdp.commands as commands
 import biped_tasks.utils.mdp.events as events
 
-from biped_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
+from biped_assets.robots.h12 import H12_12DOF_IDEAL as ROBOT_CFG  # isort: skip
 from biped_tasks.utils.mdp.terrains import ROUGH_TERRAINS_CFG  # isort: skip
 
 
@@ -292,7 +292,7 @@ class RewardsCfg:
         params={"command_name": "base_velocity", "std": math.sqrt(0.5)},
     )
     feet_air_time = RewTerm(
-        func=mdp.feet_air_time,
+        func=mdp.feet_air_time_positive_biped,
         weight=0.75,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*ankle_roll_link"),
@@ -433,8 +433,5 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
         self.observations.policy.enable_corruption = False
         # set velocity command
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
         self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.57, 1.57)
