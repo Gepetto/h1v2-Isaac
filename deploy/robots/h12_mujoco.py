@@ -65,10 +65,11 @@ class H1Mujoco:
 
         self.reset()
 
-        if config["enable_GUI"]:
+        self.enable_GUI = config["enable_GUI"]
+        if self.enable_GUI:
             self.close_event = threading.Event()
-            self.thread = threading.Thread(target=self.run_render, args=(self.close_event,))
-            self.thread.start()
+            self.viewer_thread = threading.Thread(target=self.run_render, args=(self.close_event,))
+            self.viewer_thread.start()
 
         self.safety_checker_verbose = config["safety_checker_verbose"]
 
@@ -92,8 +93,9 @@ class H1Mujoco:
 
     def close(self, log_dir):
         # Close Mujoco viewer if opened
-        if hasattr(self, "thread"):
+        if self.enable_GUI:
             self.close_event.set()
+            self.viewer_thread.join()
 
         # Save safety checker datas
         def _json_serializer(obj):
