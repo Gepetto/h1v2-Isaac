@@ -19,8 +19,18 @@ class InferenceHandler:
 
 class ObservationHandler:
     def __init__(
-        self, history_length, default_joint_pos, commands_ranges, default_joint_vel=None, /, queue=None
+        self,
+        observations_func, 
+        observations_scale,
+        history_length,
+        default_joint_pos,
+        commands_ranges,
+        default_joint_vel=None,
+        /,
+        queue=None,
     ):
+        self.observations_func = [getattr(self, func_name) for func_name in observations_func]
+        self.observations_scale = observations_scale
         self.history_length = history_length
         self.default_joint_pos = default_joint_pos
         self.commands_ranges = commands_ranges
@@ -31,40 +41,34 @@ class ObservationHandler:
         )
         self.observation_histories = {}
         self.queue = queue
-        self.command = np.array([0.0, 0.0, 0.0])
+        self.command = np.array([1.0, 0.0, 0.0])
 
     def get_observations(self, state, actions):
-        observation_elements = [
-            self._get_base_ang_vel(state),
-            self._get_gravity_orientation(state),
-            self._get_command(),
-            self._get_joint_pos(state),
-            self._get_joint_vel(state),
-            actions,
-        ]
+        self.state = state
+        self.actions = actions
 
-        for i, element in enumerate(observation_elements):
+        for i, element in enumerate(self.observations_func):
             if i not in self.observation_histories:
                 self.observation_histories[i] = deque(maxlen=self.history_length)
-                self.observation_histories[i].extend([element] * self.history_length)
+                self.observation_histories[i].extend([element() * self.observations_scale[i]] * self.history_length)
             else:
-                self.observation_histories[i].append(element)
+                self.observation_histories[i].append(element() * self.observations_scale[i])
 
         observation_history = np.concatenate(
             [
                 np.array(
                     list(self.observation_histories[i]), dtype=np.float32
                 ).flatten()
-                for i in range(len(observation_elements))
+                for i in range(len(self.observations_func))
             ],
         )
         return observation_history
 
-    def _get_base_ang_vel(self, state):
-        return state["base_angular_vel"]
+    def base_ang_vel(self):
+        return self.state["base_angular_vel"]
 
-    def _get_gravity_orientation(self, state):
-        qw, qx, qy, qz = state["base_orientation"]
+    def projected_gravity(self):
+        qw, qx, qy, qz = self.state["base_orientation"]
 
         gravity_orientation = np.zeros(3)
 
@@ -74,19 +78,29 @@ class ObservationHandler:
 
         return gravity_orientation
 
-    def _get_command(self):
+    def generated_commands(self):
         if self.queue is not None:
             while not self.queue.empty():
-                self.command = self.queue.get()  # Assumption: commands are initially scaled between -1 and 1
-                self.command = (self.command + 1) / 2 * (self.commands_ranges["upper"] - self.commands_ranges["lower"]) + self.commands_ranges["lower"]
-                self.command = [0 if abs(val) < self.commands_ranges["velocity_deadzone"] else val for val in self.command]       
+                self.command = (
+                    self.queue.get()
+                )  # Assumption: commands are initially scaled between -1 and 1
+                self.command = (self.command + 1) / 2 * (
+                    self.commands_ranges["upper"] - self.commands_ranges["lower"]
+                ) + self.commands_ranges["lower"]
+                self.command = [
+                    0 if abs(val) < self.commands_ranges["velocity_deadzone"] else val
+                    for val in self.command
+                ]
         return self.command
 
-    def _get_joint_pos(self, state):
-        return state["q_pos"] - self.default_joint_pos
+    def joint_pos_rel(self):
+        return self.state["q_pos"] - self.default_joint_pos
 
-    def _get_joint_vel(self, state):
-        return state["q_vel"] - self.default_joint_vel
+    def joint_vel_rel(self):
+        return self.state["q_vel"] - self.default_joint_vel
+    
+    def last_action(self):
+        return self.actions
 
 
 class ActionHandler:
@@ -105,13 +119,30 @@ class RLPolicy:
         )
         history_length = config["observations"]["policy"]["history_length"]
         action_scale = config["actions"]["joint_pos"]["scale"]
-        commands_ranges = {k: v for k, v in config["commands"]["base_velocity"]["ranges"].items() if v is not None}
-        commands_ranges = {'lower': np.array([commands_ranges[key][0] for key in commands_ranges.keys()]), 
-                           'upper': np.array([commands_ranges[key][1] for key in commands_ranges.keys()]),
-                           'velocity_deadzone': config["commands"]["base_velocity"]["velocity_deadzone"]}
-        
+        commands_ranges = {
+            k: v
+            for k, v in config["commands"]["base_velocity"]["ranges"].items()
+            if v is not None
+        }
+        commands_ranges = {
+            "lower": np.array(
+                [commands_ranges[key][0] for key in commands_ranges.keys()]
+            ),
+            "upper": np.array(
+                [commands_ranges[key][1] for key in commands_ranges.keys()]
+            ),
+            "velocity_deadzone": config["commands"]["base_velocity"][
+                "velocity_deadzone"
+            ],
+        }
+        observations_func = [config["observations"]["policy"][key]["func"].split(':')[-1] for key, value in config["observations"]["policy"].items() if isinstance(value, dict) and 'func' in value]
+        observations_scale = [1 if value.get("scale") is None else value["scale"] 
+                            for value in config["observations"]["policy"].values() 
+                            if isinstance(value, dict) and 'func' in value]
+
         self.policy = InferenceHandler(policy_path=policy_path)
         self.observation_handler = ObservationHandler(
+            observations_func, observations_scale,
             history_length, default_joint_pos, commands_ranges, queue=queue
         )
         self.action_handler = ActionHandler(action_scale, default_joint_pos)
