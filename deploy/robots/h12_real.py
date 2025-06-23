@@ -215,16 +215,16 @@ class H12Real:
 
         RzWaist = R.from_euler("z", waist_yaw).as_matrix()
         R_torso = R.from_quat(
-            [imu_quat[1], imu_quat[2], imu_quat[3], imu_quat[0]]
+            [imu_quat[1], imu_quat[2], imu_quat[3], imu_quat[0]],
         ).as_matrix()
         R_pelvis = np.dot(R_torso, RzWaist.T)
         w = np.dot(RzWaist, imu_omega[0]) - np.array([0, 0, waist_yaw_omega])
         return R.from_matrix(R_pelvis).as_quat()[[3, 0, 1, 2]], w
 
     def _get_joint_state(self):
-        for i in range(len(self.config.leg_joint2motor_idx)):
-            q_pos = self.low_state.motor_state[self.config.leg_joint2motor_idx[i]].q
-            q_vel = self.low_state.motor_state[self.config.leg_joint2motor_idx[i]].dq
+        for i in range(len(self.leg_joint2motor_idx)):
+            q_pos = self.low_state.motor_state[self.leg_joint2motor_idx[i]].q
+            q_vel = self.low_state.motor_state[self.leg_joint2motor_idx[i]].dq
 
         return (q_pos, q_vel)
 
@@ -253,6 +253,16 @@ class H12Real:
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
+    def enter_damping_state(self):
+        print("Entering damping state.")
+        self.set_motor_commands(
+            motor_indices=range(self.num_joints_total),
+            positions=np.zeros(self.num_joints_total),
+            kps=np.zeros(self.num_joints_total),
+            kds=8 * np.ones(self.num_joints_total),
+        )
+        self.send_cmd(self.low_cmd)
+
     def move_to_default_pos(self):
         print("Moving to default pos.")
         total_time = 2  # move time 2s
@@ -274,9 +284,7 @@ class H12Real:
         for i in range(num_step):
             alpha = i / num_step
             target_pos = init_dof_pos * (1 - alpha) + default_pos * alpha
-            self.set_motor_commands(
-                dof_idx, target_pos, kps, kds, np.zeros(self.num_joints_total)
-            )
+            self.set_motor_commands(dof_idx, target_pos, kps, kds)
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
@@ -284,43 +292,38 @@ class H12Real:
         print("Waiting for the Button A signal...")
         while self.remote_controller.button[KeyMap.A] != 1:
             self.set_motor_commands(
-                self.config.leg_joint2motor_idx,
-                self.config.default_angles,
-                self.config.kps,
-                self.config.kds,
-                np.zeros(len(self.config.leg_joint2motor_idx)),
+                self.leg_joint2motor_idx,
+                self.default_angles,
+                self.kps,
+                self.kds,
             )
             self.set_motor_commands(
-                self.config.arm_waist_joint2motor_idx,
-                self.config.arm_waist_target,
-                self.config.arm_waist_kps,
-                self.config.arm_waist_kds,
-                np.zeros(len(self.config.arm_waist_joint2motor_idx)),
+                self.arm_waist_joint2motor_idx,
+                self.arm_waist_target,
+                self.arm_waist_kps,
+                self.arm_waist_kds,
             )
             self.send_cmd(self.low_cmd)
-            time.sleep(self.config.control_dt)
+            time.sleep(self.control_dt)
 
     def step(self, target_dof_pos):
         self.set_motor_commands(
-            self.config.leg_joint2motor_idx,
+            self.leg_joint2motor_idx,
             target_dof_pos,
-            self.config.kps,
-            self.config.kds,
-            np.zeros(len(self.config.leg_joint2motor_idx)),
+            self.kps,
+            self.kds,
         )
         self.set_motor_commands(
-            self.config.arm_waist_joint2motor_idx,
-            self.config.arm_waist_target,
-            self.config.arm_waist_kps,
-            self.config.arm_waist_kds,
-            np.zeros(len(self.config.arm_waist_joint2motor_idx)),
+            self.arm_waist_joint2motor_idx,
+            self.arm_waist_target,
+            self.arm_waist_kps,
+            self.arm_waist_kds,
         )
 
         # send the command
         self.send_cmd(self.low_cmd)
 
-        time.sleep(self.config.control_dt)
-
+        time.sleep(self.control_dt)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
