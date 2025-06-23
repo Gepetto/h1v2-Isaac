@@ -41,7 +41,7 @@ class ObservationHandler:
         )
         self.observation_histories = {}
         self.queue = queue
-        self.command = np.array([1.0, 0.0, 0.0])
+        self.command = np.array([0.0, 0.0, 0.0])
 
     def get_observations(self, state, actions):
         self.state = state
