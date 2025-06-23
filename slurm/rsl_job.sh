@@ -35,11 +35,11 @@ EXPERIMENT_NAME="${SLURM_JOB_NAME}_${SLURM_ARRAY_TASK_ID}"
 
 # Run training
 set -x
-python $WORK/v1.0/h1v2-Isaac/scripts/rsl_rl/train.py \
-    --task=Isaac-Velocity-Rsl-H12_12dof-v0 \
+python $WORK/v1.0/h1v2-Isaac/scripts/rsl_rl/play.py \
+    --task=Isaac-Velocity-Rsl-H12_12dof-Play-v0 \
     --headless \
-    --num_envs=4096 \
-    #agent.max_iterations=1000 \
+    #--num_envs=8192 \
+    #--max_iterations=5000 \
     #agent.experiment_name="${EXPERIMENT_NAME}" \
     #${CONFIG}
 
