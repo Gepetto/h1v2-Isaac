@@ -3,7 +3,6 @@ import threading
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from queue import Queue
 from typing import Any
 
 import mujoco
@@ -45,9 +44,10 @@ class H1Mujoco:
         self.real_time = config["real_time"]
 
         self.enable_keyboard = config["enable_keyboard"]
-        self.queue = Queue() if self.enable_keyboard else None
+        self.controller_command = np.zeros(3)
+        self.keyboard_lock = threading.Lock()
 
-        self.lock = threading.Lock()
+        self.sim_lock = threading.Lock()
 
         self.safety_violations: list[SafetyViolation] = []
 
@@ -81,9 +81,8 @@ class H1Mujoco:
             torques = self._pd_control(q_ref)
             self._apply_torques(torques)
             self._safety_check()
-            self.lock.acquire()
-            mujoco.mj_step(self.model, self.data)
-            self.lock.release()
+            with self.sim_lock:
+                mujoco.mj_step(self.model, self.data)
 
             if self.real_time:
                 time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
@@ -112,6 +111,10 @@ class H1Mujoco:
                 default=_json_serializer,
             )
         print(f"Saved violations to {safety_checker_path}")
+
+    def get_controller_command(self):
+        with self.keyboard_lock:
+            return self.controller_command
 
     def _record_violation(
         self,
@@ -254,28 +257,26 @@ class H1Mujoco:
         key_cb = self.key_callback if self.enable_keyboard else None
         viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
         while viewer.is_running() and not close_event.is_set():
-            self.lock.acquire()
-            viewer.sync()
-            self.lock.release()
+            with self.sim_lock:
+                viewer.sync()
             time.sleep(0.02)  # 50 Hz
         viewer.close()
 
     def key_callback(self, key):
-        if self.queue is None:
-            return
         glfw = mujoco.glfw.glfw
-        if key == glfw.KEY_UP or key == glfw.KEY_KP_8:
-            self.queue.put(np.array([0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_DOWN or key == glfw.KEY_KP_5:
-            self.queue.put(np.array([-0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_LEFT or key == glfw.KEY_KP_4:
-            self.queue.put(np.array([0.0, -0.1, 0.0]))
-        elif key == glfw.KEY_RIGHT or key == glfw.KEY_KP_6:
-            self.queue.put(np.array([0.0, 0.1, 0.0]))
-        elif key == glfw.KEY_Z or key == glfw.KEY_KP_7:
-            self.queue.put(np.array([0.0, 0.0, 0.1]))
-        elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
-            self.queue.put(np.array([0.0, 0.0, -0.1]))
+        with self.keyboard_lock:
+            if key == glfw.KEY_UP or key == glfw.KEY_KP_8:
+                self.controller_command[0] += 0.1
+            elif key == glfw.KEY_DOWN or key == glfw.KEY_KP_5:
+                self.controller_command[0] -= 0.1
+            elif key == glfw.KEY_LEFT or key == glfw.KEY_KP_4:
+                self.controller_command[1] += 0.1
+            elif key == glfw.KEY_RIGHT or key == glfw.KEY_KP_6:
+                self.controller_command[1] -= 0.1
+            elif key == glfw.KEY_Z or key == glfw.KEY_KP_7:
+                self.controller_command[2] += 0.1
+            elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
+                self.controller_command[2] -= 0.1
 
 
 if __name__ == "__main__":

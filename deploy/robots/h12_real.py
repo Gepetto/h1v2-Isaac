@@ -117,12 +117,16 @@ class H12Real:
         self.lowcmd_publisher_.Write(cmd)
 
     def get_controller_command(self):
-        return np.array(
-            [
-                self.remote_controller.ly,
-                self.remote_controller.lx * -1,
-                self.remote_controller.rx * -1,
-            ],
+        return np.clip(
+            np.array(
+                [
+                    self.remote_controller.ly,
+                    self.remote_controller.lx * -1,
+                    self.remote_controller.rx * -1,
+                ],
+            ),
+            -1,
+            1,
         )
 
     def get_robot_state(self):

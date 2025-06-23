@@ -1,11 +1,10 @@
 import time
-import yaml
 from pathlib import Path
 
+import yaml
 from biped_assets import SCENE_PATHS
 from controllers.rl import RLPolicy
 from robots.h12_mujoco import H1Mujoco
-
 
 if __name__ == "__main__":
     # Load config
@@ -27,12 +26,13 @@ if __name__ == "__main__":
     policy_config_path = Path(__file__).parent / "config" / "env.yaml"
     with policy_config_path.open() as f:
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
-    policy = RLPolicy(policy_path, policy_config, sim.queue)
+    policy = RLPolicy(policy_path, policy_config)
 
     try:
         while True:
             state = sim.get_robot_state()
-            q_ref = policy.step(state)
+            command = sim.get_controller_command()
+            q_ref = policy.step(state, command)
             sim.step(q_ref)
 
             if sim.current_time > sim.episode_length:

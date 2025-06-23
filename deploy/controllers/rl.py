@@ -26,8 +26,6 @@ class ObservationHandler:
         default_joint_pos,
         commands_ranges,
         default_joint_vel=None,
-        /,
-        queue=None,
     ):
         self.observations_func = [getattr(self, func_name) for func_name in observations_func]
         self.observations_scale = observations_scale
@@ -38,12 +36,16 @@ class ObservationHandler:
             default_joint_vel if default_joint_vel is not None else np.zeros_like(default_joint_pos)
         )
         self.observation_histories = {}
-        self.queue = queue
         self.command = np.array([0.0, 0.0, 0.0])
 
-    def get_observations(self, state, actions):
+    def get_observations(self, state, actions, command):
         self.state = state
         self.actions = actions
+        if command is not None:
+            self.command = (command + 1) / 2 * (
+                self.commands_ranges["upper"] - self.commands_ranges["lower"]
+            ) + self.commands_ranges["lower"]
+            self.command[np.abs(self.command) < self.commands_ranges["velocity_deadzone"]] = 0.0
 
         for i, element in enumerate(self.observations_func):
             if i not in self.observation_histories:
@@ -75,18 +77,6 @@ class ObservationHandler:
         return gravity_orientation
 
     def generated_commands(self):
-        if self.queue is not None:
-            while not self.queue.empty():
-                self.command = (
-                    self.queue.get()
-                )  # Assumption: commands are initially scaled between -1 and 1
-                self.command = (self.command + 1) / 2 * (
-                    self.commands_ranges["upper"] - self.commands_ranges["lower"]
-                ) + self.commands_ranges["lower"]
-                self.command = [
-                    0 if abs(val) < self.commands_ranges["velocity_deadzone"] else val
-                    for val in self.command
-                ]
         return self.command
 
     def joint_pos_rel(self):
@@ -109,7 +99,7 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path, config, queue=None):
+    def __init__(self, policy_path, config):
         default_joint_pos = np.array(list(config["scene"]["robot"]["init_state"]["joint_pos"].values()))
         history_length = config["observations"]["policy"]["history_length"]
         action_scale = config["actions"]["joint_pos"]["scale"]
@@ -142,8 +132,8 @@ class RLPolicy:
 
         self.actions = np.zeros_like(default_joint_pos)
 
-    def step(self, state):
-        observations = self.observation_handler.get_observations(state, self.actions)
+    def step(self, state, command=None):
+        observations = self.observation_handler.get_observations(state, self.actions, command)
         self.actions = self.policy.inference(observations)
         return self.action_handler.get_scaled_action(self.actions)
 
