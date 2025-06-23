@@ -37,12 +37,19 @@ H12_12DOF = ArticulationCfg(
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 1.05),
         joint_pos={
-            ".*_hip_yaw_joint": 0.0,
-            ".*_hip_roll_joint": 0.0,
-            ".*_hip_pitch_joint": -0.16,  # -0.28 -16 degrees
-            ".*_knee_joint": 0.36,  # 0.79 45 degrees
-            ".*_ankle_pitch_joint": -0.2,  # -0.52 -30 degrees
-            ".*_ankle_roll_joint": 0.0,
+            # preserved order for sim2sim
+            "left_hip_yaw_joint": 0.0,
+            "left_hip_pitch_joint": -0.16,  # -0.28 -16 degrees
+            "left_hip_roll_joint": 0.0,
+            "left_knee_joint": 0.36,  # 0.79 45 degrees
+            "left_ankle_pitch_joint": -0.2,  # -0.52 -30 degrees
+            "left_ankle_roll_joint": 0.0,
+            "right_hip_yaw_joint": 0.0,
+            "right_hip_pitch_joint": -0.16,  # -0.28 -16 degrees
+            "right_hip_roll_joint": 0.0,
+            "right_knee_joint": 0.36,  # 0.79 45 degrees
+            "right_ankle_pitch_joint": -0.2,  # -0.52 -30 degrees
+            "right_ankle_roll_joint": 0.0,
         },
         joint_vel={".*": 0.0},
     ),

@@ -13,8 +13,3 @@ mujoco:
   real_time: True
   enable_keyboard: True
   safety_checker_verbose: False
-
-rl:
-  history_length: 5
-  action_scale: 0.5
-  default_joint_pos: [ 0, -0.16, 0.0, 0.36, -0.2, 0.0, 0, -0.16, 0.0, 0.36, -0.2, 0.0 ]

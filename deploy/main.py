@@ -22,11 +22,14 @@ if __name__ == "__main__":
 
     # Set up simulation
     scene_path = SCENE_PATHS["h12"]
-    sim = H1Mujoco(scene_path, config["mujoco"])
+    sim = H1Mujoco(scene_path, config["mujoco"])    
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
-    policy = RLPolicy(policy_path, config["rl"], sim.queue)
+    policy_config_path = Path(__file__).parent / "config" / "env.yaml"
+    with open(policy_config_path, 'r') as f:
+        policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
+    policy = RLPolicy(policy_path, policy_config, sim.queue)
 
     try:
         while True:

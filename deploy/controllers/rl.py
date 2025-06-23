@@ -18,11 +18,16 @@ class InferenceHandler:
 
 
 class ObservationHandler:
-    def __init__(self, history_length, default_joint_pos, default_joint_vel=None, /, queue=None):
+    def __init__(
+        self, history_length, default_joint_pos, commands_ranges, default_joint_vel=None, /, queue=None
+    ):
         self.history_length = history_length
         self.default_joint_pos = default_joint_pos
+        self.commands_ranges = commands_ranges
         self.default_joint_vel = (
-            default_joint_vel if default_joint_vel is not None else np.zeros_like(default_joint_pos)
+            default_joint_vel
+            if default_joint_vel is not None
+            else np.zeros_like(default_joint_pos)
         )
         self.observation_histories = {}
         self.queue = queue
@@ -47,7 +52,9 @@ class ObservationHandler:
 
         observation_history = np.concatenate(
             [
-                np.array(list(self.observation_histories[i]), dtype=np.float32).flatten()
+                np.array(
+                    list(self.observation_histories[i]), dtype=np.float32
+                ).flatten()
                 for i in range(len(observation_elements))
             ],
         )
@@ -71,6 +78,7 @@ class ObservationHandler:
         if self.queue is not None:
             while not self.queue.empty():
                 self.command += self.queue.get()
+                self.command = np.clip(self.command, self.commands_ranges["lower"], self.commands_ranges["upper"])
         return self.command
 
     def _get_joint_pos(self, state):
@@ -91,11 +99,20 @@ class ActionHandler:
 
 class RLPolicy:
     def __init__(self, policy_path, config, queue=None):
+        default_joint_pos = np.array(
+            [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
+        )
+        history_length = config["observations"]["policy"]["history_length"]
+        action_scale = config["actions"]["joint_pos"]["scale"]
+        commands_ranges = {k: v for k, v in config["commands"]["base_velocity"]["ranges"].items() if v is not None}
+        commands_ranges = {'lower': np.array([commands_ranges[key][0] for key in commands_ranges.keys()]), 
+                           'upper': np.array([commands_ranges[key][1] for key in commands_ranges.keys()])}
+        
         self.policy = InferenceHandler(policy_path=policy_path)
-
-        default_joint_pos = np.array(config["default_joint_pos"])
-        self.observation_handler = ObservationHandler(config["history_length"], default_joint_pos, queue=queue)
-        self.action_handler = ActionHandler(config["action_scale"], default_joint_pos)
+        self.observation_handler = ObservationHandler(
+            history_length, default_joint_pos, commands_ranges, queue=queue
+        )
+        self.action_handler = ActionHandler(action_scale, default_joint_pos)
 
         self.actions = np.zeros_like(default_joint_pos)
 
