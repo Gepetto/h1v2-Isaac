@@ -58,19 +58,22 @@ class RemoteController:
 
 
 class H12Real:
-    def __init__(self, config):
+    def __init__(self, config, debug=False):
         ChannelFactoryInitialize(0, config["net_interface"])
+
+        # Debug mode : if True, no command will be sent to the robot
+        self.debug = debug
 
         self.control_dt = config["dt"]
 
         self.leg_joint2motor_idx = np.array(config["leg_joint2motor_idx"])
-        self.leg_kp = np.array(config["leg_kp"])
-        self.leg_kd = np.array(config["leg_kd"])
+        self.leg_kp = np.zeros_like(config["leg_kp"]) if debug else np.array(config["leg_kp"])
+        self.leg_kd = np.zeros_like(config["leg_kd"]) if debug else np.array(config["leg_kd"])
         self.leg_default_joint_pos = np.array(config["leg_default_joint_pos"])
 
         self.arm_waist_joint2motor_idx = np.array(config["arm_waist_joint2motor_idx"])
-        self.arm_waist_kp = np.array(config["arm_waist_kp"])
-        self.arm_waist_kd = np.array(config["arm_waist_kd"])
+        self.arm_waist_kp = np.zeros_like(config["arm_waist_kp"]) if debug else np.array(config["arm_waist_kp"])
+        self.arm_waist_kd = np.zeros_like(config["arm_waist_kd"]) if debug else np.array(config["arm_waist_kd"])
         self.arm_waist_default_joint_pos = np.array(config["arm_waist_default_joint_pos"])
 
         self.remote_controller = RemoteController()
@@ -80,8 +83,9 @@ class H12Real:
         self.mode_pr_ = 0  # MotorMode.PR in unitree code
         self.mode_machine_ = 0
 
-        self.lowcmd_publisher_ = ChannelPublisher("rt/lowcmd", LowCmdHG)
-        self.lowcmd_publisher_.Init()
+        if not self.debug:
+            self.lowcmd_publisher_ = ChannelPublisher("rt/lowcmd", LowCmdHG)
+            self.lowcmd_publisher_.Init()
 
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
         self.lowstate_subscriber.Init(self.LowStateHgHandler, 10)
@@ -92,7 +96,8 @@ class H12Real:
         self.num_joints_total = len(self.low_cmd.motor_cmd)
 
         # Initialize the command msg
-        self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
+        if not self.debug:
+            self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
 
     def LowStateHgHandler(self, msg: LowStateHG):
         self.low_state = msg
@@ -113,8 +118,11 @@ class H12Real:
             self.low_cmd.motor_cmd[motor_idx].tau = 0
 
     def send_cmd(self, cmd: LowCmdHG):
-        cmd.crc = CRC().Crc(cmd)
-        self.lowcmd_publisher_.Write(cmd)
+        if self.debug:
+            pass
+        else:
+            cmd.crc = CRC().Crc(cmd)
+            self.lowcmd_publisher_.Write(cmd)
 
     def get_controller_command(self):
         return np.clip(
