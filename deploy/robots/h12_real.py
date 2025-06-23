@@ -146,9 +146,7 @@ class H12Real:
         # h1_2 imu is in the torso
         # imu data needs to be transformed to the pelvis frame
         waist_yaw = self.low_state.motor_state[self.arm_waist_joint2motor_idx[0]].q
-        waist_yaw_omega = self.low_state.motor_state[
-            self.arm_waist_joint2motor_idx[0]
-        ].dq
+        waist_yaw_omega = self.low_state.motor_state[self.arm_waist_joint2motor_idx[0]].dq
         quat, ang_vel = self.transform_imu_data(
             waist_yaw=waist_yaw,
             waist_yaw_omega=waist_yaw_omega,
@@ -270,6 +268,7 @@ class H12Real:
         self.send_cmd(self.low_cmd)
 
         time.sleep(self.control_dt)
+
 
 if __name__ == "__main__":
     config_path = Path(__file__).parent / "config" / "config.yaml"

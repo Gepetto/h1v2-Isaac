@@ -1,10 +1,10 @@
+import json
 import threading
 import time
-import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from queue import Queue
-from dataclasses import dataclass, asdict, field
-from typing import Dict, Any, List
+from typing import Any
 
 import mujoco
 import mujoco.viewer
@@ -20,7 +20,7 @@ class SafetyViolation:
     check_type: str
     value: float
     limit: float
-    additional_info: Dict[str, Any] = field(default_factory=dict)
+    additional_info: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self):
         data = asdict(self)
@@ -49,7 +49,7 @@ class H1Mujoco:
 
         self.lock = threading.Lock()
 
-        self.safety_violations: List[SafetyViolation] = []
+        self.safety_violations: list[SafetyViolation] = []
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
@@ -67,9 +67,7 @@ class H1Mujoco:
 
         if config["enable_GUI"]:
             self.close_event = threading.Event()
-            self.thread = threading.Thread(
-                target=self.run_render, args=(self.close_event,)
-            )
+            self.thread = threading.Thread(target=self.run_render, args=(self.close_event,))
             self.thread.start()
 
         self.safety_checker_verbose = config["safety_checker_verbose"]
@@ -88,9 +86,7 @@ class H1Mujoco:
             self.lock.release()
 
             if self.real_time:
-                time_to_wait = max(
-                    0, step_start - time.perf_counter() + self.model.opt.timestep
-                )
+                time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
                 time.sleep(time_to_wait)
 
             self.current_time += self.model.opt.timestep
@@ -108,7 +104,7 @@ class H1Mujoco:
             raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
         safety_checker_path = log_dir / "safety_check.json"
-        with open(safety_checker_path, "w") as f:
+        with safety_checker_path.open("w") as f:
             json.dump(
                 [asdict(v) for v in self.safety_violations],
                 f,
@@ -123,7 +119,7 @@ class H1Mujoco:
         check_type: str,
         value: float,
         limit: float,
-        additional_info: Dict[str, Any] = None,
+        additional_info: dict[str, Any] = None,
     ):
         violation = SafetyViolation(
             timestamp=self.current_time,
@@ -138,15 +134,13 @@ class H1Mujoco:
         if self.safety_checker_verbose:
             print(
                 f"[{violation.timestamp:.3f}s] {joint_name}: {check_type.upper()} violation - "
-                f"value={value:.4f}, limit={limit:.4f}"
+                f"value={value:.4f}, limit={limit:.4f}",
             )
 
     def _safety_check(self):
         # Loop through joints
         for jnt_id in range(self.model.njnt):
-            joint_name = mujoco.mj_id2name(
-                self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id
-            )
+            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id)
 
             # Position check
             joint_pos_addr = self.model.jnt_qposadr[jnt_id]
@@ -154,9 +148,7 @@ class H1Mujoco:
 
             # Velocity check
             joint_vel_addr = self.model.jnt_dofadr[jnt_id]
-            joint_velocity = (
-                self.data.qvel[joint_vel_addr] if joint_vel_addr >= 0 else 0
-            )
+            joint_velocity = self.data.qvel[joint_vel_addr] if joint_vel_addr >= 0 else 0
 
             # Torque check
             joint_torque = 0.0
@@ -183,9 +175,7 @@ class H1Mujoco:
                     )
 
             # Check velocity limits
-            if hasattr(self.model, "jnt_vel_limits") and jnt_id < len(
-                self.model.jnt_vel_limits
-            ):
+            if hasattr(self.model, "jnt_vel_limits") and jnt_id < len(self.model.jnt_vel_limits):
                 vel_limit = self.model.jnt_vel_limits[jnt_id]
                 vel_in_range = abs(joint_velocity) <= vel_limit
                 if not vel_in_range:
@@ -197,9 +187,7 @@ class H1Mujoco:
                     )
 
             # Check torque limits
-            if hasattr(self.model, "jnt_torque_limits") and jnt_id < len(
-                self.model.jnt_torque_limits
-            ):
+            if hasattr(self.model, "jnt_torque_limits") and jnt_id < len(self.model.jnt_torque_limits):
                 torque_limit = self.model.jnt_torque_limits[jnt_id]
                 torque_in_range = abs(joint_torque) <= torque_limit
                 if not torque_in_range:
@@ -212,10 +200,7 @@ class H1Mujoco:
 
         # Contact force checks
         foot_bodies = ["left_ankle_roll_link", "right_ankle_roll_link"]
-        foot_ids = {
-            name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
-            for name in foot_bodies
-        }
+        foot_ids = {name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name) for name in foot_bodies}
 
         foot_forces = {name: [] for name in foot_bodies}
 
@@ -230,13 +215,11 @@ class H1Mujoco:
             force_norm = np.linalg.norm(force)
 
             for foot_name, foot_id in foot_ids.items():
-                if foot_id == geom1_body or foot_id == geom2_body:
+                if foot_id in (geom1_body, geom2_body):
                     foot_forces[foot_name].append(force_norm)
 
         # Record contact force violations
-        total_mass_force = np.sum(self.model.body_mass) * np.linalg.norm(
-            self.model.opt.gravity
-        )
+        total_mass_force = np.sum(self.model.body_mass) * np.linalg.norm(self.model.opt.gravity)
         for foot, forces in foot_forces.items():
             total = sum(forces)
             if total > total_mass_force:
@@ -269,9 +252,7 @@ class H1Mujoco:
 
     def run_render(self, close_event):
         key_cb = self.key_callback if self.enable_keyboard else None
-        viewer = mujoco.viewer.launch_passive(
-            self.model, self.data, key_callback=key_cb
-        )
+        viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
         while viewer.is_running() and not close_event.is_set():
             self.lock.acquire()
             viewer.sync()

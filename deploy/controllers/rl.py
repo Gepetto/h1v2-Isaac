@@ -20,7 +20,7 @@ class InferenceHandler:
 class ObservationHandler:
     def __init__(
         self,
-        observations_func, 
+        observations_func,
         observations_scale,
         history_length,
         default_joint_pos,
@@ -35,9 +35,7 @@ class ObservationHandler:
         self.default_joint_pos = default_joint_pos
         self.commands_ranges = commands_ranges
         self.default_joint_vel = (
-            default_joint_vel
-            if default_joint_vel is not None
-            else np.zeros_like(default_joint_pos)
+            default_joint_vel if default_joint_vel is not None else np.zeros_like(default_joint_pos)
         )
         self.observation_histories = {}
         self.queue = queue
@@ -56,9 +54,7 @@ class ObservationHandler:
 
         observation_history = np.concatenate(
             [
-                np.array(
-                    list(self.observation_histories[i]), dtype=np.float32
-                ).flatten()
+                np.array(list(self.observation_histories[i]), dtype=np.float32).flatten()
                 for i in range(len(self.observations_func))
             ],
         )
@@ -98,7 +94,7 @@ class ObservationHandler:
 
     def joint_vel_rel(self):
         return self.state["q_vel"] - self.default_joint_vel
-    
+
     def last_action(self):
         return self.actions
 
@@ -114,36 +110,33 @@ class ActionHandler:
 
 class RLPolicy:
     def __init__(self, policy_path, config, queue=None):
-        default_joint_pos = np.array(
-            [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
-        )
+        default_joint_pos = np.array(list(config["scene"]["robot"]["init_state"]["joint_pos"].values()))
         history_length = config["observations"]["policy"]["history_length"]
         action_scale = config["actions"]["joint_pos"]["scale"]
+        commands_ranges = {k: v for k, v in config["commands"]["base_velocity"]["ranges"].items() if v is not None}
         commands_ranges = {
-            k: v
-            for k, v in config["commands"]["base_velocity"]["ranges"].items()
-            if v is not None
+            "lower": np.array([commands_ranges[key][0] for key in commands_ranges]),
+            "upper": np.array([commands_ranges[key][1] for key in commands_ranges]),
+            "velocity_deadzone": config["commands"]["base_velocity"]["velocity_deadzone"],
         }
-        commands_ranges = {
-            "lower": np.array(
-                [commands_ranges[key][0] for key in commands_ranges.keys()]
-            ),
-            "upper": np.array(
-                [commands_ranges[key][1] for key in commands_ranges.keys()]
-            ),
-            "velocity_deadzone": config["commands"]["base_velocity"][
-                "velocity_deadzone"
-            ],
-        }
-        observations_func = [config["observations"]["policy"][key]["func"].split(':')[-1] for key, value in config["observations"]["policy"].items() if isinstance(value, dict) and 'func' in value]
-        observations_scale = [1 if value.get("scale") is None else value["scale"] 
-                            for value in config["observations"]["policy"].values() 
-                            if isinstance(value, dict) and 'func' in value]
+        observations_func = [
+            config["observations"]["policy"][key]["func"].split(":")[-1]
+            for key, value in config["observations"]["policy"].items()
+            if isinstance(value, dict) and "func" in value
+        ]
+        observations_scale = [
+            1 if value.get("scale") is None else value["scale"]
+            for value in config["observations"]["policy"].values()
+            if isinstance(value, dict) and "func" in value
+        ]
 
         self.policy = InferenceHandler(policy_path=policy_path)
         self.observation_handler = ObservationHandler(
-            observations_func, observations_scale,
-            history_length, default_joint_pos, commands_ranges, queue=queue
+            observations_func,
+            observations_scale,
+            history_length,
+            default_joint_pos,
+            commands_ranges,
         )
         self.action_handler = ActionHandler(action_scale, default_joint_pos)
 
