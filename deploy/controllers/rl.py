@@ -42,10 +42,7 @@ class ObservationHandler:
         self.state = state
         self.actions = actions
         if command is not None:
-            self.command = (command + 1) / 2 * (
-                self.commands_ranges["upper"] - self.commands_ranges["lower"]
-            ) + self.commands_ranges["lower"]
-            self.command[np.abs(self.command) < self.commands_ranges["velocity_deadzone"]] = 0.0
+            self.command = command
 
         for i, element in enumerate(self.observations_func):
             if i not in self.observation_histories:
@@ -77,7 +74,11 @@ class ObservationHandler:
         return gravity_orientation
 
     def generated_commands(self):
-        return self.command
+        scaled_command = (self.command + 1) / 2 * (
+            self.commands_ranges["upper"] - self.commands_ranges["lower"]
+        ) + self.commands_ranges["lower"]
+        scaled_command[np.abs(scaled_command) < self.commands_ranges["velocity_deadzone"]] = 0.0
+        return scaled_command
 
     def joint_pos_rel(self):
         return self.state["q_pos"] - self.default_joint_pos
