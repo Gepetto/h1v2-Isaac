@@ -77,8 +77,9 @@ class ObservationHandler:
     def _get_command(self):
         if self.queue is not None:
             while not self.queue.empty():
-                self.command += self.queue.get()
-                self.command = np.clip(self.command, self.commands_ranges["lower"], self.commands_ranges["upper"])
+                self.command = self.queue.get()  # Assumption: commands are initially scaled between -1 and 1
+                self.command = (self.command + 1) / 2 * (self.commands_ranges["upper"] - self.commands_ranges["lower"]) + self.commands_ranges["lower"]
+                self.command = [0 if abs(val) < self.commands_ranges["velocity_deadzone"] else val for val in self.command]       
         return self.command
 
     def _get_joint_pos(self, state):
@@ -106,7 +107,8 @@ class RLPolicy:
         action_scale = config["actions"]["joint_pos"]["scale"]
         commands_ranges = {k: v for k, v in config["commands"]["base_velocity"]["ranges"].items() if v is not None}
         commands_ranges = {'lower': np.array([commands_ranges[key][0] for key in commands_ranges.keys()]), 
-                           'upper': np.array([commands_ranges[key][1] for key in commands_ranges.keys()])}
+                           'upper': np.array([commands_ranges[key][1] for key in commands_ranges.keys()]),
+                           'velocity_deadzone': config["commands"]["base_velocity"]["velocity_deadzone"]}
         
         self.policy = InferenceHandler(policy_path=policy_path)
         self.observation_handler = ObservationHandler(
