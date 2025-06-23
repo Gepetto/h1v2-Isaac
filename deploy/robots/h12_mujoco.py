@@ -283,17 +283,17 @@ class H1Mujoco:
         if self.queue is None:
             return
         glfw = mujoco.glfw.glfw
-        if key == glfw.KEY_W:
+        if key == glfw.KEY_UP or key == glfw.KEY_KP_8:
             self.queue.put(np.array([0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_S:
+        elif key == glfw.KEY_DOWN or key == glfw.KEY_KP_5:
             self.queue.put(np.array([-0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_Q:
+        elif key == glfw.KEY_LEFT or key == glfw.KEY_KP_4:
             self.queue.put(np.array([0.0, -0.1, 0.0]))
-        elif key == glfw.KEY_E:
+        elif key == glfw.KEY_RIGHT or key == glfw.KEY_KP_6:
             self.queue.put(np.array([0.0, 0.1, 0.0]))
-        elif key == glfw.KEY_A:
+        elif key == glfw.KEY_Z or key == glfw.KEY_KP_7:
             self.queue.put(np.array([0.0, 0.0, 0.1]))
-        elif key == glfw.KEY_D:
+        elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
             self.queue.put(np.array([0.0, 0.0, -0.1]))
 
 
