@@ -12,7 +12,7 @@ class H12_12dof_FlatPPORunnerCfg(CleanRlPpoActorCriticCfg):
     save_interval = 50
     learning_rate = 3.0e-4
     num_steps = 24
-    num_iterations = 5000
+    num_iterations = 10000
     gamma = 0.99
     gae_lambda = 0.95
     updates_epochs = 5

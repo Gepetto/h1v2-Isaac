@@ -39,7 +39,7 @@ from biped_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 from biped_tasks.utils.mdp.terrains import ROUGH_TERRAINS_CFG  # isort: skip
 
 
-VELOCITY_DEADZONE = 0.3
+VELOCITY_DEADZONE = 0.2
 MAX_CURRICULUM_ITERATIONS = 1000
 
 
@@ -52,8 +52,7 @@ class MySceneCfg(InteractiveSceneCfg):
 
     terrain = TerrainImporterCfg(
         prim_path="/World/ground",
-        terrain_type="generator",
-        terrain_generator=ROUGH_TERRAINS_CFG,
+        terrain_type="plane",
         max_init_terrain_level=1,
         collision_group=-1,
         physics_material=sim_utils.RigidBodyMaterialCfg(
@@ -101,7 +100,7 @@ class CommandsCfg:
         heading_command=False,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(0.0, 1.0), lin_vel_y=(0.0, 0.0), ang_vel_z=(-1.57, 1.57)
+            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-0.5, 0.5)
         ),
         velocity_deadzone=VELOCITY_DEADZONE
     )
@@ -185,7 +184,7 @@ class ObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
-            self.history_length = 5
+            self.history_length = 6
             self.history_step = 1
 
     # observation groups
@@ -205,8 +204,8 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "static_friction_range": (0.4, 1.5),
-            "dynamic_friction_range": (0.4, 1.5),
+            "static_friction_range": (0.1, 1.25),
+            "dynamic_friction_range": (0.1, 1.25),
             "restitution_range": (0.0, 0.0),
             "num_buckets": 64,
         },
@@ -216,7 +215,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=".*"),
-            "mass_distribution_params": (0.8, 1.2),
+            "mass_distribution_params": (0.9, 1.1),
             "operation": "scale",
             "recompute_inertia": False,
         },
@@ -225,7 +224,7 @@ class EventCfg:
         func=events.randomize_body_coms,
         mode="startup",
         params={
-            "max_displacement": 0.02,
+            "max_displacement": 0.03,
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
         },
     )
@@ -269,8 +268,8 @@ class EventCfg:
         func=mdp.reset_joints_by_scale,
         mode="reset",
         params={
-            "position_range": (0.9, 1.1),
-            "velocity_range": (0.9, 1.1),
+            "position_range": (0.8, 1.2),
+            "velocity_range": (0.8, 1.2),
         },
     )
     
@@ -279,9 +278,9 @@ class EventCfg:
         func=mdp.push_by_setting_velocity,
         mode="interval",
         interval_range_s=(5.0, 8.0),
-        params={"velocity_range": {"x": (-0.5, 0.5), 
-                                   "y": (-0.5, 0.5),
-                                   "z": (-0.1, 0.1),
+        params={"velocity_range": {"x": (-1.0, 1.0), 
+                                   "y": (-1.0, 1.0),
+                                   "z": (-0.2, 0.2),
                                    "yaw": (-0.5, 0.5), 
                                    "pitch": (-0.5, 0.5), 
                                    "roll": (-0.5, 0.5)}},
@@ -336,7 +335,7 @@ class ConstraintsCfg:
     foot_contact_force = ConstraintTerm(
         func=constraints.foot_contact_force,
         max_p=0.25,
-        params={"limit": 900.0, "names": [".*_ankle_roll_link"]},
+        params={"limit": 700.0, "names": [".*_ankle_roll_link"]},
     )
     hip_joint_torque = ConstraintTerm(
         func=constraints.joint_torque,
@@ -410,6 +409,16 @@ class ConstraintsCfg:
         func=constraints.joint_range,
         max_p=0.25,
         params={"limit": 1.0, "names": [".*_knee_joint"]},
+    )
+    ankle_roll_position = ConstraintTerm(
+        func=constraints.joint_range,
+        max_p=0.25,
+        params={"limit": 0.1, "names": [".*_ankle_roll_joint"]},
+    )
+    ankle_pitch_position = ConstraintTerm(
+        func=constraints.joint_range,
+        max_p=0.25,
+        params={"limit": 0.5, "names": [".*_ankle_pitch_joint"]},
     )
 
 
@@ -556,7 +565,23 @@ class CurriculumCfg:
             "init_max_p": 0.25,
         },
     )
-
+    ankle_roll_position = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "ankle_roll_position",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    ankle_pitch_position = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "ankle_pitch_position",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
+    
 
 # ========================================================
 # Environment Configuration
@@ -615,12 +640,13 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
         # disable randomization for play
-        self.events.push_robot = self.events.physics_material = self.events.scale_mass = self.events.move_base_com = self.events.randomize_joint_parameters = self.events.base_external_force_torque = None
-        self.observations.policy.enable_corruption = False
+        # self.events.push_robot = self.events.physics_material = self.events.scale_mass = self.events.move_base_com = self.events.randomize_joint_parameters = self.events.base_external_force_torque = None
+        # self.observations.policy.enable_corruption = False
         # set velocity command
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
+        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
         # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
         # self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.57, 1.57)
+        # self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
+        # self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+

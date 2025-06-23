@@ -68,7 +68,7 @@ H12_12DOF = ArticulationCfg(
             },
             armature=0.1,
             min_delay=0,
-            max_delay=2,
+            max_delay=5,
         ),
         "knees": DelayedPDActuatorCfg(
             joint_names_expr=[".*_knee_joint"],
@@ -82,7 +82,7 @@ H12_12DOF = ArticulationCfg(
             },
             armature=0.1,
             min_delay=0,
-            max_delay=2,
+            max_delay=5,
         ),
         "feet": DelayedPDActuatorCfg(
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -98,7 +98,7 @@ H12_12DOF = ArticulationCfg(
             },
             armature=0.1,
             min_delay=0,
-            max_delay=2,
+            max_delay=5,
         ),
     },
 )
