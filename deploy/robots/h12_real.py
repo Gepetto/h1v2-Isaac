@@ -1,8 +1,9 @@
-import argparse
 import struct
 import time
+from pathlib import Path
 
 import numpy as np
+import yaml
 from scipy.spatial.transform import Rotation as R
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,
@@ -57,10 +58,20 @@ class RemoteController:
 
 
 class H12Real:
-    def __init__(self, net_interface):
-        ChannelFactoryInitialize(0, net_interface)
+    def __init__(self, config):
+        ChannelFactoryInitialize(0, config["net_interface"])
 
-        self._set_config()
+        self.control_dt = config["dt"]
+
+        self.leg_joint2motor_idx = np.array(config["leg_joint2motor_idx"])
+        self.leg_kp = np.array(config["leg_kp"])
+        self.leg_kd = np.array(config["leg_kd"])
+        self.leg_default_joint_pos = np.array(config["leg_default_joint_pos"])
+
+        self.arm_waist_joint2motor_idx = np.array(config["arm_waist_joint2motor_idx"])
+        self.arm_waist_kp = np.array(config["arm_waist_kp"])
+        self.arm_waist_kd = np.array(config["arm_waist_kd"])
+        self.arm_waist_default_joint_pos = np.array(config["arm_waist_default_joint_pos"])
 
         self.remote_controller = RemoteController()
 
@@ -82,69 +93,6 @@ class H12Real:
 
         # Initialize the command msg
         self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
-
-    def _set_config(self):
-        self.leg_joint2motor_idx = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-
-        self.kps = [200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40]
-        self.kds = [2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2]
-        self.default_angles = np.array(
-            [
-                0,
-                -0.16,
-                0.0,
-                0.36,
-                -0.2,
-                0.0,
-                0,
-                -0.16,
-                0.0,
-                0.36,
-                -0.2,
-                0.0,
-            ]
-        )
-
-        self.arm_waist_joint2motor_idx = [
-            12,
-            13,
-            14,
-            15,
-            16,
-            17,
-            18,
-            19,
-            20,
-            21,
-            22,
-            23,
-            24,
-            25,
-            26,
-        ]
-        self.arm_waist_kps = [
-            300,
-            120,
-            120,
-            120,
-            80,
-            80,
-            80,
-            80,
-            120,
-            120,
-            120,
-            80,
-            80,
-            80,
-            80,
-        ]
-
-        self.arm_waist_kds = [3, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1]
-
-        self.arm_waist_target = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-
-        self.control_dt = 0.02
 
     def LowStateHgHandler(self, msg: LowStateHG):
         self.low_state = msg
@@ -174,7 +122,7 @@ class H12Real:
                 self.remote_controller.ly,
                 self.remote_controller.lx * -1,
                 self.remote_controller.rx * -1,
-            ]
+            ],
         )
 
     def get_robot_state(self):
@@ -268,17 +216,15 @@ class H12Real:
         total_time = 2  # move time 2s
         num_step = int(total_time / self.control_dt)
 
-        dof_idx = self.leg_joint2motor_idx + self.arm_waist_joint2motor_idx
-        kps = self.kps + self.arm_waist_kps
-        kds = self.kds + self.arm_waist_kds
-        default_pos = np.concatenate(
-            (self.default_angles, self.arm_waist_target), axis=0
-        )
+        dof_idx = np.concatenate((self.leg_joint2motor_idx, self.arm_waist_joint2motor_idx), axis=0)
+        kps = np.concatenate((self.leg_kp, self.arm_waist_kp), axis=0)
+        kds = np.concatenate((self.leg_kd, self.arm_waist_kd), axis=0)
+        default_pos = np.concatenate((self.leg_default_joint_pos, self.arm_waist_default_joint_pos), axis=0)
 
         # record the current pos
         init_dof_pos = np.zeros(self.num_joints_total, dtype=np.float32)
         for i, dof_id in enumerate(dof_idx):
-            init_dof_pos[i] = self.low_state.motor_state[dof_idx[i]].q
+            init_dof_pos[i] = self.low_state.motor_state[dof_id].q
 
         # move to default pos
         for i in range(num_step):
@@ -293,15 +239,15 @@ class H12Real:
         while self.remote_controller.button[KeyMap.A] != 1:
             self.set_motor_commands(
                 self.leg_joint2motor_idx,
-                self.default_angles,
-                self.kps,
-                self.kds,
+                self.leg_default_joint_pos,
+                self.leg_kp,
+                self.leg_kd,
             )
             self.set_motor_commands(
                 self.arm_waist_joint2motor_idx,
-                self.arm_waist_target,
-                self.arm_waist_kps,
-                self.arm_waist_kds,
+                self.arm_waist_default_joint_pos,
+                self.arm_waist_kp,
+                self.arm_waist_kd,
             )
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
@@ -310,14 +256,14 @@ class H12Real:
         self.set_motor_commands(
             self.leg_joint2motor_idx,
             target_dof_pos,
-            self.kps,
-            self.kds,
+            self.leg_kp,
+            self.leg_kd,
         )
         self.set_motor_commands(
             self.arm_waist_joint2motor_idx,
-            self.arm_waist_target,
-            self.arm_waist_kps,
-            self.arm_waist_kds,
+            self.arm_waist_default_joint_pos,
+            self.arm_waist_kp,
+            self.arm_waist_kd,
         )
 
         # send the command
@@ -326,11 +272,11 @@ class H12Real:
         time.sleep(self.control_dt)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("net", type=str, help="network interface")
-    args = parser.parse_args()
+    config_path = Path(__file__).parent / "config" / "config.yaml"
+    with config_path.open() as file:
+        config = yaml.safe_load(file)
 
-    robot = H12Real(args.net)
+    robot = H12Real(config)
 
     robot.enter_zero_torque_state()
     robot.move_to_default_pos()
