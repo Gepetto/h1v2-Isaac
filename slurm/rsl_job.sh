@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1                      # 1 GPU per job
 #SBATCH --cpus-per-task=10                # 10 CPU cores per task
 #SBATCH --hint=nomultithread              # Physical cores only
-#SBATCH --time=5:00:00                    # Maximum execution time (HH:MM:SS). Maximum 20h
+#SBATCH --time=10:00:00                    # Maximum execution time (HH:MM:SS). Maximum 20h
 #SBATCH --output=logs/out/%x_%A_%a.out        # Output log
 #SBATCH --error=logs/err/%x_%A_%a.err         # Error log
 #SBATCH --array=0                       # Create an array of jobs. Will affect the value of $SLURM_ARRAY_TASK_ID
@@ -35,10 +35,10 @@ EXPERIMENT_NAME="${SLURM_JOB_NAME}_${SLURM_ARRAY_TASK_ID}"
 
 # Run training
 set -x
-python $WORK/v1.0/h1v2-Isaac/scripts/rsl_rl/play.py \
-    --task=Isaac-Velocity-Rsl-H12_12dof-Play-v0 \
+python $WORK/v1.0/h1v2-Isaac/scripts/rsl_rl/train.py \
+    --task=Isaac-Velocity-Rsl-H12_12dof-v0 \
     --headless \
-    #--num_envs=8192 \
+    --num_envs=8192 \
     #--max_iterations=5000 \
     #agent.experiment_name="${EXPERIMENT_NAME}" \
     #${CONFIG}

@@ -337,6 +337,10 @@ class RewardsCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint"]),
         },
     )
+    flat_orientation = RewTerm(
+        func=mdp.flat_orientation_l2,
+        weight=-1.0,
+    )
     # base_height_l2 = RewTerm(
     #     func=mdp.base_height_l2,
     #     target_height=0.8,
@@ -422,7 +426,7 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
         super().__post_init__()
 
         # make a smaller scene for play
-        self.scene.num_envs = 100
+        self.scene.num_envs = 20
         self.scene.env_spacing = 2.5
         if self.scene.terrain.terrain_generator is not None:
             self.scene.terrain.terrain_generator.num_rows = 5
@@ -433,5 +437,5 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
         self.observations.policy.enable_corruption = False
         # set velocity command
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.57, 1.57)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
