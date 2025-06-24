@@ -855,7 +855,7 @@ curriculum:
     params:
       term_name: foot_contact_force
       num_steps: 24000
-      init_max_p: 0.25
+      init_max_p: 0.5
   hip_joint_torque:
     func: biped_tasks.utils.cat.curriculums:modify_constraint_p
     params:
@@ -1064,10 +1064,10 @@ constraints:
   foot_contact_force:
     func: biped_tasks.utils.cat.constraints:foot_contact_force
     params:
-      limit: 700.0
+      limit: 800.0
       names:
       - .*_ankle_roll_link
-    max_p: 0.25
+    max_p: 0.5
   hip_joint_torque:
     func: biped_tasks.utils.cat.constraints:joint_torque
     params:
@@ -1138,7 +1138,7 @@ constraints:
       names:
       - .*
       velocity_deadzone: 0.2
-      joint_vel_limit: 1.0
+      joint_vel_limit: 0.0
     max_p: 0.25
   hip_roll_position:
     func: biped_tasks.utils.cat.constraints:joint_range
