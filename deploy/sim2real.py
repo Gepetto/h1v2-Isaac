@@ -28,7 +28,10 @@ if __name__ == "__main__":
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
-    policy = RLPolicy(policy_path, config["rl"])
+    policy_config_path = Path(__file__).parent / "config" / "env.yaml"
+    with policy_config_path.open() as f:
+        policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
+    policy = RLPolicy(policy_path, policy_config)
 
     if debug == DebugMode.FULL_MOVEMENT or debug == DebugMode.PD:
         robot.enter_zero_torque_state()
