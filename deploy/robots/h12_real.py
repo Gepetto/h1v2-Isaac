@@ -180,9 +180,12 @@ class H12Real:
         return R.from_matrix(R_pelvis).as_quat()[[3, 0, 1, 2]], w
 
     def _get_joint_state(self):
-        for i in range(len(self.leg_joint2motor_idx)):
-            q_pos = self.low_state.motor_state[self.leg_joint2motor_idx[i]].q
-            q_vel = self.low_state.motor_state[self.leg_joint2motor_idx[i]].dq
+        n = len(self.leg_joint2motor_idx)
+        q_pos = np.empty(n)
+        q_vel = np.empty(n)
+        for i in range(n):
+            q_pos[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].q
+            q_vel[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].dq
 
         return (q_pos, q_vel)
 
