@@ -287,7 +287,7 @@ if __name__ == "__main__":
     with config_path.open() as file:
         config = yaml.safe_load(file)
 
-    robot = H12Real(config)
+    robot = H12Real(config["real"])
 
     robot.enter_zero_torque_state()
     robot.move_to_default_pos()

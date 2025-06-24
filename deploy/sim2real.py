@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     # Set up interface to real robot
     debug_robot = True if debug == DebugMode.NO_MOVEMENT else False
-    robot = H12Real(config=config, debug=debug_robot)
+    robot = H12Real(config=config["real"], debug=debug_robot)
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
