@@ -334,8 +334,8 @@ class ConstraintsCfg:
     # Safety Soft constraints
     foot_contact_force = ConstraintTerm(
         func=constraints.foot_contact_force,
-        max_p=0.25,
-        params={"limit": 700.0, "names": [".*_ankle_roll_link"]},
+        max_p=0.5,
+        params={"limit": 800.0, "names": [".*_ankle_roll_link"]},
     )
     hip_joint_torque = ConstraintTerm(
         func=constraints.joint_torque,
@@ -392,7 +392,7 @@ class ConstraintsCfg:
         params={
             "names": [".*"],
             "velocity_deadzone": VELOCITY_DEADZONE,
-            "joint_vel_limit": 1.0,
+            "joint_vel_limit": 0.0,
         },
     )
     hip_roll_position = ConstraintTerm(
@@ -463,7 +463,7 @@ class CurriculumCfg:
         func=curriculums.modify_constraint_p,
         params={"term_name": "foot_contact_force", 
                 "num_steps": 24 * MAX_CURRICULUM_ITERATIONS, 
-                "init_max_p": 0.25},
+                "init_max_p": 0.5},
     )
     hip_joint_torque = CurrTerm(
         func=curriculums.modify_constraint_p,
@@ -646,7 +646,7 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
         # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         # self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
         # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
+        self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
+        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
