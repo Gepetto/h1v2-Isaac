@@ -93,9 +93,10 @@ class H1Mujoco:
             )
             self.thread.start()
         
+            self.elastic_band_enabled = False
         if config["elastic_band"]:
-            self.elastic_band = ElasticBand()
             self.elastic_band_enabled = True
+            self.elastic_band = ElasticBand()
             self.band_attached_link = self.model.body('torso_link').id
 
         self.safety_checker_verbose = config["safety_checker_verbose"]
