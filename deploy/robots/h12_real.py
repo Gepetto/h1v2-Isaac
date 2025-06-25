@@ -203,16 +203,13 @@ class H12Real:
 
     def enter_zero_torque_state(self):
         print("Entering zero torque state.")
-        print("Waiting for the start signal...")
-        while self.remote_controller.button[KeyMap.start] != 1:
-            self.set_motor_commands(
-                motor_indices=range(self.num_joints_total),
-                positions=np.zeros(self.num_joints_total),
-                kps=np.zeros(self.num_joints_total),
-                kds=np.zeros(self.num_joints_total),
-            )
-            self.send_cmd(self.low_cmd)
-            time.sleep(self.control_dt)
+        self.set_motor_commands(
+            motor_indices=range(self.num_joints_total),
+            positions=np.zeros(self.num_joints_total),
+            kps=np.zeros(self.num_joints_total),
+            kds=np.zeros(self.num_joints_total),
+        )
+        self.send_cmd(self.low_cmd)
 
     def enter_damping_state(self):
         print("Entering damping state.")
@@ -247,23 +244,19 @@ class H12Real:
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
-        print("Enter default pos state.")
-        print("Waiting for the Button A signal...")
-        while self.remote_controller.button[KeyMap.A] != 1:
-            self.set_motor_commands(
-                self.leg_joint2motor_idx,
-                self.leg_default_joint_pos,
-                self.leg_kp,
-                self.leg_kd,
-            )
-            self.set_motor_commands(
-                self.arm_waist_joint2motor_idx,
-                self.arm_waist_default_joint_pos,
-                self.arm_waist_kp,
-                self.arm_waist_kd,
-            )
-            self.send_cmd(self.low_cmd)
-            time.sleep(self.control_dt)
+        self.set_motor_commands(
+            self.leg_joint2motor_idx,
+            self.leg_default_joint_pos,
+            self.leg_kp,
+            self.leg_kd,
+        )
+        self.set_motor_commands(
+            self.arm_waist_joint2motor_idx,
+            self.arm_waist_default_joint_pos,
+            self.arm_waist_kp,
+            self.arm_waist_kd,
+        )
+        print("Reached default pos state.")
 
     def step(self, target_dof_pos):
         self.set_motor_commands(
@@ -283,6 +276,12 @@ class H12Real:
         self.send_cmd(self.low_cmd)
 
         time.sleep(self.control_dt)
+
+    def wait_for_button(self, button):
+        print(f"Waiting to press {button}...")
+        while self.remote_controller.button[button] != 1:
+            self.send_cmd(self.low_cmd)
+            time.sleep(self.control_dt)
 
 
 if __name__ == "__main__":

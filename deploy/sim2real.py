@@ -35,10 +35,11 @@ if __name__ == "__main__":
 
     if debug == DebugMode.FULL_MOVEMENT or debug == DebugMode.PD:
         robot.enter_zero_torque_state()
-        # Press start button
+        robot.wait_for_button(KeyMap.start)
+
     if debug == DebugMode.FULL_MOVEMENT:
         robot.move_to_default_pos()
-        # Press A button
+        robot.wait_for_button(KeyMap.A)
 
     while True:
         try:
