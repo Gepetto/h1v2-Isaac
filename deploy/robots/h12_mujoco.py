@@ -13,6 +13,28 @@ import yaml
 from biped_assets import SCENE_PATHS
 
 
+class ElasticBand:
+    def __init__(self):
+        self.stiffness = 200
+        self.damping = 100
+        self.point = np.array([0, 0, 3])
+        self.length = 0
+        self.enable = True
+
+    def advance(self, x, dx):
+        """
+        Args:
+          δx: desired position - current position
+          dx: current velocity
+        """
+        δx = self.point - x
+        distance = np.linalg.norm(δx)
+        direction = δx / distance
+        v = np.dot(dx, direction)
+        f = (self.stiffness * (distance - self.length) - self.damping * v) * direction
+        return f
+            
+            
 @dataclass
 class SafetyViolation:
     timestamp: float
@@ -71,6 +93,11 @@ class H1Mujoco:
                 target=self.run_render, args=(self.close_event,)
             )
             self.thread.start()
+        
+        if config["elastic_band"]:
+            self.elastic_band = ElasticBand()
+            self.elastic_band_enabled = True
+            self.band_attached_link = self.model.body('torso_link').id
 
         self.safety_checker_verbose = config["safety_checker_verbose"]
 
@@ -86,6 +113,9 @@ class H1Mujoco:
             self.lock.acquire()
             mujoco.mj_step(self.model, self.data)
             self.lock.release()
+            
+            if self.elastic_band_enabled:
+                self.data.xfrc_applied[self.band_attached_link, :3] = self.elastic_band.advance(self.data.qpos[:3], self.data.qvel[:3])
 
             if self.real_time:
                 time_to_wait = max(
@@ -295,6 +325,12 @@ class H1Mujoco:
             self.queue.put(np.array([0.0, 0.0, 0.1]))
         elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
             self.queue.put(np.array([0.0, 0.0, -0.1]))
+        elif key == glfw.KEY_B:
+            self.elastic_band_enabled = not self.elastic_band_enabled
+        elif key == glfw.KEY_I:
+            self.length += 0.1
+        elif key == glfw.KEY_K:
+            self.length -= 0.1
 
 
 if __name__ == "__main__":

@@ -13,3 +13,4 @@ mujoco:
   real_time: True
   enable_keyboard: True
   safety_checker_verbose: False
+  elastic_band: True
