@@ -223,40 +223,45 @@ class H12Real:
 
     def move_to_default_pos(self):
         print("Moving to default pos.")
-        total_time = 2  # move time 2s
-        num_step = int(total_time / self.control_dt)
+
+        t_pose = self.arm_waist_default_joint_pos.copy()
+        t_pose[list(self.arm_waist_joint2motor_idx).index(14)] = 1
+        t_pose[list(self.arm_waist_joint2motor_idx).index(21)] = -1
 
         dof_idx = np.concatenate((self.leg_joint2motor_idx, self.arm_waist_joint2motor_idx), axis=0)
         kps = np.concatenate((self.leg_kp, self.arm_waist_kp), axis=0)
         kds = np.concatenate((self.leg_kd, self.arm_waist_kd), axis=0)
-        default_pos = np.concatenate((self.leg_default_joint_pos, self.arm_waist_default_joint_pos), axis=0)
+        default_pos = np.concatenate((self.leg_default_joint_pos, t_pose), axis=0)
 
-        # record the current pos
-        init_dof_pos = np.zeros(self.num_joints_total, dtype=np.float32)
-        for i, dof_id in enumerate(dof_idx):
-            init_dof_pos[i] = self.low_state.motor_state[dof_id].q
-
-        # move to default pos
-        for i in range(num_step):
-            alpha = i / num_step
-            target_pos = init_dof_pos * (1 - alpha) + default_pos * alpha
-            self.set_motor_commands(dof_idx, target_pos, kps, kds)
-            self.send_cmd(self.low_cmd)
-            time.sleep(self.control_dt)
-
-        self.set_motor_commands(
-            self.leg_joint2motor_idx,
-            self.leg_default_joint_pos,
-            self.leg_kp,
-            self.leg_kd,
-        )
-        self.set_motor_commands(
+        # Move legs
+        self.move_to_pos(dof_idx, default_pos, kps, kds, 2)
+        self.move_to_pos(
             self.arm_waist_joint2motor_idx,
             self.arm_waist_default_joint_pos,
             self.arm_waist_kp,
             self.arm_waist_kd,
+            1,
         )
         print("Reached default pos state.")
+
+    def move_to_pos(self, joint_idx, pos, kp, kd, duration):
+        num_step = int(duration / self.control_dt)
+
+        # record the current pos
+        init_dof_pos = np.zeros(len(joint_idx), dtype=np.float32)
+        for i, dof_id in enumerate(joint_idx):
+            init_dof_pos[i] = self.low_state.motor_state[dof_id].q
+
+        # move to pos
+        for i in range(num_step):
+            alpha = i / num_step
+            target_pos = init_dof_pos * (1 - alpha) + pos * alpha
+            self.set_motor_commands(joint_idx, target_pos, kp, kd)
+            self.send_cmd(self.low_cmd)
+            time.sleep(self.control_dt)
+
+        self.set_motor_commands(joint_idx, pos, kp, kd)
+        self.send_cmd(self.low_cmd)
 
     def step(self, target_dof_pos):
         self.set_motor_commands(
