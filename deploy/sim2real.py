@@ -23,7 +23,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Set up interface to real robot
-    debug_robot = True if debug == DebugMode.NO_MOVEMENT else False
+    debug_robot = debug == DebugMode.NO_MOVEMENT
     robot = H12Real(config=config["real"], debug=debug_robot)
 
     # Load policy
@@ -41,16 +41,18 @@ if __name__ == "__main__":
         robot.move_to_default_pos()
         robot.wait_for_button(KeyMap.A)
 
-    while True:
-        try:
+    try:
+        while True:
             state = robot.get_robot_state()
 
             if debug == DebugMode.FULL_MOVEMENT:
                 q_ref = policy.step(state)
                 robot.step(q_ref)
             elif debug == DebugMode.PD:
-                leg_joint2motor_idx = np.array([3])
-                joint_pos = np.array([0.36])
+                joint_id = 3  # left knee
+                default_joint_pos = config["real"]["leg_joint2motor_idx"][joint_id]
+                leg_joint2motor_idx = np.array([joint_id])
+                joint_pos = np.array([default_joint_pos])
                 kp = np.array([10])
                 kd = np.array([4])
                 robot.set_motor_commands(leg_joint2motor_idx, joint_pos, kp, kd)
@@ -61,11 +63,13 @@ if __name__ == "__main__":
                 time.sleep(0.5)
             if robot.remote_controller.button[KeyMap.select] == 1:
                 break
-        except KeyboardInterrupt:
-            break # Emergency Stop
-
-    if debug == DebugMode.FULL_MOVEMENT:
-        robot.enter_damping_state()
-    elif debug == DebugMode.PD:
-        robot.enter_zero_torque_state()
-    print("Exit")
+    except KeyboardInterrupt:
+        print("Interruption")
+    except Exception as err:
+        print("Error:", err)
+    finally:
+        if debug == DebugMode.FULL_MOVEMENT:
+            robot.enter_damping_state()
+        elif debug == DebugMode.PD:
+            robot.enter_zero_torque_state()
+        print("Exit")
