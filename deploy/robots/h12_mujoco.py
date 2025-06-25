@@ -18,23 +18,22 @@ class ElasticBand:
         self.stiffness = 200
         self.damping = 100
         self.point = np.array([0, 0, 3])
-        self.length = 0
+        self.length = 0.0
         self.enable = True
 
-    def advance(self, x, dx):
+    def advance(self, x, v):
         """
         Args:
-          δx: desired position - current position
-          dx: current velocity
+          dx: desired position - current position
+          v: current velocity
         """
-        δx = self.point - x
-        distance = np.linalg.norm(δx)
-        direction = δx / distance
-        v = np.dot(dx, direction)
-        f = (self.stiffness * (distance - self.length) - self.damping * v) * direction
-        return f
-            
-            
+        dx = self.point - x
+        distance = np.linalg.norm(dx)
+        direction = dx / distance
+        v = np.dot(v, direction)
+        return (self.stiffness * (distance - self.length) - self.damping * v) * direction
+
+
 @dataclass
 class SafetyViolation:
     timestamp: float
@@ -328,9 +327,9 @@ class H1Mujoco:
         elif key == glfw.KEY_B:
             self.elastic_band_enabled = not self.elastic_band_enabled
         elif key == glfw.KEY_I:
-            self.length += 0.1
+            self.elastic_band.length += 0.1
         elif key == glfw.KEY_K:
-            self.length -= 0.1
+            self.elastic_band.length -= 0.1
 
 
 if __name__ == "__main__":
