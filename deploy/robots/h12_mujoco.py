@@ -29,7 +29,7 @@ class SafetyViolation:
         return data
 
 
-class H1Mujoco:
+class H12Mujoco:
     def __init__(
         self,
         scene_path,
@@ -287,7 +287,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     scene_path = SCENE_PATHS["h12"]
-    sim = H1Mujoco(scene_path, config["mujoco"])
+    sim = H12Mujoco(scene_path, config["mujoco"])
 
     state = sim.get_robot_state()
     while True:

@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from biped_assets import SCENE_PATHS
 from controllers.rl import RLPolicy
-from robots.h12_mujoco import H1Mujoco
+from robots.h12_mujoco import H12Mujoco
 
 if __name__ == "__main__":
     # Load config
@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     # Set up simulation
     scene_path = SCENE_PATHS["h12"]
-    sim = H1Mujoco(scene_path, config["mujoco"])
+    sim = H12Mujoco(scene_path, config["mujoco"])
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
