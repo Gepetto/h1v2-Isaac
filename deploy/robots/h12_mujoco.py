@@ -35,6 +35,21 @@ class ElasticBand:
 
 
 @dataclass
+class Metrics:
+    timestamp: float
+    
+    base_lin_pos: np.ndarray
+    base_quat_pos: np.ndarray
+    joint_pos: Dict[str, float]
+    
+    base_lin_vel: np.ndarray
+    base_quat_vel: np.ndarray
+    joint_vel: Dict[str, float]
+    
+    applied_torques: Dict[str, float]
+   
+    
+@dataclass
 class SafetyViolation:
     timestamp: float
     joint_name: str
@@ -42,13 +57,6 @@ class SafetyViolation:
     value: float
     limit: float
     additional_info: Dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self):
-        data = asdict(self)
-        for key, value in data["additional_info"].items():
-            if isinstance(value, np.ndarray):
-                data["additional_info"][key] = value.tolist()
-        return data
 
 
 class H1Mujoco:
@@ -71,6 +79,7 @@ class H1Mujoco:
         self.lock = threading.Lock()
 
         self.safety_violations: List[SafetyViolation] = []
+        self.metrics_data: List[Metrics] = []
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
@@ -110,6 +119,7 @@ class H1Mujoco:
             torques = self._pd_control(q_ref)
             self._apply_torques(torques)
             self._safety_check()
+            self._metrics()
             self.lock.acquire()
             mujoco.mj_step(self.model, self.data)
             self.lock.release()
@@ -130,7 +140,7 @@ class H1Mujoco:
         if hasattr(self, "thread"):
             self.close_event.set()
 
-        # Save safety checker datas
+        # Save safety checker data
         def _json_serializer(obj):
             """Handle numpy types and other non-serializable objects"""
             if isinstance(obj, (np.ndarray, np.generic)):
@@ -146,6 +156,17 @@ class H1Mujoco:
                 default=_json_serializer,
             )
         print(f"Saved violations to {safety_checker_path}")
+        
+         # Save metrics data
+        metrics_path = log_dir / "metrics.json"
+        with open(metrics_path, "w") as f:
+            json.dump(
+                [asdict(m) for m in self.metrics_data],
+                f,
+                indent=2,
+                default=_json_serializer,
+            )
+        print(f"Saved metrics to {metrics_path}")
 
     def _record_violation(
         self,
@@ -281,6 +302,52 @@ class H1Mujoco:
                     },
                 )
 
+    def _metrics(self):
+        # Create joint position and velocity dictionaries
+        joint_pos = {}
+        joint_vel = {}
+        applied_torques = {}
+        
+        # Loop through joints to collect data
+        for jnt_id in range(self.model.njnt):
+            joint_name = mujoco.mj_id2name(
+                self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id
+            )
+            
+            # Position
+            joint_pos_addr = self.model.jnt_qposadr[jnt_id]
+            joint_pos[joint_name] = self.data.qpos[joint_pos_addr]
+            
+            # Velocity
+            joint_vel_addr = self.model.jnt_dofadr[jnt_id]
+            joint_vel[joint_name] = (
+                self.data.qvel[joint_vel_addr] if joint_vel_addr >= 0 else 0
+            )
+            
+            # Torque
+            joint_torque = 0.0
+            for act_id in range(self.model.nu):
+                if self.model.actuator_trntype[act_id] == mujoco.mjtTrn.mjTRN_JOINT:
+                    trn_joint_id = self.model.actuator_trnid[act_id, 0]
+                    if trn_joint_id == jnt_id:
+                        joint_torque = self.data.actuator_force[act_id]
+                        applied_torques[joint_name] = joint_torque
+        
+        # Create metrics object
+        metrics = Metrics(
+            timestamp=self.current_time,
+            base_lin_pos=self.data.qpos[:3].copy(),
+            base_quat_pos=self.data.qpos[3:7].copy(),
+            joint_pos=joint_pos,
+            base_lin_vel=self.data.qvel[:3].copy(),
+            base_quat_vel=self.data.qvel[3:6].copy(),
+            joint_vel=joint_vel,
+            applied_torques=applied_torques
+        )
+        
+        # Store metrics
+        self.metrics_data.append(metrics)
+        
     def _apply_torques(self, torques):
         self.data.ctrl[:] = torques
 
