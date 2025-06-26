@@ -47,6 +47,10 @@ class Metrics:
     joint_vel: Dict[str, float]
     
     applied_torques: Dict[str, float]
+    
+    desired_q_ref: Dict[str, float] 
+    
+    foot_contact_forces: Dict[str, float]
    
     
 @dataclass
@@ -119,7 +123,7 @@ class H1Mujoco:
             torques = self._pd_control(q_ref)
             self._apply_torques(torques)
             self._safety_check()
-            self._metrics()
+            self._metrics(q_ref)
             self.lock.acquire()
             mujoco.mj_step(self.model, self.data)
             self.lock.release()
@@ -302,11 +306,12 @@ class H1Mujoco:
                     },
                 )
 
-    def _metrics(self):
+    def _metrics(self, q_ref):
         # Create joint position and velocity dictionaries
         joint_pos = {}
         joint_vel = {}
         applied_torques = {}
+        desired_q_ref = {}
         
         # Loop through joints to collect data
         for jnt_id in range(self.model.njnt):
@@ -332,6 +337,15 @@ class H1Mujoco:
                     if trn_joint_id == jnt_id:
                         joint_torque = self.data.actuator_force[act_id]
                         applied_torques[joint_name] = joint_torque
+            
+            # Desired reference
+            if jnt_id < len(q_ref):
+                joint_qpos_addr = self.model.jnt_qposadr[jnt_id]
+                if joint_qpos_addr >= 7:  # Skip base joints
+                    desired_q_ref[joint_name] = q_ref[joint_qpos_addr-7]
+        
+        # Get foot contact forces
+        foot_contact_forces = self._get_foot_contact_forces()
         
         # Create metrics object
         metrics = Metrics(
@@ -342,12 +356,39 @@ class H1Mujoco:
             base_lin_vel=self.data.qvel[:3].copy(),
             base_quat_vel=self.data.qvel[3:6].copy(),
             joint_vel=joint_vel,
-            applied_torques=applied_torques
+            applied_torques=applied_torques,
+            desired_q_ref=desired_q_ref,
+            foot_contact_forces=foot_contact_forces
         )
         
         # Store metrics
         self.metrics_data.append(metrics)
+    
+    def _get_foot_contact_forces(self) -> Dict[str, float]:
+        """Calculate contact forces for each foot"""
+        foot_bodies = ["left_ankle_roll_link", "right_ankle_roll_link"]
+        foot_ids = {
+            name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
+            for name in foot_bodies
+        }
         
+        foot_forces = {name: 0.0 for name in foot_bodies}
+        
+        for i in range(self.data.ncon):
+            contact = self.data.contact[i]
+            geom1_body = self.model.geom_bodyid[contact.geom1]
+            geom2_body = self.model.geom_bodyid[contact.geom2]
+            
+            force_vec = np.zeros(6)
+            mujoco.mj_contactForce(self.model, self.data, i, force_vec)
+            force_norm = np.linalg.norm(force_vec[:3])
+            
+            for foot_name, foot_id in foot_ids.items():
+                if foot_id == geom1_body or foot_id == geom2_body:
+                    foot_forces[foot_name] += force_norm
+                    
+        return foot_forces
+
     def _apply_torques(self, torques):
         self.data.ctrl[:] = torques
 

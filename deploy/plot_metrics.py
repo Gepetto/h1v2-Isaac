@@ -151,6 +151,56 @@ def plot_3d_trajectory(base_pos: np.ndarray, save_dir: Path):
     plt.savefig(plot_path, dpi=300)
     print(f"Saved 3D trajectory plot to {plot_path}")
     plt.close()
+
+def plot_foot_forces(metrics: List[Dict], save_dir: Path):
+    """Plot foot contact forces over time"""
+    timestamps = np.array([m['timestamp'] for m in metrics])
+    
+    plt.figure(figsize=(10, 6))
+    
+    for foot in ['left_ankle_roll_link', 'right_ankle_roll_link']:
+        forces = [m['foot_contact_forces'][foot] for m in metrics]
+        plt.plot(timestamps, forces, label=foot)
+    
+    plt.xlabel('Time (s)')
+    plt.ylabel('Force (N)')
+    plt.title('Foot Contact Forces')
+    plt.legend()
+    plt.grid(True)
+    
+    plot_path = save_dir / 'foot_forces.png'
+    plt.savefig(plot_path, dpi=300)
+    plt.close()
+    print(f"Saved foot forces plot to {plot_path}")
+
+def plot_joint_reference_tracking(metrics: List[Dict], save_dir: Path):
+    """Plot joint positions vs their reference commands"""
+    joint_names = list(metrics[0]['joint_pos'].keys())
+    timestamps = np.array([m['timestamp'] for m in metrics])
+    
+    for joint in joint_names:
+        if joint not in metrics[0]['desired_q_ref']:
+            continue
+            
+        plt.figure(figsize=(10, 6))
+        
+        actual_pos = [m['joint_pos'][joint] for m in metrics]
+        desired_pos = [m['desired_q_ref'][joint] for m in metrics]
+        
+        plt.plot(timestamps, actual_pos, 'b-', label='Actual')
+        plt.plot(timestamps, desired_pos, 'r--', label='Desired')
+        
+        plt.xlabel('Time (s)')
+        plt.ylabel('Position (rad)')
+        plt.title(f'Joint Tracking: {joint}')
+        plt.legend()
+        plt.grid(True)
+        
+        plot_path = save_dir / f'joint_tracking_{joint}.png'
+        plt.savefig(plot_path, dpi=300)
+        plt.close()
+    
+    print(f"Saved joint tracking plots to {save_dir}")
     
 def main():
     parser = argparse.ArgumentParser(description='Plot robot metrics')
@@ -170,7 +220,8 @@ def main():
     
     plot_base_metrics(metrics, violations, save_dir)
     plot_joint_details(metrics, violations, save_dir)
-    
+    plot_foot_forces(metrics, save_dir)
+    plot_joint_reference_tracking(metrics, save_dir)
     
 if __name__ == '__main__':
     main()
