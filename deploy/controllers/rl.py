@@ -117,7 +117,7 @@ class RLPolicy:
         default_joint_pos = np.array(
             [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
         )
-        history_length = config["observations"]["policy"]["history_length"]
+        history_length = config["observations"]["policy"]["history_length"] if config["observations"]["policy"]["history_length"] is not None else 1
         action_scale = config["actions"]["joint_pos"]["scale"]
         commands_ranges = {
             k: v
