@@ -1,10 +1,9 @@
+import json
 import threading
 import time
-import json
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from queue import Queue
-from dataclasses import dataclass, asdict, field
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 import mujoco
 import mujoco.viewer
@@ -60,10 +59,10 @@ class SafetyViolation:
     check_type: str
     value: float
     limit: float
-    additional_info: Dict[str, Any] = field(default_factory=dict)
+    additional_info: dict[str, Any] = field(default_factory=dict)
 
 
-class H1Mujoco:
+class H12Mujoco:
     def __init__(
         self,
         scene_path,
@@ -78,9 +77,10 @@ class H1Mujoco:
         self.real_time = config["real_time"]
 
         self.enable_keyboard = config["enable_keyboard"]
-        self.queue = Queue() if self.enable_keyboard else None
+        self.controller_command = np.zeros(3)
+        self.keyboard_lock = threading.Lock()
 
-        self.lock = threading.Lock()
+        self.sim_lock = threading.Lock()
 
         self.safety_violations: List[SafetyViolation] = []
         self.metrics_data: List[Metrics] = []
@@ -99,14 +99,13 @@ class H1Mujoco:
 
         self.reset()
 
-        if config["enable_GUI"]:
+        self.enable_GUI = config["enable_GUI"]
+        if self.enable_GUI:
             self.close_event = threading.Event()
-            self.thread = threading.Thread(
-                target=self.run_render, args=(self.close_event,)
-            )
-            self.thread.start()
+            self.viewer_thread = threading.Thread(target=self.run_render, args=(self.close_event,))
+            self.viewer_thread.start()
         
-            self.elastic_band_enabled = False
+        self.elastic_band_enabled = False
         if config["elastic_band"]:
             self.elastic_band_enabled = True
             self.elastic_band = ElasticBand()
@@ -124,25 +123,23 @@ class H1Mujoco:
             self._apply_torques(torques)
             self._safety_check()
             self._metrics(q_ref)
-            self.lock.acquire()
-            mujoco.mj_step(self.model, self.data)
-            self.lock.release()
+            with self.sim_lock:
+                mujoco.mj_step(self.model, self.data)
             
             if self.elastic_band_enabled:
                 self.data.xfrc_applied[self.band_attached_link, :3] = self.elastic_band.advance(self.data.qpos[:3], self.data.qvel[:3])
 
             if self.real_time:
-                time_to_wait = max(
-                    0, step_start - time.perf_counter() + self.model.opt.timestep
-                )
+                time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
                 time.sleep(time_to_wait)
 
             self.current_time += self.model.opt.timestep
 
     def close(self, log_dir):
         # Close Mujoco viewer if opened
-        if hasattr(self, "thread"):
+        if self.enable_GUI:
             self.close_event.set()
+            self.viewer_thread.join()
 
         # Save safety checker data
         def _json_serializer(obj):
@@ -152,7 +149,7 @@ class H1Mujoco:
             raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
         safety_checker_path = log_dir / "safety_check.json"
-        with open(safety_checker_path, "w") as f:
+        with safety_checker_path.open("w") as f:
             json.dump(
                 [asdict(v) for v in self.safety_violations],
                 f,
@@ -172,13 +169,17 @@ class H1Mujoco:
             )
         print(f"Saved metrics to {metrics_path}")
 
+    def get_controller_command(self):
+        with self.keyboard_lock:
+            return self.controller_command
+
     def _record_violation(
         self,
         joint_name: str,
         check_type: str,
         value: float,
         limit: float,
-        additional_info: Dict[str, Any] = None,
+        additional_info: dict[str, Any] = None,
     ):
         violation = SafetyViolation(
             timestamp=self.current_time,
@@ -193,15 +194,13 @@ class H1Mujoco:
         if self.safety_checker_verbose:
             print(
                 f"[{violation.timestamp:.3f}s] {joint_name}: {check_type.upper()} violation - "
-                f"value={value:.4f}, limit={limit:.4f}"
+                f"value={value:.4f}, limit={limit:.4f}",
             )
 
     def _safety_check(self):
         # Loop through joints
         for jnt_id in range(self.model.njnt):
-            joint_name = mujoco.mj_id2name(
-                self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id
-            )
+            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id)
 
             # Position check
             joint_pos_addr = self.model.jnt_qposadr[jnt_id]
@@ -209,9 +208,7 @@ class H1Mujoco:
 
             # Velocity check
             joint_vel_addr = self.model.jnt_dofadr[jnt_id]
-            joint_velocity = (
-                self.data.qvel[joint_vel_addr] if joint_vel_addr >= 0 else 0
-            )
+            joint_velocity = self.data.qvel[joint_vel_addr] if joint_vel_addr >= 0 else 0
 
             # Torque check
             joint_torque = 0.0
@@ -238,9 +235,7 @@ class H1Mujoco:
                     )
 
             # Check velocity limits
-            if hasattr(self.model, "jnt_vel_limits") and jnt_id < len(
-                self.model.jnt_vel_limits
-            ):
+            if hasattr(self.model, "jnt_vel_limits") and jnt_id < len(self.model.jnt_vel_limits):
                 vel_limit = self.model.jnt_vel_limits[jnt_id]
                 vel_in_range = abs(joint_velocity) <= vel_limit
                 if not vel_in_range:
@@ -252,9 +247,7 @@ class H1Mujoco:
                     )
 
             # Check torque limits
-            if hasattr(self.model, "jnt_torque_limits") and jnt_id < len(
-                self.model.jnt_torque_limits
-            ):
+            if hasattr(self.model, "jnt_torque_limits") and jnt_id < len(self.model.jnt_torque_limits):
                 torque_limit = self.model.jnt_torque_limits[jnt_id]
                 torque_in_range = abs(joint_torque) <= torque_limit
                 if not torque_in_range:
@@ -267,10 +260,7 @@ class H1Mujoco:
 
         # Contact force checks
         foot_bodies = ["left_ankle_roll_link", "right_ankle_roll_link"]
-        foot_ids = {
-            name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name)
-            for name in foot_bodies
-        }
+        foot_ids = {name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name) for name in foot_bodies}
 
         foot_forces = {name: [] for name in foot_bodies}
 
@@ -285,13 +275,11 @@ class H1Mujoco:
             force_norm = np.linalg.norm(force)
 
             for foot_name, foot_id in foot_ids.items():
-                if foot_id == geom1_body or foot_id == geom2_body:
+                if foot_id in (geom1_body, geom2_body):
                     foot_forces[foot_name].append(force_norm)
 
         # Record contact force violations
-        total_mass_force = np.sum(self.model.body_mass) * np.linalg.norm(
-            self.model.opt.gravity
-        )
+        total_mass_force = np.sum(self.model.body_mass) * np.linalg.norm(self.model.opt.gravity)
         for foot, forces in foot_forces.items():
             total = sum(forces)
             if total > total_mass_force:
@@ -407,38 +395,34 @@ class H1Mujoco:
 
     def run_render(self, close_event):
         key_cb = self.key_callback if self.enable_keyboard else None
-        viewer = mujoco.viewer.launch_passive(
-            self.model, self.data, key_callback=key_cb
-        )
+        viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
         while viewer.is_running() and not close_event.is_set():
-            self.lock.acquire()
-            viewer.sync()
-            self.lock.release()
+            with self.sim_lock:
+                viewer.sync()
             time.sleep(0.02)  # 50 Hz
         viewer.close()
 
     def key_callback(self, key):
-        if self.queue is None:
-            return
         glfw = mujoco.glfw.glfw
-        if key == glfw.KEY_UP or key == glfw.KEY_KP_8:
-            self.queue.put(np.array([0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_DOWN or key == glfw.KEY_KP_5:
-            self.queue.put(np.array([-0.1, 0.0, 0.0]))
-        elif key == glfw.KEY_LEFT or key == glfw.KEY_KP_4:
-            self.queue.put(np.array([0.0, -0.1, 0.0]))
-        elif key == glfw.KEY_RIGHT or key == glfw.KEY_KP_6:
-            self.queue.put(np.array([0.0, 0.1, 0.0]))
-        elif key == glfw.KEY_Z or key == glfw.KEY_KP_7:
-            self.queue.put(np.array([0.0, 0.0, 0.1]))
-        elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
-            self.queue.put(np.array([0.0, 0.0, -0.1]))
-        elif key == glfw.KEY_B:
-            self.elastic_band_enabled = not self.elastic_band_enabled
-        elif key == glfw.KEY_I:
-            self.elastic_band.length += 0.1
-        elif key == glfw.KEY_K:
-            self.elastic_band.length -= 0.1
+        with self.keyboard_lock:
+            if key == glfw.KEY_UP or key == glfw.KEY_KP_8:
+                self.controller_command[0] += 0.1
+            elif key == glfw.KEY_DOWN or key == glfw.KEY_KP_5:
+                self.controller_command[0] -= 0.1
+            elif key == glfw.KEY_LEFT or key == glfw.KEY_KP_4:
+                self.controller_command[1] += 0.1
+            elif key == glfw.KEY_RIGHT or key == glfw.KEY_KP_6:
+                self.controller_command[1] -= 0.1
+            elif key == glfw.KEY_Z or key == glfw.KEY_KP_7:
+                self.controller_command[2] += 0.1
+            elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
+                self.controller_command[2] -= 0.1
+            elif key == glfw.KEY_B:
+                self.elastic_band_enabled = not self.elastic_band_enabled
+            elif key == glfw.KEY_I:
+                self.elastic_band.length += 0.1
+            elif key == glfw.KEY_K:
+                self.elastic_band.length -= 0.1
 
 
 if __name__ == "__main__":
@@ -447,7 +431,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     scene_path = SCENE_PATHS["h12"]
-    sim = H1Mujoco(scene_path, config["mujoco"])
+    sim = H12Mujoco(scene_path, config["mujoco"])
 
     state = sim.get_robot_state()
     while True:
