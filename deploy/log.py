@@ -21,15 +21,16 @@ class Logger:
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
     def low_cmd_handler(self, msg: LowCmdHG):
-        msg_str = ";".join([f"{i}:({cmd.q},{cmd.dq},{cmd.kp},{cmd.kd})" for i, cmd in enumerate(msg.motor_cmd)])
-        logging.debug("low_cmd:", msg_str)
+        msg_str = "low_cmd:"
+        msg_str += ";".join([f"{i}:({cmd.q},{cmd.dq},{cmd.kp},{cmd.kd})" for i, cmd in enumerate(msg.motor_cmd)])
+        logging.debug(msg_str)
 
     def low_state_handler(self, msg: LowStateHG):
         state = list(msg.imu_state.quaternion)
         state += list(msg.imu_state.gyroscope)
         state += [(state.q, state.dq) for state in msg.motor_state]
-        msg_str = ";".join(map(str, state))
-        logging.debug("low_state:", msg_str)
+        msg_str = "low_state:" + ";".join(map(str, state))
+        logging.debug(msg_str)
 
 
 if __name__ == "__main__":
