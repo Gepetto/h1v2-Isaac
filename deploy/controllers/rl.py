@@ -44,8 +44,8 @@ class ObservationHandler:
         self.command = np.array([0.0, 0.0, 0.0])
 
     def get_observations(self, state, actions):
-        self.state = state
-        self.actions = actions
+        self.state = state.copy()
+        self.actions = actions.copy()
 
         for i, element in enumerate(self.observations_func):
             if i not in self.observation_histories:
