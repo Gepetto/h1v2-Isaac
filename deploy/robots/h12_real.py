@@ -231,9 +231,7 @@ class H12Real:
     def move_to_default_pos(self):
         print("Moving to default pos.")
 
-        t_pose = self.arm_waist_default_joint_pos.copy()
-        t_pose[list(self.arm_waist_joint2motor_idx).index(14)] = 1
-        t_pose[list(self.arm_waist_joint2motor_idx).index(21)] = -1
+        t_pose = self.get_t_pose()
 
         dof_idx = np.concatenate((self.leg_joint2motor_idx, self.arm_waist_joint2motor_idx), axis=0)
         kps = np.concatenate((self.leg_kp, self.arm_waist_kp), axis=0)
@@ -241,7 +239,7 @@ class H12Real:
         default_pos = np.concatenate((self.leg_default_joint_pos, t_pose), axis=0)
 
         # Move legs
-        self.move_to_pos(dof_idx, default_pos, kps, kds, 2)
+        self.move_to_pos(dof_idx, default_pos, kps, kds, 1)
         self.move_to_pos(
             self.arm_waist_joint2motor_idx,
             self.arm_waist_default_joint_pos,
@@ -250,6 +248,17 @@ class H12Real:
             1,
         )
         print("Reached default pos state.")
+
+    def get_t_pose(self):
+        n = len(self.arm_waist_joint2motor_idx)
+        curr_arm_waist_pos = np.empty(n)
+        for i in range(n):
+            curr_arm_waist_pos[i] = self.low_state.motor_state[self.arm_waist_joint2motor_idx[i]].q
+
+        t_pose = curr_arm_waist_pos.copy()
+        t_pose[list(self.arm_waist_joint2motor_idx).index(14)] = 0.6
+        t_pose[list(self.arm_waist_joint2motor_idx).index(21)] = -0.6
+        return t_pose
 
     def move_to_pos(self, joint_idx, pos, kp, kd, duration):
         num_step = int(duration / self.control_dt)
