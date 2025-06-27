@@ -423,11 +423,11 @@ class H12Mujoco:
 
 
 if __name__ == "__main__":
-    config_path = Path(__file__).parent / "config" / "config.yaml"
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
     with config_path.open() as file:
         config = yaml.safe_load(file)
 
-    scene_path = SCENE_PATHS["h12"]
+    scene_path = SCENE_PATHS["h12"]["12dof"]
     sim = H12Mujoco(scene_path, config["mujoco"])
 
     state = sim.get_robot_state()

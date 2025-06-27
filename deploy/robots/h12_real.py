@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+from biped_assets import SCENE_PATHS
 from scipy.spatial.transform import Rotation as R
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,
@@ -17,6 +18,8 @@ from unitree_sdk2py.idl.default import (
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
+
+from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
 
 
 class KeyMap:
@@ -58,13 +61,18 @@ class RemoteController:
 
 
 class H12Real:
-    def __init__(self, config, debug=False):
+    def __init__(self, config, scene_path=None, *, use_mujoco=False, debug=False):
         ChannelFactoryInitialize(0, config["net_interface"])
+
+        self.use_mujoco = use_mujoco
+        if self.use_mujoco:
+            assert scene_path is not None
+            self.unitree = UnitreeSdk2Bridge(scene_path, config["sim_dt"])
 
         # Debug mode : if True, no command will be sent to the robot
         self.debug = debug
 
-        self.control_dt = config["dt"]
+        self.control_dt = config["control_dt"]
 
         self.leg_joint2motor_idx = np.array(config["leg_joint2motor_idx"])
         self.leg_kp = np.zeros_like(config["leg_kp"]) if debug else np.array(config["leg_kp"])
@@ -88,7 +96,7 @@ class H12Real:
             self.lowcmd_publisher_.Init()
 
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
-        self.lowstate_subscriber.Init(self.LowStateHgHandler, 10)
+        self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
         # Wait for the subscriber to receive data
         self.wait_for_low_state()
@@ -99,7 +107,7 @@ class H12Real:
         if not self.debug:
             self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
 
-    def LowStateHgHandler(self, msg: LowStateHG):
+    def low_state_handler(self, msg: LowStateHG):
         self.low_state = msg
         self.mode_machine_ = self.low_state.mode_machine
         self.remote_controller.set(self.low_state.wireless_remote)
@@ -119,10 +127,9 @@ class H12Real:
 
     def send_cmd(self, cmd: LowCmdHG):
         if self.debug:
-            pass
-        else:
-            cmd.crc = CRC().Crc(cmd)
-            self.lowcmd_publisher_.Write(cmd)
+            return
+        cmd.crc = CRC().Crc(cmd)
+        self.lowcmd_publisher_.Write(cmd)
 
     def get_controller_command(self):
         return np.clip(
@@ -288,13 +295,21 @@ class H12Real:
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
+    def close(self):
+        if self.use_mujoco:
+            self.unitree.close()
+
 
 if __name__ == "__main__":
-    config_path = Path(__file__).parent / "config" / "config.yaml"
+    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
     with config_path.open() as file:
         config = yaml.safe_load(file)
 
-    robot = H12Real(config["real"])
+    if config["real"]["use_mujoco"]:
+        scene_path = SCENE_PATHS["h12"]["27dof"]
+        robot = H12Real(config["real"], use_mujoco=True, scene_path=scene_path)
+    else:
+        robot = H12Real(config["real"])
 
     robot.enter_zero_torque_state()
     robot.move_to_default_pos()
@@ -310,4 +325,5 @@ if __name__ == "__main__":
             break
 
     robot.enter_damping_state()
+    robot.close()
     print("Exit")

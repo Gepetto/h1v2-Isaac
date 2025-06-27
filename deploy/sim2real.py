@@ -1,9 +1,10 @@
 import time
+from enum import Enum
 from pathlib import Path
 
-from enum import Enum
 import numpy as np
 import yaml
+from biped_assets import SCENE_PATHS
 from controllers.rl import RLPolicy
 from robots.h12_real import H12Real, KeyMap
 
@@ -24,11 +25,15 @@ if __name__ == "__main__":
 
     # Set up interface to real robot
     debug_robot = debug == DebugMode.NO_MOVEMENT
-    robot = H12Real(config=config["real"], debug=debug_robot)
+    if config["real"]["use_mujoco"]:
+        scene_path = SCENE_PATHS["h12"]["27dof"]
+        robot = H12Real(config=config["real"], use_mujoco=True, scene_path=scene_path, debug=debug_robot)
+    else:
+        robot = H12Real(config=config["real"], debug=debug_robot)
 
     # Load policy
-    policy_path = str(Path(__file__).parent / "config" / "model.onnx")
-    policy_config_path = Path(__file__).parent / "config" / "env.yaml"
+    policy_path = str(Path(__file__).parent / "config" / "policy_golden.onnx")
+    policy_config_path = Path(__file__).parent / "config" / "env_golden.yaml"
     with policy_config_path.open() as f:
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
     policy = RLPolicy(policy_path, policy_config)
@@ -48,6 +53,7 @@ if __name__ == "__main__":
             if debug == DebugMode.FULL_MOVEMENT:
                 q_ref = policy.step(state)
                 robot.step(q_ref)
+
             elif debug == DebugMode.PD:
                 joint_id = 3  # left knee
                 default_joint_pos = config["real"]["leg_joint2motor_idx"][joint_id]
@@ -58,9 +64,11 @@ if __name__ == "__main__":
                 robot.set_motor_commands(leg_joint2motor_idx, joint_pos, kp, kd)
                 robot.send_cmd(robot.low_cmd)
                 time.sleep(0.02)
+
             elif debug == DebugMode.NO_MOVEMENT:
                 print(state)
                 time.sleep(0.5)
+
             if robot.remote_controller.button[KeyMap.select] == 1:
                 break
     except KeyboardInterrupt:

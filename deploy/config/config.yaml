@@ -17,7 +17,10 @@ mujoco:
 
 real:
   net_interface: eth0
-  dt: 0.02
+  control_dt: 0.02
+
+  use_mujoco: True
+  sim_dt: 0.001
 
   leg_joint2motor_idx: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
   leg_kp: [ 200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40 ]

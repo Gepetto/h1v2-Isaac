@@ -18,12 +18,12 @@ if __name__ == "__main__":
     log_dir.mkdir(parents=True, exist_ok=True)
 
     # Set up simulation
-    scene_path = SCENE_PATHS["h12"]
+    scene_path = SCENE_PATHS["h12"]["12dof"]
     sim = H12Mujoco(scene_path, config["mujoco"])
 
     # Load policy
-    policy_path = str(Path(__file__).parent / "config" / "model.onnx")
-    policy_config_path = Path(__file__).parent / "config" / "env.yaml"
+    policy_path = str(Path(__file__).parent / "config" / "policy_golden.onnx")
+    policy_config_path = Path(__file__).parent / "config" / "env_golden.yaml"
     with policy_config_path.open() as f:
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
     policy = RLPolicy(policy_path, policy_config)
