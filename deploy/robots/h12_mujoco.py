@@ -3,7 +3,7 @@ import threading
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import mujoco
 import mujoco.viewer
@@ -192,10 +192,7 @@ class H12Mujoco:
         self.safety_violations.append(violation)
 
         if self.safety_checker_verbose:
-            print(
-                f"[{violation.timestamp:.3f}s] {joint_name}: {check_type.upper()} violation - "
-                f"value={value:.4f}, limit={limit:.4f}",
-            )
+            print(f"[{violation.timestamp:.3f}s] {joint_name}: {check_type.upper()} violation - value={value:.4f}, limit={limit}")
 
     def _safety_check(self):
         # Loop through joints
