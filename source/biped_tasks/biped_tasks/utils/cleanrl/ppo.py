@@ -247,10 +247,6 @@ def PPO(envs, ppo_cfg, run_path):
             else:
                 writer.add_scalar("Episode/" + key, value, iteration)
 
-        # CaT: must compute the CaT quantity
-        not_dones = 1.0 - dones
-        rewards *= not_dones
-
         # bootstrap value if not done
         with torch.no_grad():
             next_value = agent.get_value(next_obs).reshape(1, -1)

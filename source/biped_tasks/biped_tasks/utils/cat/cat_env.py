@@ -70,10 +70,21 @@ class CaTEnv(ManagerBasedRLEnv):
         self.curriculum_manager = CurriculumManager(self.cfg.curriculum, self)
         print("[INFO] Curriculum Manager: ", self.curriculum_manager)
         # -- constraint manager
-        if self.cfg.constraints:
+        if hasattr(self.cfg, "constraints"):
             self.constraint_manager = ConstraintManager(self.cfg.constraints, self)
             print("[INFO] Constraint Manager: ", self.constraint_manager)
         
+        
+        # setup the action and observation spaces for Gym
+        self._configure_gym_env_spaces()
+        
+        # perform events at the start of the simulation
+        # in-case a child implementation creates other managers, the randomization should happen
+        # when all the other managers are created
+        if "startup" in self.event_manager.available_modes:
+            self.event_manager.apply(mode="startup")
+
+
         # setup the action and observation spaces for Gym
         self._configure_gym_env_spaces()
         
@@ -140,13 +151,18 @@ class CaTEnv(ManagerBasedRLEnv):
         self.reset_terminated = self.termination_manager.terminated
         self.reset_time_outs = self.termination_manager.time_outs
         # -- CaT constraints prob computation
-        if self.cfg.constraints:
+        if hasattr(self.cfg, "constraints"):
             cstr_prob = self.constraint_manager.compute()
+            # -- constrained reward computation
+            self.reward_buf = torch.clip(
+                self.reward_manager.compute(dt=self.step_dt) * (1.0 - cstr_prob),
+                min=0.0,
+                max=None,
+            )
             dones = cstr_prob.clone()
         else:
+            self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
             dones = torch.zeros(self.num_envs, device=self.device)
-
-        self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
 
         if len(self.recorder_manager.active_terms) > 0:
             # update observations for recording if needed
@@ -216,7 +232,7 @@ class CaTEnv(ManagerBasedRLEnv):
         info = self.reward_manager.reset(env_ids)
         self.extras["log"].update(info)
         # -- constraints manager
-        if self.cfg.constraints:
+        if hasattr(self.cfg, "constraints"):
             info = self.constraint_manager.reset(env_ids)
             self.extras["log"].update(info)
         # -- curriculum manager

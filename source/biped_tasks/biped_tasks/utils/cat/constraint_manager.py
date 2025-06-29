@@ -194,31 +194,37 @@ class ConstraintManager(ManagerBase):
         table.align["Body"] = "r"
         table.align["Max p"] = "r"
         # add info on each term
-        for index, (name, term_cfg) in enumerate(
-            zip(self._term_names, self._term_cfgs)
-        ):
+        for index, (name, term_cfg) in enumerate(zip(self._term_names, self._term_cfgs)):
+            # Initialize default values
+            limit_value = "-"
+            names_value = "-"
+            
+            # Get limit if it exists
             if "limit" in term_cfg.params:
-                if "names" in term_cfg.params:
-                    table.add_row(
-                        [
-                            index,
-                            name,
-                            term_cfg.params["limit"],
-                            term_cfg.params["names"],
-                            term_cfg.max_p,
-                        ]
-                    )
-                else:
-                    table.add_row(
-                        [index, name, term_cfg.params["limit"], "-", term_cfg.max_p]
-                    )
+                limit_value = term_cfg.params["limit"]
+            
+            # Get names from asset_cfg if available
+            if "asset_cfg" in term_cfg.params and term_cfg.params["asset_cfg"] is not None:
+                asset_cfg = term_cfg.params["asset_cfg"]
+                if asset_cfg.body_names is not None:
+                    names_value = asset_cfg.body_names
+                elif asset_cfg.joint_names is not None:
+                    names_value = asset_cfg.joint_names
+            
+            # Fallback to "names" param only if asset_cfg didn't provide names (with deprecation warning)
             elif "names" in term_cfg.params:
-                table.add_row(
-                    [index, name, "-", term_cfg.params["names"], term_cfg.max_p]
+                import warnings
+                warnings.warn(
+                    "Using 'names' parameter is deprecated. Please use 'asset_cfg' for name specification.",
+                    DeprecationWarning,
+                    stacklevel=2
                 )
-            else:
-                table.add_row([index, name, "-", "-", term_cfg.max_p])
-        # convert table to string
+                names_value = term_cfg.params["names"]
+            
+            # Add row to table
+            table.add_row([index, name, limit_value, names_value, term_cfg.max_p])
+
+        # Convert table to string
         msg += table.get_string()
         msg += "\n"
 

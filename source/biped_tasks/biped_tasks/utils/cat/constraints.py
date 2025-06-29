@@ -24,53 +24,43 @@ if TYPE_CHECKING:
 def joint_torque(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
-    cstr = torch.abs(data.applied_torque[:, joint_ids]) - limit
+    cstr = torch.abs(data.applied_torque[:, asset_cfg.joint_ids]) - limit
     return cstr
 
 
 def joint_velocity(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
-    return torch.abs(data.joint_vel[:, joint_ids]) - limit
+    return torch.abs(data.joint_vel[:, asset_cfg.joint_ids]) - limit
 
 
 def joint_acceleration(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
-    return torch.abs(data.joint_acc[:, joint_ids]) - limit
+    return torch.abs(data.joint_acc[:, asset_cfg.joint_ids]) - limit
 
 
 def contact(
     env: ManagerBasedRLEnv,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     contact_sensor = env.scene[asset_cfg.name]
-    undesired_contact_body_ids, _ = contact_sensor.find_bodies(
-        names, preserve_order=True
-    )
     net_contact_forces = contact_sensor.data.net_forces_w_history
     return torch.any(
         torch.max(
-            torch.norm(net_contact_forces[:, :, undesired_contact_body_ids], dim=-1),
+            torch.norm(net_contact_forces[:, :, asset_cfg.body_ids], dim=-1),
             dim=1,
         )[0]
         > 1.0,
@@ -80,23 +70,20 @@ def contact(
 def base_orientation(
     env: ManagerBasedRLEnv,
     limit: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     data = env.scene[asset_cfg.name].data
     return torch.norm(data.projected_gravity_b[:, :2], dim=1) - limit
 
-
 def air_time(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
     velocity_deadzone: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     contact_sensor = env.scene[asset_cfg.name]
-    feet_ids, _ = contact_sensor.find_bodies(names, preserve_order=True)
-    touchdown = contact_sensor.compute_first_contact(env.step_dt)[:, feet_ids]
-    last_air_time = contact_sensor.data.last_air_time[:, feet_ids]
+    touchdown = contact_sensor.compute_first_contact(env.step_dt)[:, asset_cfg.joint_ids]
+    last_air_time = contact_sensor.data.last_air_time[:, asset_cfg.joint_ids]
     
     # Get velocity command and check ALL components against deadzone
     velocity_cmd = env.command_manager.get_command("base_velocity")[:, :3]
@@ -113,14 +100,12 @@ def air_time(
 def joint_range(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
     return (
-        torch.abs(data.joint_pos[:, joint_ids] - data.default_joint_pos[:, joint_ids])
+        torch.abs(data.joint_pos[:, asset_cfg.joint_ids] - data.default_joint_pos[:, asset_cfg.joint_ids])
         - limit
     )
 
@@ -128,16 +113,14 @@ def joint_range(
 def action_rate(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
     return (
         torch.abs(
-            env.action_manager._action[:, joint_ids]
-            - env.action_manager._prev_action[:, joint_ids]
+            env.action_manager._action[:, asset_cfg.joint_ids]
+            - env.action_manager._prev_action[:, asset_cfg.joint_ids]
         )
         / env.step_dt
         - limit
@@ -147,33 +130,27 @@ def action_rate(
 def foot_contact_force(
     env: ManagerBasedRLEnv,
     limit: float,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     contact_sensor = env.scene[asset_cfg.name]
-    feet_ids, _ = contact_sensor.find_bodies(names, preserve_order=True)
     net_contact_forces = contact_sensor.data.net_forces_w_history
     return (
-        torch.max(torch.norm(net_contact_forces[:, :, feet_ids], dim=-1), dim=1)[0]
+        torch.max(torch.norm(net_contact_forces[:, :, asset_cfg.body_ids], dim=-1), dim=1)[0]
         - limit
     )
 
 def foot_contact(
     env: ManagerBasedRLEnv,
-    names: list[str],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("contact_forces"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     contact_sensor = env.scene[asset_cfg.name]
-    undesired_contact_body_ids, _ = contact_sensor.find_bodies(
-        names, preserve_order=True
-    )
     net_contact_forces = contact_sensor.data.net_forces_w_history
 
     # Compute number of feet in contact per environment
     foot_contacts = (
         torch.max(
             torch.norm(
-                net_contact_forces[:, :, undesired_contact_body_ids], dim=-1
+                net_contact_forces[:, :, asset_cfg.body_ids], dim=-1
             ),
             dim=1,
         )[0] > 1.0  # Boolean: (envs, num_feet)
@@ -186,10 +163,9 @@ def foot_contact(
 
 def no_move(
     env: ManagerBasedRLEnv,
-    names: list[str],
     velocity_deadzone: float,
     joint_vel_limit: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     """Constraint that penalizes joint movement when the robot should be stationary.
     
@@ -197,7 +173,6 @@ def no_move(
     """
     robot = env.scene[asset_cfg.name]
     data = env.scene[asset_cfg.name].data
-    joint_ids, _ = robot.find_joints(names, preserve_order=True)
     
     # Get velocity command and check ALL components against deadzone
     velocity_cmd = env.command_manager.get_command("base_velocity")[:, :3]
@@ -208,5 +183,5 @@ def no_move(
     )
     
     # Apply constraint only when command is inactive (all components < deadzone)
-    cstr_nomove = (torch.abs(data.joint_vel[:, joint_ids]) - joint_vel_limit) * cmd_inactive
+    cstr_nomove = (torch.abs(data.joint_vel[:, asset_cfg.joint_ids]) - joint_vel_limit) * cmd_inactive
     return cstr_nomove

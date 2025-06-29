@@ -8,6 +8,7 @@
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+from pathlib import Path
 
 from isaaclab.app import AppLauncher
 
@@ -113,8 +114,12 @@ def main():
 
     obs = env.reset()[0]["policy"]
 
+    # export model to onnx and .pt
+    exported_path = os.path.join(log_dir, "exported")
+    Path(exported_path).mkdir(parents=True, exist_ok=True)
+
     dummy_input = torch.randn(1, obs.shape[-1]).to(device)
-    onnx_path = os.path.join(log_dir, "agent_model.onnx")
+    onnx_path = os.path.join(exported_path, "model.onnx")
     torch.onnx.export(
         actor,
         dummy_input,
@@ -127,6 +132,10 @@ def main():
         verbose=True
     )
     print(f"[INFO] Exported ONNX model to {onnx_path}")
+    
+    pt_path = os.path.join(exported_path, "model.pt")
+    torch.jit.trace(actor, dummy_input).save(pt_path)
+    print(f"[INFO] Exported .pt model to {pt_path}")
 
     for _ in range(args_cli.video_length):
         with torch.no_grad():

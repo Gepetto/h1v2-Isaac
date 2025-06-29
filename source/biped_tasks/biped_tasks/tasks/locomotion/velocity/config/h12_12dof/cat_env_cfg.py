@@ -316,81 +316,83 @@ class ConstraintsCfg:
     contact = ConstraintTerm(
         func=constraints.contact,
         max_p=1.0,
-        params={"names": [".*_hip_yaw_link",
-                            ".*_hip_roll_link",
-                            ".*_hip_pitch_link",
-                            ".*_knee_link",
-                            "torso_link",
-                            "pelvis",
-                            ".*_shoulder_pitch_link",
-                            ".*_shoulder_roll_link",
-                            ".*_shoulder_yaw_link",
-                            ".*_elbow_link",
-                            ".*_wrist_yaw_link",
-                            ".*_wrist_roll_link",
-                            ".*_wrist_pitch_link"]},
+        params={
+            "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_hip_yaw_link", ".*_hip_roll_link", ".*_hip_pitch_link", ".*_knee_link", "torso_link", "pelvis", ".*_shoulder_pitch_link", ".*_shoulder_roll_link", ".*_shoulder_yaw_link", ".*_elbow_link", ".*_wrist_yaw_link", ".*_wrist_roll_link", ".*_wrist_pitch_link"])
+            }
     )
 
     # Safety Soft constraints
     foot_contact_force = ConstraintTerm(
         func=constraints.foot_contact_force,
         max_p=0.5,
-        params={"limit": 800.0, "names": [".*_ankle_roll_link"]},
+        params={
+            "limit": 800.0, 
+            "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_ankle_roll_link"])},
     )
     hip_joint_torque = ConstraintTerm(
         func=constraints.joint_torque,
         max_p=0.25,
-        params={"limit": 220.0, "names": [".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_hip_pitch_joint"]},
+        params={"limit": 220.0, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_hip_pitch_joint"])},
     )
     knee_joint_torque = ConstraintTerm(
         func=constraints.joint_torque,
         max_p=0.25,
-        params={"limit": 360.0, "names": [".*_knee_joint"]},
+        params={"limit": 360.0,
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_knee_joint"])},
     )
     ankle_joint_torque = ConstraintTerm(
         func=constraints.joint_torque,
         max_p=0.25,
-        params={"limit": 45.0, "names": [".*_ankle_pitch_joint", ".*_ankle_roll_joint"]},
+        params={"limit": 45.0, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"])},                
     )
     joint_velocity = ConstraintTerm(
         func=constraints.joint_velocity,
         max_p=0.25,
-        params={"limit": 16.0, "names": [".*"]},
+        params={"limit": 16.0, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},                       
     )
     joint_acceleration = ConstraintTerm(
         func=constraints.joint_acceleration,
         max_p=0.25,
-        params={"limit": 800.0, "names": [".*"]},
+        params={"limit": 800.0, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},                       
     )
     action_rate = ConstraintTerm(
         func=constraints.action_rate,
         max_p=0.25,
-        params={"limit": 90.0, "names": [".*"]},
+        params={"limit": 90.0, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])},                       
     )
 
     # Style constraints
     base_orientation = ConstraintTerm(
         func=constraints.base_orientation, 
         max_p=0.25, 
-        params={"limit": 0.2}
+        params={"limit": 0.2,
+            "asset_cfg": SceneEntityCfg("robot")
+                }
     )
     foot_contact = ConstraintTerm(
         func=constraints.foot_contact,
         max_p=0.25,
-        params={"names": [".*_ankle_roll_link"]},
+        params={
+            "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_ankle_roll_link"])
+                }
     )
     air_time = ConstraintTerm(
         func=constraints.air_time,
         max_p=0.25,
         params={"limit": 0.5, 
-                "names": [".*_ankle_roll_link"], 
+                "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_ankle_roll_link"]), 
                 "velocity_deadzone": VELOCITY_DEADZONE},
     )
     no_move = ConstraintTerm(
         func=constraints.no_move,
         max_p=0.25,
         params={
-            "names": [".*"],
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),                       
             "velocity_deadzone": VELOCITY_DEADZONE,
             "joint_vel_limit": 0.0,
         },
@@ -398,27 +400,32 @@ class ConstraintsCfg:
     hip_roll_position = ConstraintTerm(
         func=constraints.joint_range,
         max_p=0.25,
-        params={"limit": 0.1, "names": [".*_hip_roll_joint"]},
+        params={"limit": 0.1, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_roll_joint"])},
     )
     hip_yaw_position = ConstraintTerm(
         func=constraints.joint_range,
         max_p=0.25,
-        params={"limit": 0.1, "names": [".*_hip_yaw_joint"]},
+        params={"limit": 0.1, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint"])},
     )
     knee_position = ConstraintTerm(
         func=constraints.joint_range,
         max_p=0.25,
-        params={"limit": 1.0, "names": [".*_knee_joint"]},
+        params={"limit": 1.0, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_knee_joint"])},                
     )
     ankle_roll_position = ConstraintTerm(
         func=constraints.joint_range,
         max_p=0.25,
-        params={"limit": 0.1, "names": [".*_ankle_roll_joint"]},
+        params={"limit": 0.1, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint"])},
     )
     ankle_pitch_position = ConstraintTerm(
         func=constraints.joint_range,
         max_p=0.25,
-        params={"limit": 0.5, "names": [".*_ankle_pitch_joint"]},
+        params={"limit": 0.5, 
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_pitch_joint"])},
     )
 
 
@@ -639,14 +646,4 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
             self.scene.terrain.terrain_generator.num_rows = 5
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
-        # disable randomization for play
-        # self.events.push_robot = self.events.physics_material = self.events.scale_mass = self.events.move_base_com = self.events.randomize_joint_parameters = self.events.base_external_force_torque = None
-        # self.observations.policy.enable_corruption = False
-        # set velocity command
-        # self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
-        # self.commands.base_velocity.ranges.lin_vel_y = (-0.3, 0.3)
-        # self.commands.base_velocity.ranges.ang_vel_z = (-0.5, 0.5)
-        self.commands.base_velocity.ranges.lin_vel_x = (0.0, .0)
-        self.commands.base_velocity.ranges.lin_vel_y = (-0., 0.)
-        self.commands.base_velocity.ranges.ang_vel_z = (-0.0, 0.0)
 
