@@ -51,7 +51,8 @@ if __name__ == "__main__":
             state = robot.get_robot_state()
 
             if debug == DebugMode.FULL_MOVEMENT:
-                q_ref = policy.step(state)
+                command = robot.get_controller_command()
+                q_ref = policy.step(state, command)
                 robot.step(q_ref)
 
             elif debug == DebugMode.PD:

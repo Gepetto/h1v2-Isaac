@@ -239,13 +239,13 @@ class H12Real:
         default_pos = np.concatenate((self.leg_default_joint_pos, t_pose), axis=0)
 
         # Move legs
-        self.move_to_pos(dof_idx, default_pos, kps, kds, 1)
+        self.move_to_pos(dof_idx, default_pos, kps, kds, 2)
         self.move_to_pos(
             self.arm_waist_joint2motor_idx,
             self.arm_waist_default_joint_pos,
             self.arm_waist_kp,
             self.arm_waist_kd,
-            1,
+            2,
         )
         print("Reached default pos state.")
 
