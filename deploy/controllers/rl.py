@@ -37,8 +37,15 @@ class ObservationHandler:
         )
         self.observation_histories = {}
         self.command = np.array([0.0, 0.0, 0.0])
+        self.counter = 0
+
+        # Hard-coded parameters for the phase
+        self.period = 0.8
+        self.control_dt = 0.02
 
     def get_observations(self, state, actions, command):
+        self.counter += 1
+
         self.state = state.copy()
         self.actions = actions.copy()
         if command is not None:
@@ -88,6 +95,16 @@ class ObservationHandler:
 
     def last_action(self):
         return self.actions
+
+    def cos_phase(self):
+        count = self.counter * self.control_dt
+        phase = count % self.period / self.period
+        return np.cos(2 * np.pi * phase)
+
+    def sin_phase(self):
+        count = self.counter * self.control_dt
+        phase = count % self.period / self.period
+        return np.sin(2 * np.pi * phase)
 
 
 class ActionHandler:
