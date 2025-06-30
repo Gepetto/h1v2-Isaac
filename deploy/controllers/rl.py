@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
+import torch
 import yaml
 
 
@@ -16,6 +17,15 @@ class InferenceHandler:
 
         return actions.flatten()
 
+class InferenceHandlerTorch:
+    def __init__(self, policy_path):
+        self.policy = torch.jit.load(policy_path)
+
+    def inference(self, observations):
+        obs_tensor = torch.from_numpy(observations).unsqueeze(0)
+        actions = self.policy(obs_tensor).detach().numpy().squeeze()
+
+        return actions
 
 class ObservationHandler:
     def __init__(
@@ -140,7 +150,12 @@ class RLPolicy:
             if isinstance(value, dict) and "func" in value
         ]
 
-        self.policy = InferenceHandler(policy_path=policy_path)
+        if policy_path.endswith('.pt'):
+            self.policy = InferenceHandlerTorch(policy_path=policy_path)
+        elif policy_path.endswith('.onnx'):
+            self.policy = InferenceHandler(policy_path=policy_path)
+        else:
+            raise ValueError(f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported.")
         self.observation_handler = ObservationHandler(
             observations_func,
             observations_scale,
