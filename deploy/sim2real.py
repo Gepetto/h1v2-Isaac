@@ -27,7 +27,7 @@ if __name__ == "__main__":
     debug_robot = debug == DebugMode.NO_MOVEMENT
     if config["real"]["use_mujoco"]:
         scene_path = SCENE_PATHS["h12"]["27dof"]
-        robot = H12Real(config=config["real"], use_mujoco=True, scene_path=scene_path, debug=debug_robot)
+        robot = H12Real(config=config["real"], config_mujoco=config["mujoco"], scene_path=scene_path, debug=debug_robot)
     else:
         robot = H12Real(config=config["real"], debug=debug_robot)
 

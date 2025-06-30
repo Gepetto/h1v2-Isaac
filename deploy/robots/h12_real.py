@@ -61,13 +61,8 @@ class RemoteController:
 
 
 class H12Real:
-    def __init__(self, config, scene_path=None, *, use_mujoco=False, debug=False):
+    def __init__(self, config, scene_path=None, *, config_mujoco=None, debug=False):
         ChannelFactoryInitialize(0, config["net_interface"])
-
-        self.use_mujoco = use_mujoco
-        if self.use_mujoco:
-            assert scene_path is not None
-            self.unitree = UnitreeSdk2Bridge(scene_path, config["sim_dt"])
 
         # Debug mode : if True, no command will be sent to the robot
         self.debug = debug
@@ -97,6 +92,11 @@ class H12Real:
 
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
+
+        self.use_mujoco = config_mujoco is not None
+        if self.use_mujoco:
+            assert scene_path is not None
+            self.unitree = UnitreeSdk2Bridge(scene_path, config_mujoco)
 
         # Wait for the subscriber to receive data
         self.wait_for_low_state()
@@ -316,7 +316,7 @@ if __name__ == "__main__":
 
     if config["real"]["use_mujoco"]:
         scene_path = SCENE_PATHS["h12"]["27dof"]
-        robot = H12Real(config["real"], use_mujoco=True, scene_path=scene_path)
+        robot = H12Real(config["real"], config_mujoco=config["mujoco"], scene_path=scene_path)
     else:
         robot = H12Real(config["real"])
 
