@@ -35,12 +35,12 @@ scene:
         .*: 0.0
 observations:
   policy:
-    history_length: 6
+    history_length: 1
     history_step: 1
     base_ang_vel:
       func: isaaclab.envs.mdp.observations:base_ang_vel
       clip: null
-      scale: null
+      scale: 0.25
     projected_gravity:
       func: isaaclab.envs.mdp.observations:projected_gravity
       clip: null
@@ -71,7 +71,7 @@ observations:
           - right_ankle_roll_joint
           preserve_order: true
       clip: null
-      scale: null
+      scale: 1.0
     joint_vel:
       func: isaaclab.envs.mdp.observations:joint_vel_rel
       params:
@@ -92,11 +92,15 @@ observations:
           - right_ankle_roll_joint
           preserve_order: true
       clip: null
-      scale: null
+      scale: 0.05
     actions:
       func: isaaclab.envs.mdp.observations:last_action
       clip: null
       scale: null
+    sin_phase:
+      func: toto:sin_phase
+    cos_phase:
+      func: toto:cos_phase
 actions:
   joint_pos:
     clip: null
@@ -113,7 +117,7 @@ actions:
     - right_knee_joint
     - right_ankle_pitch_joint
     - right_ankle_roll_joint
-    scale: 0.5
+    scale: 0.25
     offset: 0.0
     preserve_order: true
     use_default_offset: true
