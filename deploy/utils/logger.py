@@ -1,3 +1,4 @@
+import argparse
 import struct
 import time
 from pathlib import Path
@@ -8,18 +9,27 @@ from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelSubscri
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-o", "--output", type=str, default=None)
+    return parser.parse_args()
+
+
 class Logger:
-    def __init__(self, config):
+    def __init__(self, output_name, config):
         ChannelFactoryInitialize(0, config["net_interface"])
+
+        cmd_file = f"{output_name}_lowcmd.log" if output_name is not None else "lowcmd.log"
+        state_file = f"{output_name}_lowstate.log" if output_name is not None else "lowstate.log"
 
         self.lowcmd_subscriber = ChannelSubscriber("rt/lowcmd", LowCmd_)
         self.lowcmd_subscriber.Init(self.low_cmd_handler, 10)
-        self.cmd_file = Path("lowcmd.log").open("ab")  # noqa: SIM115
+        self.cmd_file = Path(cmd_file).open("ab")  # noqa: SIM115
         self.first_cmd = True
 
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowState_)
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
-        self.state_file = Path("lowstate.log").open("ab")  # noqa: SIM115
+        self.state_file = Path(state_file).open("ab")  # noqa: SIM115
         self.first_state = True
 
     def low_cmd_handler(self, msg: LowCmd_):
@@ -51,8 +61,14 @@ def load_cmd_log(path):
     with path.open("rb") as file:
         data = file.read()
     (nb_motors,) = struct.unpack_from("i", data)
-    array = np.frombuffer(data[4:], dtype=np.float64)
-    return array.reshape((-1, 4 * nb_motors))
+    cmds = np.frombuffer(data[4:], dtype=np.float64)
+    cmds = cmds.reshape((-1, 4 * nb_motors))
+    return {
+        "q_pos": cmds[:, ::4],
+        "q_vel": cmds[:, 1::4],
+        "kp": cmds[:, 2::4],
+        "kd": cmds[:, 3::4],
+    }
 
 
 def load_state_log(path):
@@ -60,8 +76,14 @@ def load_state_log(path):
         data = file.read()
     (nb_motors,) = struct.unpack_from("i", data)
     line_size = 7 + 2 * nb_motors
-    array = np.frombuffer(data[4:], dtype=np.float64)
-    return array.reshape((-1, line_size))
+    states = np.frombuffer(data[4:], dtype=np.float64)
+    states = states.reshape((-1, line_size))
+    return {
+        "base_orientation": states[:, :4],
+        "base_angular_vel": states[:, 4:7],
+        "q_pos": states[:, 7::2],
+        "q_vel": states[:, 8::2],
+    }
 
 
 if __name__ == "__main__":
@@ -69,7 +91,8 @@ if __name__ == "__main__":
     with config_path.open() as file:
         config = yaml.safe_load(file)
 
-    logger = Logger(config["real"])
+    args = parse_args()
+    logger = Logger(args.output, config["real"])
     print("Logging commands and states")
     try:
         while True:
