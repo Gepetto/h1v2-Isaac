@@ -12,7 +12,8 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Set up interface to real robot
-    if config["real"]["use_mujoco"]:
+    use_mujoco = config["real"]["use_mujoco"]
+    if use_mujoco:
         scene_path = SCENE_PATHS["h12"]["27dof"]
         robot = H12Real(config=config["real"], config_mujoco=config["mujoco"], scene_path=scene_path)
     else:
@@ -25,11 +26,12 @@ if __name__ == "__main__":
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
     policy = RLPolicy(policy_path, policy_config)
 
-    robot.enter_zero_torque_state()
-    robot.wait_for_button(KeyMap.start)
+    if not use_mujoco:
+        robot.enter_zero_torque_state()
+        robot.wait_for_button(KeyMap.start)
 
-    robot.move_to_default_pos()
-    robot.wait_for_button(KeyMap.A)
+        robot.move_to_default_pos()
+        robot.wait_for_button(KeyMap.A)
 
     try:
         while True:
@@ -44,9 +46,7 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("Interruption")
-    except Exception as err:
-        print("Error:", err)
 
     finally:
-        robot.enter_damping_state()
+        robot.close()
     print("Exit")

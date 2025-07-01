@@ -299,7 +299,7 @@ class H12Real:
 
     def wait_for_button(self, button):
         button_name = next(k for k, v in KeyMap.__dict__.items() if v == button)
-        print(f"Waiting to press {button_name}...")
+        print(f"Waiting to press '{button_name}'...")
         while self.remote_controller.button[button] != 1:
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
@@ -307,6 +307,8 @@ class H12Real:
     def close(self):
         if hasattr(self, "unitree"):
             self.unitree.close()
+        else:
+            self.enter_damping_state()
 
 
 if __name__ == "__main__":
