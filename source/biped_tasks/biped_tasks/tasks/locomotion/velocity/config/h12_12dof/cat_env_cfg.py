@@ -127,7 +127,7 @@ class ActionsCfg:
                         "right_knee_joint",
                         "right_ankle_pitch_joint",
                         "right_ankle_roll_joint",],
-        scale=0.5,
+        scale=0.25,
         use_default_offset=True,
         preserve_order=True,
     )
@@ -184,7 +184,7 @@ class ObservationsCfg:
         def __post_init__(self):
             self.enable_corruption = True
             self.concatenate_terms = True
-            self.history_length = 6
+            self.history_length = 5
             self.history_step = 1
 
     # observation groups
@@ -224,7 +224,7 @@ class EventCfg:
         func=events.randomize_body_coms,
         mode="startup",
         params={
-            "max_displacement": 0.03,
+            "max_displacement": 0.05,
             "asset_cfg": SceneEntityCfg("robot", body_names="torso_link"),
         },
     )
@@ -233,7 +233,7 @@ class EventCfg:
         mode="startup",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "friction_distribution_params": (0.01, 0.1),
+            "friction_distribution_params": (0.0, 0.1),
             "operation": "abs",
             "distribution": "uniform",
         },
@@ -613,10 +613,10 @@ class H12_12dof_EnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 4
+        self.decimation = 8
         self.episode_length_s = 20.0
         # simulation settings
-        self.sim.dt = 0.005
+        self.sim.dt = 0.0025
         self.sim.render_interval = self.decimation
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material

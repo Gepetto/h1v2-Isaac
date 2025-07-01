@@ -73,9 +73,9 @@ H12_12DOF = ArticulationCfg(
                 ".*_hip_roll_joint": 2.5,
                 ".*_hip_pitch_joint": 2.5,
             },
-            armature=0.1,
+            armature=0.01,
             min_delay=0,
-            max_delay=5,
+            max_delay=3,
         ),
         "knees": DelayedPDActuatorCfg(
             joint_names_expr=[".*_knee_joint"],
@@ -87,9 +87,9 @@ H12_12DOF = ArticulationCfg(
             damping={
                 ".*_knee_joint": 4.0,
             },
-            armature=0.1,
+            armature=0.01,
             min_delay=0,
-            max_delay=5,
+            max_delay=3,
         ),
         "feet": DelayedPDActuatorCfg(
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -103,9 +103,9 @@ H12_12DOF = ArticulationCfg(
                 ".*_ankle_pitch_joint": 2.0,
                 ".*_ankle_roll_joint": 2.0,
             },
-            armature=0.1,
+            armature=0.01,
             min_delay=0,
-            max_delay=5,
+            max_delay=3,
         ),
     },
 )
@@ -174,7 +174,7 @@ H12_27DOF = ArticulationCfg(
                 ".*_hip_pitch_joint": 5,
                 "torso_joint": 5.0,
             },
-            armature=0.1,
+            armature=0.01,
         ),
         "knees": IdealPDActuatorCfg(
             joint_names_expr=[".*_knee_joint"],
@@ -186,7 +186,7 @@ H12_27DOF = ArticulationCfg(
             damping={
                 ".*_knee_joint": 10.0,
             },
-            armature=0.1,
+            armature=0.01,
         ),
         "feet": IdealPDActuatorCfg(
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -200,7 +200,7 @@ H12_27DOF = ArticulationCfg(
                 ".*_ankle_pitch_joint": 5.0,
                 ".*_ankle_roll_joint": 5.0,
             },
-            armature=0.1,
+            armature=0.01,
         ),
         "arms": IdealPDActuatorCfg(
             joint_names_expr=[
@@ -232,7 +232,7 @@ H12_27DOF = ArticulationCfg(
                 ".*_wrist_roll_joint": 10.0,
                 ".*_wrist_pitch_joint": 10.0,
             },
-            armature=0.1,
+            armature=0.01,
         ),
     },
 )
