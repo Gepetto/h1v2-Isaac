@@ -57,3 +57,24 @@ gym.register(
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_flat_ppo_cfg.yaml",
     },
 )
+
+gym.register(
+    id="Isaac-Velocity-Rsl-H12_27dof-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.rsl_env_cfg:H12_27dof_EnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:H12_27dof_FlatPPORunnerCfg",
+    },
+)
+
+
+gym.register(
+    id="Isaac-Velocity-Rsl-H12_27dof-Play-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.rsl_env_cfg:H12_27dof_EnvCfg_PLAY",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:H12_27dof_FlatPPORunnerCfg",
+    },
+)
