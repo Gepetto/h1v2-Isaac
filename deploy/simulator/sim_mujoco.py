@@ -357,12 +357,13 @@ class MujocoSim:
         self.data.ctrl[:] = torques
 
     def get_robot_state(self):
-        return {
-            "base_orientation": self.data.qpos[3:7],
-            "q_pos": self.data.qpos[7:],
-            "base_angular_vel": self.data.qvel[3:6],
-            "q_vel": self.data.qvel[6:],
-        }
+        with self.sim_lock:
+            return {
+                "base_orientation": self.data.qpos[3:7],
+                "q_pos": self.data.qpos[7:],
+                "base_angular_vel": self.data.qvel[3:6],
+                "q_vel": self.data.qvel[6:],
+            }
 
     def run_render(self, close_event):
         viewer = mujoco.viewer.launch_passive(self.model, self.data)
