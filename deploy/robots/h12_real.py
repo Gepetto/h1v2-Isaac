@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import yaml
 from biped_assets import SCENE_PATHS
-from scipy.spatial.transform import Rotation as R
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,
     ChannelPublisher,
@@ -23,6 +22,7 @@ from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
 
 sys.path.append("../")
 from utils.remote_controller import KeyMap, RemoteController
+from utils.rotation import transform_imu_data
 
 
 class H12Real:
@@ -107,35 +107,17 @@ class H12Real:
         }
 
     def _get_base_state(self):
-        # TODO: use class variables to avoid memory allocation at runtime
-
-        # imu_state quaternion: w, x, y, z
-        quat = self.low_state.imu_state.quaternion
-        ang_vel = np.array([self.low_state.imu_state.gyroscope], dtype=np.float32)
-
-        # h1_2 imu is in the torso
-        # imu data needs to be transformed to the pelvis frame
-        waist_yaw = self.low_state.motor_state[self.arm_waist_joint2motor_idx[0]].q
-        waist_yaw_omega = self.low_state.motor_state[self.arm_waist_joint2motor_idx[0]].dq
-        quat, ang_vel = self.transform_imu_data(
-            waist_yaw=waist_yaw,
-            waist_yaw_omega=waist_yaw_omega,
-            imu_quat=quat,
-            imu_omega=ang_vel,
+        # h1_2 IMU is in the torso
+        # IMU data needs to be transformed to the pelvis frame
+        torso_id = 12
+        torso = self.low_state.motor_state[torso_id]
+        imu_state = self.low_state.imu_state
+        return transform_imu_data(
+            waist_yaw=torso.q,
+            waist_yaw_omega=torso.dq,
+            imu_quat=imu_state.quaternion,
+            imu_omega=imu_state.gyroscope,
         )
-
-        return (quat, ang_vel)
-
-    def transform_imu_data(self, waist_yaw, waist_yaw_omega, imu_quat, imu_omega):
-        # TODO: extract this code to separater file and maybe replace with pinocchio for the conversion
-
-        RzWaist = R.from_euler("z", waist_yaw).as_matrix()
-        R_torso = R.from_quat(
-            [imu_quat[1], imu_quat[2], imu_quat[3], imu_quat[0]],
-        ).as_matrix()
-        R_pelvis = np.dot(R_torso, RzWaist.T)
-        w = np.dot(RzWaist, imu_omega[0]) - np.array([0, 0, waist_yaw_omega])
-        return R.from_matrix(R_pelvis).as_quat()[[3, 0, 1, 2]], w
 
     def _get_joint_state(self):
         n = len(self.leg_joint2motor_idx)
