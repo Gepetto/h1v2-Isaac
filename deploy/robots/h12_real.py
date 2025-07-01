@@ -93,7 +93,8 @@ class H12Real:
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
-        if config_mujoco is not None:
+        self.use_mujoco = config_mujoco is not None
+        if self.use_mujoco:
             assert scene_path is not None
             self.unitree = UnitreeSdk2Bridge(scene_path, config_mujoco)
 
@@ -131,17 +132,11 @@ class H12Real:
         self.lowcmd_publisher_.Write(cmd)
 
     def get_controller_command(self):
-        return np.clip(
-            np.array(
-                [
-                    self.remote_controller.ly,
-                    self.remote_controller.lx * -1,
-                    self.remote_controller.rx * -1,
-                ],
-            ),
-            -1,
-            1,
-        )
+        if self.use_mujoco:
+            command = self.unitree.get_controller_command()
+        else:
+            command = [self.remote_controller.ly, -self.remote_controller.lx, -self.remote_controller.rx]
+        return np.clip(np.array(command), -1, 1)
 
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()
@@ -305,7 +300,7 @@ class H12Real:
             time.sleep(self.control_dt)
 
     def close(self):
-        if hasattr(self, "unitree"):
+        if self.use_mujoco:
             self.unitree.close()
         else:
             self.enter_damping_state()

@@ -13,9 +13,9 @@ TOPIC_LOWSTATE = "rt/lowstate"
 class UnitreeSdk2Bridge:
     def __init__(self, scene_path, config):
         config["real_time"] = True
-        self.mujoco = MujocoSim(scene_path, config)
+        self.simulator = MujocoSim(scene_path, config)
 
-        self.num_motor = len(self.mujoco.data.ctrl)
+        self.num_motor = len(self.simulator.data.ctrl)
         self.torques = [0.0] * self.num_motor
 
         # Unitree sdk2 message
@@ -37,8 +37,11 @@ class UnitreeSdk2Bridge:
         self.sim_thread.start()
         self.state_thread.Start()
 
+    def get_controller_command(self):
+        return self.simulator.get_controller_command()
+
     def low_cmd_handler(self, msg: LowCmd_):
-        state = self.mujoco.get_robot_state()
+        state = self.simulator.get_robot_state()
         qpos = state["q_pos"]
         qvel = state["q_vel"]
         with self.torques_lock:
@@ -50,7 +53,7 @@ class UnitreeSdk2Bridge:
             ]
 
     def publish_low_state(self):
-        state = self.mujoco.get_robot_state()
+        state = self.simulator.get_robot_state()
         qpos = state["q_pos"]
         qvel = state["q_vel"]
         with self.state_lock:
@@ -69,9 +72,9 @@ class UnitreeSdk2Bridge:
             with self.torques_lock:
                 torques = self.torques.copy()
 
-            self.mujoco.sim_step(torques)
+            self.simulator.sim_step(torques)
 
     def close(self):
-        self.mujoco.close()
+        self.simulator.close()
         self.close_event.set()
         self.sim_thread.join()
