@@ -52,3 +52,6 @@ class UnitreeSdk2Bridge:
         self.low_state.imu_state.gyroscope = state["base_angular_vel"]
 
         self.low_state_puber.Write(self.low_state)
+
+    def close(self):
+        self.mujoco.close()

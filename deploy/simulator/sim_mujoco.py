@@ -130,13 +130,13 @@ class MujocoSim:
 
         self.current_time += self.model.opt.timestep
 
-    def close(self, log_dir):
+    def close(self, log_dir=None):
         # Close Mujoco viewer if opened
         if self.enable_GUI:
             self.close_event.set()
             self.viewer_thread.join()
 
-        if self.check_violations:
+        if self.check_violations and log_dir is not None:
             self._save_violations(log_dir)
 
     def _record_violation(

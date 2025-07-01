@@ -93,8 +93,7 @@ class H12Real:
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
-        self.use_mujoco = config_mujoco is not None
-        if self.use_mujoco:
+        if config_mujoco is not None:
             assert scene_path is not None
             self.unitree = UnitreeSdk2Bridge(scene_path, config_mujoco)
 
@@ -299,13 +298,14 @@ class H12Real:
         time.sleep(self.control_dt)
 
     def wait_for_button(self, button):
-        print(f"Waiting to press {button}...")
+        button_name = next(k for k, v in KeyMap.__dict__.items() if v == button)
+        print(f"Waiting to press {button_name}...")
         while self.remote_controller.button[button] != 1:
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
     def close(self):
-        if self.use_mujoco:
+        if hasattr(self, "unitree"):
             self.unitree.close()
 
 
