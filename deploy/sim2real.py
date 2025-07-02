@@ -3,7 +3,8 @@ from pathlib import Path
 import yaml
 from biped_assets import SCENE_PATHS
 from controllers.rl import RLPolicy
-from robots.h12_real import H12Real, KeyMap
+from robots.h12_real import H12Real
+from utils.remote_controller import KeyMap
 
 if __name__ == "__main__":
     # Load config
@@ -41,7 +42,7 @@ if __name__ == "__main__":
             q_ref = policy.step(state, command)
             robot.step(q_ref)
 
-            if robot.remote_controller.button[KeyMap.select] == 1:
+            if robot.remote_controller.is_pressed(KeyMap.select):
                 break
 
     except KeyboardInterrupt:

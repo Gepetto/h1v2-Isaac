@@ -4,7 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import yaml
-from robots.h12_real import H12Real, KeyMap
+from robots.h12_real import H12Real
+from utils.remote_controller import KeyMap
 
 
 class DebugMode(Enum):
@@ -47,7 +48,7 @@ if __name__ == "__main__":
                 robot.send_cmd(robot.low_cmd)
                 time.sleep(0.02)
 
-            if robot.remote_controller.button[KeyMap.select] == 1:
+            if robot.remote_controller.is_pressed(KeyMap.select):
                 break
 
     except KeyboardInterrupt:

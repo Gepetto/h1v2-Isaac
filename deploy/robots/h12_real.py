@@ -1,4 +1,4 @@
-import struct
+import sys
 import time
 from pathlib import Path
 
@@ -21,49 +21,13 @@ from unitree_sdk2py.utils.crc import CRC
 
 from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
 
-
-class KeyMap:
-    R1 = 0
-    L1 = 1
-    start = 2
-    select = 3
-    R2 = 4
-    L2 = 5
-    F1 = 6
-    F2 = 7
-    A = 8
-    B = 9
-    X = 10
-    Y = 11
-    up = 12
-    right = 13
-    down = 14
-    left = 15
-
-
-class RemoteController:
-    def __init__(self):
-        self.lx = 0
-        self.ly = 0
-        self.rx = 0
-        self.ry = 0
-        self.button = [0] * 16
-
-    def set(self, data):
-        # wireless_remote
-        keys = struct.unpack("H", data[2:4])[0]
-        for i in range(16):
-            self.button[i] = (keys & (1 << i)) >> i
-        self.lx = struct.unpack("f", data[4:8])[0]
-        self.rx = struct.unpack("f", data[8:12])[0]
-        self.ry = struct.unpack("f", data[12:16])[0]
-        self.ly = struct.unpack("f", data[20:24])[0]
+sys.path.append("../")
+from utils.remote_controller import KeyMap, RemoteController
 
 
 class H12Real:
     def __init__(self, config, scene_path=None, *, config_mujoco=None):
         ChannelFactoryInitialize(0, config["net_interface"])
-
 
         self.control_dt = config["control_dt"]
 
@@ -288,7 +252,7 @@ class H12Real:
     def wait_for_button(self, button):
         button_name = next(k for k, v in KeyMap.__dict__.items() if v == button)
         print(f"Waiting to press '{button_name}'...")
-        while self.remote_controller.button[button] != 1:
+        while not self.remote_controller.is_pressed(button):
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
@@ -318,7 +282,7 @@ if __name__ == "__main__":
         try:
             robot.step(state["qpos"])
             # Press the select key to exit
-            if robot.remote_controller.button[KeyMap.select] == 1:
+            if robot.remote_controller.is_pressed(KeyMap.select):
                 break
         except KeyboardInterrupt:
             break
