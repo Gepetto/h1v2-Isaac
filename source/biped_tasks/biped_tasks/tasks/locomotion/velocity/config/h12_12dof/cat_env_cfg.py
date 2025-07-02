@@ -100,7 +100,7 @@ class CommandsCfg:
         heading_command=False,
         debug_vis=True,
         ranges=mdp.UniformVelocityCommandCfg.Ranges(
-            lin_vel_x=(-1.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-0.5, 0.5)
+            lin_vel_x=(0.0, 1.0), lin_vel_y=(-0.0, 0.0), ang_vel_z=(-1.0, 1.0)
         ),
         velocity_deadzone=VELOCITY_DEADZONE
     )
@@ -324,7 +324,7 @@ class ConstraintsCfg:
     # Safety Soft constraints
     foot_contact_force = ConstraintTerm(
         func=constraints.foot_contact_force,
-        max_p=0.5,
+        max_p=0.25,
         params={
             "limit": 800.0, 
             "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_ankle_roll_link"])},
@@ -470,7 +470,7 @@ class CurriculumCfg:
         func=curriculums.modify_constraint_p,
         params={"term_name": "foot_contact_force", 
                 "num_steps": 24 * MAX_CURRICULUM_ITERATIONS, 
-                "init_max_p": 0.5},
+                "init_max_p": 0.25},
     )
     hip_joint_torque = CurrTerm(
         func=curriculums.modify_constraint_p,
@@ -613,10 +613,10 @@ class H12_12dof_EnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self):
         """Post initialization."""
         # general settings
-        self.decimation = 8
+        self.decimation = 4
         self.episode_length_s = 20.0
         # simulation settings
-        self.sim.dt = 0.0025
+        self.sim.dt = 0.005
         self.sim.render_interval = self.decimation
         self.sim.disable_contact_processing = True
         self.sim.physics_material = self.scene.terrain.physics_material
