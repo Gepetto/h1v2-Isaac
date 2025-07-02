@@ -86,9 +86,6 @@ class MujocoSim:
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
-        self.kp = np.array(config["kp"])
-        self.kd = np.array(config["kd"])
-
         # Enable the weld constraint
         self.model.eq_active0[0] = 1 if config["fix_base"] else 0
 

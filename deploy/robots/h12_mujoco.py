@@ -14,6 +14,8 @@ class H12Mujoco(MujocoSim):
         super().__init__(scene_path, config)
 
         self.decimation = config["decimation"]
+        self.kp = np.array(config["kp"])
+        self.kd = np.array(config["kd"])
 
     def step(self, q_ref):
         for _ in range(self.decimation):
