@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # Set up interface to real robot
     debug_robot = mode == DebugMode.NO_MOVEMENT
-    robot = H12Real(config=config["real"], debug=debug_robot)
+    robot = H12Real(config=config["real"])
 
     if mode == DebugMode.PD:
         robot.enter_zero_torque_state()
