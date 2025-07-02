@@ -12,7 +12,7 @@ def parse_args():
 
 
 def plot_cmds(cmds):
-    qpos = cmds["q_pos"]
+    qpos = cmds["qpos"]
 
     joint_id = 5
 
@@ -38,7 +38,7 @@ def plot_cmds(cmds):
 
 
 def plot_states(states):
-    qpos = states["q_pos"]
+    qpos = states["qpos"]
 
     _, ax = plt.subplots()
     ax.plot(qpos[:, 12])

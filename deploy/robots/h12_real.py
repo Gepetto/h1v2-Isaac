@@ -133,13 +133,13 @@ class H12Real:
 
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()
-        q_pos, q_vel = self._get_joint_state()
+        qpos, qvel = self._get_joint_state()
 
         return {
             "base_orientation": base_orientation,
-            "q_pos": q_pos,
+            "qpos": qpos,
             "base_angular_vel": base_angular_vel,
-            "q_vel": q_vel,
+            "qvel": qvel,
         }
 
     def _get_base_state(self):
@@ -175,13 +175,13 @@ class H12Real:
 
     def _get_joint_state(self):
         n = len(self.leg_joint2motor_idx)
-        q_pos = np.empty(n)
-        q_vel = np.empty(n)
+        qpos = np.empty(n)
+        qvel = np.empty(n)
         for i in range(n):
-            q_pos[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].q
-            q_vel[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].dq
+            qpos[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].q
+            qvel[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].dq
 
-        return (q_pos, q_vel)
+        return (qpos, qvel)
 
     def init_cmd_hg(self, cmd: LowCmdHG, mode_machine: int, mode_pr: int):
         cmd.mode_machine = mode_machine
@@ -316,7 +316,7 @@ if __name__ == "__main__":
     state = robot.get_robot_state()
     while True:
         try:
-            robot.step(state["q_pos"])
+            robot.step(state["qpos"])
             # Press the select key to exit
             if robot.remote_controller.button[KeyMap.select] == 1:
                 break

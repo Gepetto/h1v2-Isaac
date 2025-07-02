@@ -98,10 +98,10 @@ class ObservationHandler:
         return scaled_command
 
     def joint_pos_rel(self):
-        return self.state["q_pos"] - self.default_joint_pos
+        return self.state["qpos"] - self.default_joint_pos
 
     def joint_vel_rel(self):
-        return self.state["q_vel"] - self.default_joint_vel
+        return self.state["qvel"] - self.default_joint_vel
 
     def last_action(self):
         return self.actions

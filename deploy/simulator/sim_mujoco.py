@@ -365,9 +365,9 @@ class MujocoSim:
         with self.sim_lock:
             return {
                 "base_orientation": self.data.qpos[3:7],
-                "q_pos": self.data.qpos[7:],
+                "qpos": self.data.qpos[7:],
                 "base_angular_vel": self.data.qvel[3:6],
-                "q_vel": self.data.qvel[6:],
+                "qvel": self.data.qvel[6:],
             }
 
     def run_render(self, close_event):

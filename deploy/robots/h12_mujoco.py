@@ -38,4 +38,4 @@ if __name__ == "__main__":
 
     state = sim.get_robot_state()
     while True:
-        sim.step(state["q_pos"])
+        sim.step(state["qpos"])

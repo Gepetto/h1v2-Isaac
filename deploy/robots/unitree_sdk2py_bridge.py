@@ -42,8 +42,8 @@ class UnitreeSdk2Bridge:
 
     def low_cmd_handler(self, msg: LowCmd_):
         state = self.simulator.get_robot_state()
-        qpos = state["q_pos"]
-        qvel = state["q_vel"]
+        qpos = state["qpos"]
+        qvel = state["qvel"]
         with self.torques_lock:
             self.torques = [
                 msg.motor_cmd[i].tau
@@ -54,8 +54,8 @@ class UnitreeSdk2Bridge:
 
     def publish_low_state(self):
         state = self.simulator.get_robot_state()
-        qpos = state["q_pos"]
-        qvel = state["q_vel"]
+        qpos = state["qpos"]
+        qvel = state["qvel"]
         with self.state_lock:
             for i in range(self.num_motor):
                 self.low_state.motor_state[i].q = qpos[i]

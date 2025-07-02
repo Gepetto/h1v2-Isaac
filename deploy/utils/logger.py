@@ -64,8 +64,8 @@ def load_cmd_log(path):
     cmds = np.frombuffer(data[4:], dtype=np.float64)
     cmds = cmds.reshape((-1, 4 * nb_motors))
     return {
-        "q_pos": cmds[:, ::4],
-        "q_vel": cmds[:, 1::4],
+        "qpos": cmds[:, ::4],
+        "qvel": cmds[:, 1::4],
         "kp": cmds[:, 2::4],
         "kd": cmds[:, 3::4],
     }
@@ -81,8 +81,8 @@ def load_state_log(path):
     return {
         "base_orientation": states[:, :4],
         "base_angular_vel": states[:, 4:7],
-        "q_pos": states[:, 7::2],
-        "q_vel": states[:, 8::2],
+        "qpos": states[:, 7::2],
+        "qvel": states[:, 8::2],
     }
 
 
