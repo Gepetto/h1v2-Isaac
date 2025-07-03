@@ -61,16 +61,22 @@ class H12Real:
 
         self.control_dt = config["real"]["control_dt"]
 
-        self.enabled_joint_real_idx = np.array(
-            [self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in config["joints"] if joint["enabled"]],
-        )
-        self.disabled_joint_real_idx = np.array(
-            [self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in config["joints"] if not joint["enabled"]],
-        )
+        joints = config["joints"]
+        self.enabled_joint_real_idx = [
+            self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in joints if joint["enabled"]
+        ]
+        self.disabled_joint_real_idx = [
+            self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in joints if not joint["enabled"]
+        ]
 
-        self.joint_kp = np.array([joint["kp"] for joint in config["joints"]])
-        self.joint_kd = np.array([joint["kd"] for joint in config["joints"]])
-        self.default_joint_pos = np.array([joint["default_joint_pos"] for joint in config["joints"]])
+        self.joint_kp = np.empty(len(joints))
+        self.joint_kd = np.empty(len(joints))
+        self.default_joint_pos = np.empty(len(joints))
+        for joint in joints:
+            real_joint_id = self.REAL_JOINT_NAME_ORDER.index(joint["name"])
+            self.joint_kp[real_joint_id] = joint["kp"]
+            self.joint_kd[real_joint_id] = joint["kd"]
+            self.default_joint_pos[real_joint_id] = joint["default_joint_pos"]
 
         self.remote_controller = RemoteController()
 
