@@ -26,20 +26,51 @@ from utils.rotation import transform_imu_data
 
 
 class H12Real:
-    def __init__(self, config, scene_path=None, *, config_mujoco=None):
-        ChannelFactoryInitialize(0, config["net_interface"])
+    REAL_JOINT_NAME_ORDER = (
+        "left_hip_yaw",
+        "left_hip_pitch",
+        "left_hip_roll",
+        "left_knee",
+        "left_ankle_pitch",
+        "left_ankle_roll",
+        "right_hip_yaw",
+        "right_hip_pitch",
+        "right_hip_roll",
+        "right_knee",
+        "right_ankle_pitch",
+        "right_ankle_roll",
+        "torso",
+        "left_shoulder_pitch",
+        "left_shoulder_roll",
+        "left_shoulder_yaw",
+        "left_elbow",
+        "left_wrist_roll",
+        "left_wrist_pitch",
+        "left_wrist_yaw",
+        "right_shoulder_pitch",
+        "right_shoulder_roll",
+        "right_shoulder_yaw",
+        "right_elbow",
+        "right_wrist_roll",
+        "right_wrist_pitch",
+        "right_wrist_yaw",
+    )
 
-        self.control_dt = config["control_dt"]
+    def __init__(self, config):
+        ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
-        self.leg_joint2motor_idx = np.array(config["leg_joint2motor_idx"])
-        self.leg_kp = np.array(config["leg_kp"])
-        self.leg_kd = np.array(config["leg_kd"])
-        self.leg_default_joint_pos = np.array(config["leg_default_joint_pos"])
+        self.control_dt = config["real"]["control_dt"]
 
-        self.arm_waist_joint2motor_idx = np.array(config["arm_waist_joint2motor_idx"])
-        self.arm_waist_kp = np.array(config["arm_waist_kp"])
-        self.arm_waist_kd = np.array(config["arm_waist_kd"])
-        self.arm_waist_default_joint_pos = np.array(config["arm_waist_default_joint_pos"])
+        self.enabled_joint_real_idx = np.array(
+            [self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in config["joints"] if joint["enabled"]],
+        )
+        self.disabled_joint_real_idx = np.array(
+            [self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in config["joints"] if not joint["enabled"]],
+        )
+
+        self.joint_kp = np.array([joint["kp"] for joint in config["joints"]])
+        self.joint_kd = np.array([joint["kd"] for joint in config["joints"]])
+        self.default_joint_pos = np.array([joint["default_joint_pos"] for joint in config["joints"]])
 
         self.remote_controller = RemoteController()
 
@@ -54,10 +85,9 @@ class H12Real:
         self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
-        self.use_mujoco = config_mujoco is not None
+        self.use_mujoco = config["real"]["use_mujoco"]
         if self.use_mujoco:
-            assert scene_path is not None
-            self.unitree = UnitreeSdk2Bridge(scene_path, config_mujoco)
+            self.unitree = UnitreeSdk2Bridge(config)
 
         # Wait for the subscriber to receive data
         self.wait_for_low_state()
@@ -107,8 +137,8 @@ class H12Real:
         }
 
     def _get_base_state(self):
-        # h1_2 IMU is in the torso
-        # IMU data needs to be transformed to the pelvis frame
+        # h1_2 imu is in the torso
+        # imu data needs to be transformed to the pelvis frame
         torso_id = 12
         torso = self.low_state.motor_state[torso_id]
         imu_state = self.low_state.imu_state
@@ -120,12 +150,12 @@ class H12Real:
         )
 
     def _get_joint_state(self):
-        n = len(self.leg_joint2motor_idx)
+        n = len(self.enabled_joint_real_idx)
         qpos = np.empty(n)
         qvel = np.empty(n)
         for i in range(n):
-            qpos[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].q
-            qvel[i] = self.low_state.motor_state[self.leg_joint2motor_idx[i]].dq
+            qpos[i] = self.low_state.motor_state[self.enabled_joint_real_idx[i]].q
+            qvel[i] = self.low_state.motor_state[self.enabled_joint_real_idx[i]].dq
 
         return (qpos, qvel)
 
@@ -139,6 +169,18 @@ class H12Real:
             positions=np.zeros(self.num_joints_total),
             kps=np.zeros(self.num_joints_total),
             kds=np.zeros(self.num_joints_total),
+        )
+
+    def set_init_state(self):
+        """In bridge mode, set the kp/kd for uncontrolled joints"""
+        if not self.use_mujoco:
+            return
+
+        self.set_motor_commands(
+            motor_indices=self.disabled_joint_real_idx,
+            positions=self.default_joint_pos[self.disabled_joint_real_idx],
+            kps=self.joint_kp[self.disabled_joint_real_idx],
+            kds=self.joint_kd[self.disabled_joint_real_idx],
         )
 
     def enter_zero_torque_state(self):
@@ -164,44 +206,31 @@ class H12Real:
     def move_to_default_pos(self):
         print("Moving to default pos.")
 
-        t_pose = self.get_t_pose()
+        leg_joint_idx = np.arange(0, 12)
+        arm_joint_idx = np.arange(12, 27)
 
-        dof_idx = np.concatenate((self.leg_joint2motor_idx, self.arm_waist_joint2motor_idx), axis=0)
-        kps = np.concatenate((self.leg_kp, self.arm_waist_kp), axis=0)
-        kds = np.concatenate((self.leg_kd, self.arm_waist_kd), axis=0)
-        default_pos = np.concatenate((self.leg_default_joint_pos, t_pose), axis=0)
+        # First, set legs and raise shoulders to avoid hitting itself
+        # t_pose = np.array([motor.q for motor in self.low_state.motor_state])
+        t_pose = np.array([self.low_state.motor_state[i].q for i in range(27)])
+        t_pose[leg_joint_idx] = self.default_joint_pos[leg_joint_idx]
+        t_pose[self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll")] = 0.6
+        t_pose[self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll")] = -0.6
+        self.move_to_pos(range(27), t_pose, 2)
 
-        # Move legs
-        self.move_to_pos(dof_idx, default_pos, kps, kds, 2)
-        self.move_to_pos(
-            self.arm_waist_joint2motor_idx,
-            self.arm_waist_default_joint_pos,
-            self.arm_waist_kp,
-            self.arm_waist_kd,
-            2,
-        )
+        # Then set up the default position
+        self.move_to_pos(arm_joint_idx, self.default_joint_pos[arm_joint_idx], 2)
+
         print("Reached default pos state.")
 
-    def get_t_pose(self):
-        n = len(self.arm_waist_joint2motor_idx)
-        curr_arm_waist_pos = np.empty(n)
-        for i in range(n):
-            curr_arm_waist_pos[i] = self.low_state.motor_state[self.arm_waist_joint2motor_idx[i]].q
-
-        t_pose = curr_arm_waist_pos.copy()
-        t_pose[list(self.arm_waist_joint2motor_idx).index(14)] = 0.6
-        t_pose[list(self.arm_waist_joint2motor_idx).index(21)] = -0.6
-        return t_pose
-
-    def move_to_pos(self, joint_idx, pos, kp, kd, duration):
+    def move_to_pos(self, joint_idx, pos, duration):
         num_step = int(duration / self.control_dt)
+        kp = self.joint_kp[joint_idx]
+        kd = self.joint_kd[joint_idx]
 
-        # record the current pos
-        init_dof_pos = np.zeros(len(joint_idx), dtype=np.float32)
-        for i, dof_id in enumerate(joint_idx):
-            init_dof_pos[i] = self.low_state.motor_state[dof_id].q
+        # Record the current pos
+        init_dof_pos = np.array([self.low_state.motor_state[i].q for i in joint_idx])
 
-        # move to pos
+        # Move to pos
         for i in range(num_step):
             alpha = i / num_step
             target_pos = init_dof_pos * (1 - alpha) + pos * alpha
@@ -214,21 +243,12 @@ class H12Real:
 
     def step(self, target_dof_pos):
         self.set_motor_commands(
-            self.leg_joint2motor_idx,
+            self.enabled_joint_real_idx,
             target_dof_pos,
-            self.leg_kp,
-            self.leg_kd,
+            self.joint_kp[self.enabled_joint_real_idx],
+            self.joint_kd[self.enabled_joint_real_idx],
         )
-        self.set_motor_commands(
-            self.arm_waist_joint2motor_idx,
-            self.arm_waist_default_joint_pos,
-            self.arm_waist_kp,
-            self.arm_waist_kd,
-        )
-
-        # send the command
         self.send_cmd(self.low_cmd)
-
         time.sleep(self.control_dt)
 
     def wait_for_button(self, button):
@@ -251,10 +271,8 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     if config["real"]["use_mujoco"]:
-        scene_path = SCENE_PATHS["h12"]["27dof"]
-        robot = H12Real(config["real"], config_mujoco=config["mujoco"], scene_path=scene_path)
-    else:
-        robot = H12Real(config["real"])
+        config["mujoco"]["scene_path"] = SCENE_PATHS["h12"]["27dof"]
+    robot = H12Real(config["real"])
 
     robot.enter_zero_torque_state()
     robot.move_to_default_pos()

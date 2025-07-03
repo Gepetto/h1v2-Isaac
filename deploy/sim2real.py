@@ -16,17 +16,15 @@ if __name__ == "__main__":
     # Set up interface to real robot
     use_mujoco = config["real"]["use_mujoco"]
     if use_mujoco:
-        scene_path = SCENE_PATHS["h12"]["27dof"]
-        robot = H12Real(config=config["real"], config_mujoco=config["mujoco"], scene_path=scene_path)
-
+        config["mujoco"]["scene_path"] = SCENE_PATHS["h12"]["27dof"]
+        
         # Create unique log directory
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
         log_dir.mkdir(parents=True, exist_ok=True)
-
     else:
-        robot = H12Real(config=config["real"])
         log_dir = None
+    robot = H12Real(config=config)
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "model.onnx")
@@ -41,6 +39,9 @@ if __name__ == "__main__":
 
         robot.move_to_default_pos()
         robot.wait_for_button(KeyMap.A)
+
+    else:
+        robot.set_init_state()
 
     try:
         while True:

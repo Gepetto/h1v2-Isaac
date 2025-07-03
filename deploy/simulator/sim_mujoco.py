@@ -32,12 +32,23 @@ class ElasticBand:
 
 class MujocoSim:
     def __init__(self, scene_path, config):
+        joints = config["joints"]
+        config = config["mujoco"]
+
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
         self.model.opt.timestep = config["sim_dt"]
         self.current_time = 0
         self.episode_length = config["episode_length"]
         self.data = mujoco.MjData(self.model)
+
+        self.enabled_joint_mujoco_idx = np.array(
+            [
+                mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint["name"] + "_joint") - 1
+                for joint in joints
+                if joint["enabled"]
+            ],
+        )
 
         self.real_time = config["real_time"]
         self.render_dt = config["render_dt"]
@@ -109,15 +120,15 @@ class MujocoSim:
             self.logger.save_data(log_dir)
 
     def _apply_torques(self, torques):
-        self.data.ctrl[:] = torques
+        self.data.ctrl[self.enabled_joint_mujoco_idx] = torques
 
     def get_robot_state(self):
         with self.sim_lock:
             return {
                 "base_orientation": self.data.qpos[3:7],
-                "qpos": self.data.qpos[7:],
+                "qpos": self.data.qpos[7 + self.enabled_joint_mujoco_idx],
                 "base_angular_vel": self.data.qvel[3:6],
-                "qvel": self.data.qvel[6:],
+                "qvel": self.data.qvel[6 + self.enabled_joint_mujoco_idx],
             }
 
     def run_render(self, close_event):

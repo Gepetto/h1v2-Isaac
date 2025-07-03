@@ -6,9 +6,6 @@ mujoco:
   decimation: 20
   episode_length: 5
 
-  kp: [ 200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40 ]
-  kd: [ 2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2 ]
-
   enable_GUI: True
   fix_base: False
   real_time: False
@@ -21,12 +18,139 @@ real:
   control_dt: 0.02
   use_mujoco: True
 
-  leg_joint2motor_idx: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
-  leg_kp: [ 200, 200, 200, 300, 40, 40, 200, 200, 200, 300, 40, 40 ]
-  leg_kd: [ 2.5, 2.5, 2.5, 4, 2, 2, 2.5, 2.5, 2.5, 4, 2, 2 ]
-  leg_default_joint_pos: [ 0, -0.16, 0.0, 0.36, -0.2, 0.0, 0, -0.16, 0.0, 0.36, -0.2, 0.0 ]
-
-  arm_waist_joint2motor_idx: [ 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 ]
-  arm_waist_kp: [ 300, 120, 120, 120, 80, 80, 80, 80, 120, 120, 120, 80, 80, 80, 80 ]
-  arm_waist_kd: [ 3, 2, 2, 2, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1, 1 ]
-  arm_waist_default_joint_pos: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+joints:
+  - name: left_hip_yaw
+    kp: 200
+    kd: 2.5
+    default_joint_pos: 0.0
+    enabled: true
+  - name: left_hip_pitch
+    kp: 200
+    kd: 2.5
+    default_joint_pos: -0.16
+    enabled: true
+  - name: left_hip_roll
+    kp: 200
+    kd: 2.5
+    default_joint_pos: 0.0
+    enabled: true
+  - name: left_knee
+    kp: 300
+    kd: 4.0
+    default_joint_pos: 0.36
+    enabled: true
+  - name: left_ankle_pitch
+    kp: 40
+    kd: 2.0
+    default_joint_pos: -0.2
+    enabled: true
+  - name: left_ankle_roll
+    kp: 40
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: true
+  - name: right_hip_yaw
+    kp: 200
+    kd: 2.5
+    default_joint_pos: 0.0
+    enabled: true
+  - name: right_hip_pitch
+    kp: 200
+    kd: 2.5
+    default_joint_pos: -0.16
+    enabled: true
+  - name: right_hip_roll
+    kp: 200
+    kd: 2.5
+    default_joint_pos: 0.0
+    enabled: true
+  - name: right_knee
+    kp: 300
+    kd: 4.0
+    default_joint_pos: 0.36
+    enabled: true
+  - name: right_ankle_pitch
+    kp: 40
+    kd: 2.0
+    default_joint_pos: -0.2
+    enabled: true
+  - name: right_ankle_roll
+    kp: 40
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: true
+  - name: torso
+    kp: 300
+    kd: 3.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_shoulder_pitch
+    kp: 120
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_shoulder_roll
+    kp: 120
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_shoulder_yaw
+    kp: 120
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_elbow
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_wrist_roll
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_wrist_pitch
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: left_wrist_yaw
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_shoulder_pitch
+    kp: 120
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_shoulder_roll
+    kp: 120
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_shoulder_yaw
+    kp: 120
+    kd: 2.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_elbow
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_wrist_roll
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_wrist_pitch
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false
+  - name: right_wrist_yaw
+    kp: 80
+    kd: 1.0
+    default_joint_pos: 0.0
+    enabled: false

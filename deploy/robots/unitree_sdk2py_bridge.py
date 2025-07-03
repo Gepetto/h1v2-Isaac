@@ -11,11 +11,17 @@ TOPIC_LOWSTATE = "rt/lowstate"
 
 
 class UnitreeSdk2Bridge:
-    def __init__(self, scene_path, config):
-        config["real_time"] = True
+    def __init__(self, config):
+        scene_path = config["mujoco"]["scene_path"]
+        config["mujoco"]["real_time"] = True
+
+        # Enable all joints as we'll control them using a PD
+        for joint in config["joints"]:
+            joint["enabled"] = True
+
         self.simulator = MujocoSim(scene_path, config)
 
-        self.num_motor = len(self.simulator.data.ctrl)
+        self.num_motor = len(self.simulator.enabled_joint_mujoco_idx)
         self.torques = [0.0] * self.num_motor
 
         # Unitree sdk2 message
@@ -32,7 +38,7 @@ class UnitreeSdk2Bridge:
         self.sim_thread = threading.Thread(target=self.run_sim, args=(self.close_event,))
 
         self.state_lock = threading.Lock()
-        self.state_thread = RecurrentThread(interval=5 * config["sim_dt"], target=self.publish_low_state)
+        self.state_thread = RecurrentThread(interval=5 * config["mujoco"]["sim_dt"], target=self.publish_low_state)
 
         self.sim_thread.start()
         self.state_thread.Start()

@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     # Set up simulation
     scene_path = SCENE_PATHS["h12"]["12dof"]
-    sim = H12Mujoco(scene_path, config["mujoco"])
+    sim = H12Mujoco(scene_path, config)
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "model.onnx")
