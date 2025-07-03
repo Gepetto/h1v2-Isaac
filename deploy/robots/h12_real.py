@@ -32,13 +32,13 @@ class H12Real:
         self.control_dt = config["control_dt"]
 
         self.leg_joint2motor_idx = np.array(config["leg_joint2motor_idx"])
-        self.leg_kp = np.zeros_like(config["leg_kp"])
-        self.leg_kd = np.zeros_like(config["leg_kd"])
+        self.leg_kp = np.array(config["leg_kp"])
+        self.leg_kd = np.array(config["leg_kd"])
         self.leg_default_joint_pos = np.array(config["leg_default_joint_pos"])
 
         self.arm_waist_joint2motor_idx = np.array(config["arm_waist_joint2motor_idx"])
-        self.arm_waist_kp = np.zeros_like(config["arm_waist_kp"])
-        self.arm_waist_kd = np.zeros_like(config["arm_waist_kd"])
+        self.arm_waist_kp = np.array(config["arm_waist_kp"])
+        self.arm_waist_kd = np.array(config["arm_waist_kd"])
         self.arm_waist_default_joint_pos = np.array(config["arm_waist_default_joint_pos"])
 
         self.remote_controller = RemoteController()
