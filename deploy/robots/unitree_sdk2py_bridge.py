@@ -51,22 +51,22 @@ class UnitreeSdk2Bridge:
         qpos = state["qpos"]
         qvel = state["qvel"]
         with self.torques_lock:
-            self.torques = [
-                msg.motor_cmd[i].tau
-                + msg.motor_cmd[i].kp * (msg.motor_cmd[i].q - qpos[i])
-                + msg.motor_cmd[i].kd * (msg.motor_cmd[i].dq - qvel[i])
-                for i in range(self.num_motor)
-            ]
+            self.torques = [None] * self.num_motor
+            for sim_id, real_id in enumerate(self.simulator.enabled_joint_mujoco_idx):
+                motor = msg.motor_cmd[real_id]
+                cmd = motor.tau + motor.kp * (motor.q - qpos[sim_id]) + motor.kd * (motor.dq - qvel[sim_id])
+                self.torques[sim_id] = cmd
 
     def publish_low_state(self):
         state = self.simulator.get_robot_state()
         qpos = state["qpos"]
         qvel = state["qvel"]
         with self.state_lock:
-            for i in range(self.num_motor):
-                self.low_state.motor_state[i].q = qpos[i]
-                self.low_state.motor_state[i].dq = qvel[i]
-                self.low_state.motor_state[i].tau_est = 0.0
+            for sim_id, real_id in enumerate(self.simulator.enabled_joint_mujoco_idx):
+                motor_state = self.low_state.motor_state[real_id]
+                motor_state.q = qpos[sim_id]
+                motor_state.dq = qvel[sim_id]
+                motor_state.tau_est = 0.0
 
             self.low_state.imu_state.quaternion = state["base_orientation"]
             self.low_state.imu_state.gyroscope = state["base_angular_vel"]
