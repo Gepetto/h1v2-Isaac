@@ -15,13 +15,9 @@ class UnitreeSdk2Bridge:
         scene_path = config["mujoco"]["scene_path"]
         config["mujoco"]["real_time"] = True
 
-        # Enable all joints as we'll control them using a PD
-        for joint in config["joints"]:
-            joint["enabled"] = True
-
         self.simulator = MujocoSim(scene_path, config)
 
-        self.num_motor = len(self.simulator.enabled_joint_mujoco_idx)
+        self.num_motor = len(config["joints"])
         self.torques = [0.0] * self.num_motor
 
         # Unitree sdk2 message
@@ -47,29 +43,31 @@ class UnitreeSdk2Bridge:
         return self.simulator.get_controller_command()
 
     def low_cmd_handler(self, msg: LowCmd_):
-        state = self.simulator.get_robot_state()
-        qpos = state["qpos"]
-        qvel = state["qvel"]
+        with self.simulator.sim_lock:
+            qpos = self.simulator.data.qpos[7:]
+            qvel = self.simulator.data.qvel[6:]
+
         with self.torques_lock:
-            self.torques = [None] * self.num_motor
-            for sim_id, real_id in enumerate(self.simulator.enabled_joint_mujoco_idx):
-                motor = msg.motor_cmd[real_id]
-                cmd = motor.tau + motor.kp * (motor.q - qpos[sim_id]) + motor.kd * (motor.dq - qvel[sim_id])
-                self.torques[sim_id] = cmd
+            for i in range(self.num_motor):
+                motor = msg.motor_cmd[i]
+                self.torques[i] = motor.tau + motor.kp * (motor.q - qpos[i]) + motor.kd * (motor.dq - qvel[i])
 
     def publish_low_state(self):
-        state = self.simulator.get_robot_state()
-        qpos = state["qpos"]
-        qvel = state["qvel"]
+        with self.simulator.sim_lock:
+            base_orientation = self.simulator.data.qpos[3:7]
+            qpos = self.simulator.data.qpos[7:]
+            base_angular_vel = self.simulator.data.qvel[3:6]
+            qvel = self.simulator.data.qvel[6:]
+
         with self.state_lock:
-            for sim_id, real_id in enumerate(self.simulator.enabled_joint_mujoco_idx):
-                motor_state = self.low_state.motor_state[real_id]
-                motor_state.q = qpos[sim_id]
-                motor_state.dq = qvel[sim_id]
+            for i in range(self.num_motor):
+                motor_state = self.low_state.motor_state[i]
+                motor_state.q = qpos[i]
+                motor_state.dq = qvel[i]
                 motor_state.tau_est = 0.0
 
-            self.low_state.imu_state.quaternion = state["base_orientation"]
-            self.low_state.imu_state.gyroscope = state["base_angular_vel"]
+            self.low_state.imu_state.quaternion = base_orientation
+            self.low_state.imu_state.gyroscope = base_angular_vel
 
             self.low_state_puber.Write(self.low_state)
 
