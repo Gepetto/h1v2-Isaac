@@ -30,6 +30,9 @@ class Metrics:
     applied_torques: dict[str, float]
     foot_contact_forces: dict[str, float]
 
+    action_rate: dict[str, float]
+    joint_pos_rate: dict[str, float]
+
 
 @dataclass
 class SafetyViolation:
@@ -50,6 +53,9 @@ class Checker:
         self.safety_violations: list[SafetyViolation] = []
         self.metrics_data: list[Metrics] = []
         self.metrics_data: list[Metrics] = []
+
+        self.prev_joint_pos = {}
+        self.prev_action = {}
 
     def _record_violation(
         self,
@@ -195,6 +201,9 @@ class Checker:
         joint_vel = {}
         applied_torques = {}
 
+        joint_pos_rate = {}
+        action_rate = {}
+
         # Loop through joints to collect data
         for jnt_id in range(self.model.njnt):
             joint_name = mujoco.mj_id2name(
@@ -205,7 +214,12 @@ class Checker:
 
             # Position
             joint_pos_addr = self.model.jnt_qposadr[jnt_id]
-            joint_pos[joint_name] = self.data.qpos[joint_pos_addr]
+            qpos = self.data.qpos[joint_pos_addr]
+            joint_pos[joint_name] = qpos
+
+            joint_pos_rate[joint_name] = qpos - self.prev_joint_pos.get(joint_name,qpos)
+
+            self.prev_joint_pos[joint_name] = qpos
 
             # Velocity
             joint_vel_addr = self.model.jnt_dofadr[jnt_id]
@@ -222,6 +236,9 @@ class Checker:
                         joint_torque = self.data.actuator_force[act_id]
                         applied_torques[joint_name] = joint_torque
 
+                        action_rate[joint_name] = joint_torque - self.prev_action.get(joint_name,joint_torque)
+                        self.prev_action[joint_name] = joint_torque
+
         # Get foot contact forces
         foot_contact_forces = self._get_foot_contact_forces()
 
@@ -236,12 +253,15 @@ class Checker:
             joint_vel=joint_vel,
             applied_torques=applied_torques,
             foot_contact_forces=foot_contact_forces,
+            action_rate=action_rate,
+            joint_pos_rate=joint_pos_rate,
         )
 
         # Store metrics
         self.metrics_data.append(metrics)
 
-    def save_violations(self, log_dir):
+    def save_data(self, log_dir):
+        # Save violations
         safety_checker_path = log_dir / "safety_check.json"
         with safety_checker_path.open("w") as f:
             json.dump(
