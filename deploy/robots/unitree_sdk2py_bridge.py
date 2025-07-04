@@ -38,7 +38,7 @@ class UnitreeSdk2Bridge:
         self.sim_thread = threading.Thread(target=self.run_sim, args=(self.close_event,))
 
         self.state_lock = threading.Lock()
-        self.state_thread = RecurrentThread(interval=5 * config["mujoco"]["sim_dt"], target=self.publish_low_state)
+        self.state_thread = RecurrentThread(interval=config["control_dt"] / 5, target=self.publish_low_state)
 
         self.sim_thread.start()
         self.state_thread.Start()

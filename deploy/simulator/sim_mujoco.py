@@ -32,30 +32,29 @@ class ElasticBand:
 
 class MujocoSim:
     def __init__(self, scene_path, config):
-        joints = config["joints"]
-        config = config["mujoco"]
+        mj_config = config["mujoco"]
 
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
-        self.model.opt.timestep = config["sim_dt"]
+        self.model.opt.timestep = config["control_dt"] / mj_config["decimation"]
         self.current_time = 0
-        self.episode_length = config["episode_length"]
+        self.episode_length = mj_config["episode_length"]
         self.data = mujoco.MjData(self.model)
 
         self.enabled_joint_mujoco_idx = np.array(
             [
                 mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint["name"] + "_joint") - 1
-                for joint in joints
+                for joint in config["joints"]
                 if joint["enabled"]
             ],
         )
 
-        self.real_time = config["real_time"]
-        self.render_dt = config["render_dt"]
+        self.real_time = mj_config["real_time"]
+        self.render_dt = mj_config["render_dt"]
 
         self.sim_lock = threading.Lock()
 
-        self.check_violations = config["check_violations"]
+        self.check_violations = mj_config["check_violations"]
         if self.check_violations:
             self.logger = MJLogger(self.model, self.data)
             self.logger.record_limits()
@@ -63,21 +62,21 @@ class MujocoSim:
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
         # Enable the weld constraint
-        self.model.eq_active0[0] = 1 if config["fix_base"] else 0
+        self.model.eq_active0[0] = 1 if mj_config["fix_base"] else 0
 
         self.reset()
 
-        self.enable_keyboard = config["enable_keyboard"]
+        self.enable_keyboard = mj_config["enable_keyboard"]
         self.keyboard_lock = threading.Lock()
         self.controller_command = np.zeros(3)
 
-        self.enable_GUI = config["enable_GUI"]
+        self.enable_GUI = mj_config["enable_GUI"]
         if self.enable_GUI:
             self.close_event = threading.Event()
             self.viewer_thread = threading.Thread(target=self.run_render, args=(self.close_event,))
             self.viewer_thread.start()
 
-        self.elastic_band_enabled = config["elastic_band"]
+        self.elastic_band_enabled = mj_config["elastic_band"]
         if self.elastic_band_enabled:
             self.elastic_band = ElasticBand()
             self.band_attached_link = self.model.body("torso_link").id

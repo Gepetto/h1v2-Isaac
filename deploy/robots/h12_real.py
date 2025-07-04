@@ -59,7 +59,7 @@ class H12Real:
     def __init__(self, config):
         ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
-        self.control_dt = config["real"]["control_dt"]
+        self.control_dt = config["control_dt"]
 
         joints = config["joints"]
         self.enabled_joint_real_idx = [
