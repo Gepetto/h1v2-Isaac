@@ -25,6 +25,9 @@ from utils.remote_controller import KeyMap, RemoteController
 from utils.rotation import transform_imu_data
 
 
+class ConfigError(Exception): ...
+
+
 class H12Real:
     REAL_JOINT_NAME_ORDER = (
         "left_hip_yaw",
@@ -62,21 +65,30 @@ class H12Real:
         self.control_dt = config["control_dt"]
 
         joints = config["joints"]
-        self.enabled_joint_real_idx = [
-            self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in joints if joint["enabled"]
-        ]
-        self.disabled_joint_real_idx = [
-            self.REAL_JOINT_NAME_ORDER.index(joint["name"]) for joint in joints if not joint["enabled"]
-        ]
+        config_joint_names = [joint["name"] for joint in joints]
 
-        self.joint_kp = np.empty(len(joints))
-        self.joint_kd = np.empty(len(joints))
-        self.default_joint_pos = np.empty(len(joints))
+        num_joints = len(self.REAL_JOINT_NAME_ORDER)
+        self.joint_kp = np.empty(num_joints)
+        self.joint_kd = np.empty(num_joints)
+        self.default_joint_pos = np.empty(num_joints)
+        for joint_id in range(num_joints):
+            joint_name = self.REAL_JOINT_NAME_ORDER[joint_id]
+            if joint_name not in config_joint_names:
+                err_msg = f"Joint '{joint_name}' is not set up in the config file"
+                raise ConfigError(err_msg)
+            joint_config = joints[config_joint_names.index(joint_name)]
+            self.joint_kp[joint_id] = joint_config["kp"]
+            self.joint_kd[joint_id] = joint_config["kd"]
+            self.default_joint_pos[joint_id] = joint_config["default_joint_pos"]
+
+        self.enabled_joint_idx = []
         for joint in joints:
-            real_joint_id = self.REAL_JOINT_NAME_ORDER.index(joint["name"])
-            self.joint_kp[real_joint_id] = joint["kp"]
-            self.joint_kd[real_joint_id] = joint["kd"]
-            self.default_joint_pos[real_joint_id] = joint["default_joint_pos"]
+            if not joint["enabled"]:
+                continue
+            if joint["name"] not in self.REAL_JOINT_NAME_ORDER:
+                err_msg = f"Joint '{joint['name']}' is enabled, but cannot be found in the model"
+                raise ConfigError(err_msg)
+            self.enabled_joint_idx.append(self.REAL_JOINT_NAME_ORDER.index(joint["name"]))
 
         self.remote_controller = RemoteController()
 
@@ -156,12 +168,12 @@ class H12Real:
         )
 
     def _get_joint_state(self):
-        n = len(self.enabled_joint_real_idx)
+        n = len(self.enabled_joint_idx)
         qpos = np.empty(n)
         qvel = np.empty(n)
         for i in range(n):
-            qpos[i] = self.low_state.motor_state[self.enabled_joint_real_idx[i]].q
-            qvel[i] = self.low_state.motor_state[self.enabled_joint_real_idx[i]].dq
+            qpos[i] = self.low_state.motor_state[self.enabled_joint_idx[i]].q
+            qvel[i] = self.low_state.motor_state[self.enabled_joint_idx[i]].dq
 
         return (qpos, qvel)
 
@@ -178,15 +190,14 @@ class H12Real:
         )
 
     def set_init_state(self):
-        """In bridge mode, set the kp/kd for uncontrolled joints"""
         if not self.use_mujoco:
             return
 
         self.set_motor_commands(
-            motor_indices=self.disabled_joint_real_idx,
-            positions=self.default_joint_pos[self.disabled_joint_real_idx],
-            kps=self.joint_kp[self.disabled_joint_real_idx],
-            kds=self.joint_kd[self.disabled_joint_real_idx],
+            motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
+            positions=self.default_joint_pos,
+            kps=self.joint_kp,
+            kds=self.joint_kd,
         )
 
     def enter_zero_torque_state(self):
@@ -249,10 +260,10 @@ class H12Real:
 
     def step(self, target_dof_pos):
         self.set_motor_commands(
-            self.enabled_joint_real_idx,
+            self.enabled_joint_idx,
             target_dof_pos,
-            self.joint_kp[self.enabled_joint_real_idx],
-            self.joint_kd[self.enabled_joint_real_idx],
+            self.joint_kp[self.enabled_joint_idx],
+            self.joint_kd[self.enabled_joint_idx],
         )
         self.send_cmd(self.low_cmd)
         time.sleep(self.control_dt)

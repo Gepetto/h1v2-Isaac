@@ -41,14 +41,6 @@ class MujocoSim:
         self.episode_length = mj_config["episode_length"]
         self.data = mujoco.MjData(self.model)
 
-        self.enabled_joint_mujoco_idx = np.array(
-            [
-                mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint["name"] + "_joint") - 1
-                for joint in config["joints"]
-                if joint["enabled"]
-            ],
-        )
-
         self.real_time = mj_config["real_time"]
         self.render_dt = mj_config["render_dt"]
 
@@ -120,13 +112,13 @@ class MujocoSim:
     def _apply_torques(self, torques):
         self.data.ctrl[:] = torques
 
-    def get_robot_state(self):
+    def get_robot_sim_state(self):
         with self.sim_lock:
             return {
                 "base_orientation": self.data.qpos[3:7],
-                "qpos": self.data.qpos[7 + self.enabled_joint_mujoco_idx],
+                "qpos": self.data.qpos[7:],
                 "base_angular_vel": self.data.qvel[3:6],
-                "qvel": self.data.qvel[6 + self.enabled_joint_mujoco_idx],
+                "qvel": self.data.qvel[6:],
             }
 
     def run_render(self, close_event):

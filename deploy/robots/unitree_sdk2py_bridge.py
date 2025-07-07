@@ -43,9 +43,9 @@ class UnitreeSdk2Bridge:
         return self.simulator.get_controller_command()
 
     def low_cmd_handler(self, msg: LowCmd_):
-        with self.simulator.sim_lock:
-            qpos = self.simulator.data.qpos[7:]
-            qvel = self.simulator.data.qvel[6:]
+        state = self.simulator.get_robot_sim_state()
+        qpos = state["qpos"]
+        qvel = state["qvel"]
 
         with self.torques_lock:
             for i in range(self.num_motor):
@@ -53,11 +53,9 @@ class UnitreeSdk2Bridge:
                 self.torques[i] = motor.tau + motor.kp * (motor.q - qpos[i]) + motor.kd * (motor.dq - qvel[i])
 
     def publish_low_state(self):
-        with self.simulator.sim_lock:
-            base_orientation = self.simulator.data.qpos[3:7]
-            qpos = self.simulator.data.qpos[7:]
-            base_angular_vel = self.simulator.data.qvel[3:6]
-            qvel = self.simulator.data.qvel[6:]
+        state = self.simulator.get_robot_sim_state()
+        qpos = state["qpos"]
+        qvel = state["qvel"]
 
         with self.state_lock:
             for i in range(self.num_motor):
@@ -66,8 +64,8 @@ class UnitreeSdk2Bridge:
                 motor_state.dq = qvel[i]
                 motor_state.tau_est = 0.0
 
-            self.low_state.imu_state.quaternion = base_orientation
-            self.low_state.imu_state.gyroscope = base_angular_vel
+            self.low_state.imu_state.quaternion = state["base_orientation"]
+            self.low_state.imu_state.gyroscope = state["base_angular_vel"]
 
             self.low_state_puber.Write(self.low_state)
 
