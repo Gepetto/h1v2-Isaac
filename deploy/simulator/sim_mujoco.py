@@ -59,8 +59,6 @@ class MujocoSim:
             self.logger = MJLogger(self.model, self.data)
             self.logger.record_limits()
 
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
-
         # Enable the weld constraint
         self.model.eq_active0[0] = 1 if mj_config["fix_base"] else 0
 
@@ -82,22 +80,23 @@ class MujocoSim:
             self.band_attached_link = self.model.body("torso_link").id
 
     def reset(self):
-        mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
+        with self.sim_lock:
+            mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
     def sim_step(self, torques):
         step_start = time.perf_counter()
-        self._apply_torques(torques)
-        if self.check_violations:
-            self.logger.record_metrics(self.current_time)
-
         with self.sim_lock:
+            self._apply_torques(torques)
+            if self.check_violations:
+                self.logger.record_metrics(self.current_time)
+
             mujoco.mj_step(self.model, self.data)
 
-        if self.elastic_band_enabled:
-            self.data.xfrc_applied[self.band_attached_link, :3] = self.elastic_band.advance(
-                self.data.qpos[:3],
-                self.data.qvel[:3],
-            )
+            if self.elastic_band_enabled:
+                self.data.xfrc_applied[self.band_attached_link, :3] = self.elastic_band.advance(
+                    self.data.qpos[:3],
+                    self.data.qvel[:3],
+                )
 
         if self.real_time:
             time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
@@ -132,7 +131,9 @@ class MujocoSim:
 
     def run_render(self, close_event):
         key_cb = self.key_callback if self.enable_keyboard else None
-        viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
+        with self.sim_lock:
+            viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
+
         while viewer.is_running() and not close_event.is_set():
             with self.sim_lock:
                 viewer.sync()
