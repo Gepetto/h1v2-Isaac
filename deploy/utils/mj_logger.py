@@ -42,11 +42,10 @@ class Limits:
 
 
 class MJLogger:
-    def __init__(self, model, data, verbose):
+    def __init__(self, model, data):
         self.model = model
         self.data = data
 
-        self.safety_checker_verbose = verbose
         self.metrics_data: list[Metrics] = []
         self.metrics_data: list[Metrics] = []
 

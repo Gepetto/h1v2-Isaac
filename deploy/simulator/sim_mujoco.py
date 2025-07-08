@@ -46,7 +46,7 @@ class MujocoSim:
 
         self.check_violations = config["check_violations"]
         if self.check_violations:
-            self.logger = MJLogger(self.model, self.data, config["safety_checker_verbose"])
+            self.logger = MJLogger(self.model, self.data)
             self.logger.record_limits()
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)

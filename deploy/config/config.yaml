@@ -14,13 +14,11 @@ mujoco:
   real_time: False
   enable_keyboard: True
   check_violations: False
-  safety_checker_verbose: False
   elastic_band: False
 
 real:
   net_interface: eth0
   control_dt: 0.02
-
   use_mujoco: True
 
   leg_joint2motor_idx: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 ]
