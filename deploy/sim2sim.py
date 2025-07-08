@@ -13,9 +13,12 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Create unique log directory
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
-    log_dir.mkdir(parents=True, exist_ok=True)
+    if config["mujoco"]["check_violations"]:
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
+        log_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        log_dir = None
 
     # Set up simulation
     scene_path = SCENE_PATHS["h12"]["12dof"]

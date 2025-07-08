@@ -26,6 +26,7 @@ if __name__ == "__main__":
 
     else:
         robot = H12Real(config=config["real"])
+        log_dir = None
 
     # Load policy
     policy_path = str(Path(__file__).parent / "config" / "model.onnx")
