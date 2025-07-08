@@ -100,6 +100,9 @@ class Checker:
                 jnt_id,
             )
 
+            if "floating_base" in joint_name:
+                continue
+
             # Position
             joint_pos_addr = self.model.jnt_qposadr[jnt_id]
             qpos = self.data.qpos[joint_pos_addr]
