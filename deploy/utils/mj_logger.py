@@ -1,6 +1,5 @@
 import json
-from dataclasses import asdict, dataclass, field
-from typing import Any
+from dataclasses import asdict, dataclass
 
 import mujoco
 import numpy as np
@@ -42,7 +41,7 @@ class Limits:
 
 
 
-class Checker:
+class MJLogger:
     def __init__(self, model, data, verbose):
         self.model = model
         self.data = data

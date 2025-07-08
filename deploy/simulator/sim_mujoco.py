@@ -1,16 +1,13 @@
-import json
 import sys
 import threading
 import time
-from dataclasses import asdict, dataclass, field
-from typing import Any
 
 import mujoco
 import mujoco.viewer
 import numpy as np
 
 sys.path.append("../")
-from utils.checker import Checker
+from utils.mj_logger import MJLogger
 
 
 class ElasticBand:
@@ -49,8 +46,8 @@ class MujocoSim:
 
         self.check_violations = config["check_violations"]
         if self.check_violations:
-            self.checker = Checker(self.model, self.data, config["safety_checker_verbose"])
-            self.checker.record_limits()
+            self.logger = MJLogger(self.model, self.data, config["safety_checker_verbose"])
+            self.logger.record_limits()
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
@@ -81,7 +78,7 @@ class MujocoSim:
         step_start = time.perf_counter()
         self._apply_torques(torques)
         if self.check_violations:
-            self.checker.record_metrics(self.current_time)
+            self.logger.record_metrics(self.current_time)
 
         with self.sim_lock:
             mujoco.mj_step(self.model, self.data)
@@ -109,7 +106,7 @@ class MujocoSim:
             self.viewer_thread.join()
 
         if self.check_violations and log_dir is not None:
-            self.checker.save_data(log_dir)
+            self.logger.save_data(log_dir)
 
     def _apply_torques(self, torques):
         self.data.ctrl[:] = torques
