@@ -53,7 +53,7 @@ def extract_rate(data, rate_name):
 
 def extract_data(json_file):
     with open(json_file, "r") as file:
-        data = json.load(file)
+        data = json.load(file)[1:] # First entry contains the limits
 
         max_force, avg_force = extract_contact_force(data)
         max_action_rate, avg_action_rate = extract_rate(data, "action_rate")

@@ -50,6 +50,7 @@ class MujocoSim:
         self.check_violations = config["check_violations"]
         if self.check_violations:
             self.checker = Checker(self.model, self.data, config["safety_checker_verbose"])
+            self.checker.record_limits()
 
         mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
@@ -80,7 +81,6 @@ class MujocoSim:
         step_start = time.perf_counter()
         self._apply_torques(torques)
         if self.check_violations:
-            self.checker.check_safety(self.current_time)
             self.checker.record_metrics(self.current_time)
 
         with self.sim_lock:
