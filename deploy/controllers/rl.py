@@ -19,7 +19,7 @@ class InferenceHandler:
 
 class InferenceHandlerTorch:
     def __init__(self, policy_path):
-        self.policy = torch.jit.load(policy_path)
+        self.policy = torch.jit.load(policy_path).to('cpu')
 
     def inference(self, observations):
         obs_tensor = torch.from_numpy(observations).unsqueeze(0)
