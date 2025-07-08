@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import yaml
@@ -17,6 +18,12 @@ if __name__ == "__main__":
     if use_mujoco:
         scene_path = SCENE_PATHS["h12"]["27dof"]
         robot = H12Real(config=config["real"], config_mujoco=config["mujoco"], scene_path=scene_path)
+
+        # Create unique log directory
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
+        log_dir.mkdir(parents=True, exist_ok=True)
+
     else:
         robot = H12Real(config=config["real"])
 
@@ -49,5 +56,5 @@ if __name__ == "__main__":
         print("Interruption")
 
     finally:
-        robot.close()
+        robot.close(log_dir)
     print("Exit")

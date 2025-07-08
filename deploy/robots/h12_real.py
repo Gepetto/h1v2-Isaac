@@ -238,9 +238,9 @@ class H12Real:
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
-    def close(self):
+    def close(self, log_dir=None):
         if self.use_mujoco:
-            self.unitree.close()
+            self.unitree.close(log_dir)
         else:
             self.enter_damping_state()
 

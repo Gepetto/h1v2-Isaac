@@ -74,7 +74,7 @@ class UnitreeSdk2Bridge:
 
             self.simulator.sim_step(torques)
 
-    def close(self):
-        self.simulator.close()
+    def close(self, log_dir=None):
+        self.simulator.close(log_dir)
         self.close_event.set()
         self.sim_thread.join()
