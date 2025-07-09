@@ -17,13 +17,15 @@ if __name__ == "__main__":
     use_mujoco = config["real"]["use_mujoco"]
     if use_mujoco:
         config["mujoco"]["scene_path"] = SCENE_PATHS["h12"]["27dof"]
-        
+
+    if use_mujoco and config["mujoco"]["log_data"]:
         # Create unique log directory
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
         log_dir.mkdir(parents=True, exist_ok=True)
     else:
         log_dir = None
+
     robot = H12Real(config=config)
 
     # Load policy

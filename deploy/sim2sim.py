@@ -13,7 +13,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     # Create unique log directory
-    if config["mujoco"]["check_violations"]:
+    if config["mujoco"]["log_data"]:
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
         log_dir.mkdir(parents=True, exist_ok=True)

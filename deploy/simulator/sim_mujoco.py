@@ -46,8 +46,8 @@ class MujocoSim:
 
         self.sim_lock = threading.Lock()
 
-        self.check_violations = mj_config["check_violations"]
-        if self.check_violations:
+        self.log_data = mj_config["log_data"]
+        if self.log_data:
             self.logger = MJLogger(self.model, self.data)
             self.logger.record_limits()
 
@@ -79,7 +79,7 @@ class MujocoSim:
         step_start = time.perf_counter()
         with self.sim_lock:
             self._apply_torques(torques)
-            if self.check_violations:
+            if self.log_data:
                 self.logger.record_metrics(self.current_time)
 
             mujoco.mj_step(self.model, self.data)
@@ -106,7 +106,7 @@ class MujocoSim:
             self.close_event.set()
             self.viewer_thread.join()
 
-        if self.check_violations and log_dir is not None:
+        if self.log_data and log_dir is not None:
             self.logger.save_data(log_dir)
 
     def _apply_torques(self, torques):
