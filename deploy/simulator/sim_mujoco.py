@@ -56,6 +56,13 @@ class MujocoSim:
 
         self.reset()
 
+        self.ctrl_idx = []
+        for jnt_id in range(1, self.model.njnt):  # skip joint 0 'floating_base_joint'
+            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id)
+            actuator_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, joint_name)
+            assert actuator_id != -1, f"Joint {joint_name} is not an actuator!"
+            self.ctrl_idx.append(actuator_id)
+
         self.enable_keyboard = mj_config["enable_keyboard"]
         self.keyboard_lock = threading.Lock()
         self.controller_command = np.zeros(3)
@@ -110,7 +117,7 @@ class MujocoSim:
             self.logger.save_data(log_dir)
 
     def _apply_torques(self, torques):
-        self.data.ctrl[:] = torques
+        self.data.ctrl[self.ctrl_idx] = torques
 
     def get_robot_sim_state(self):
         with self.sim_lock:
