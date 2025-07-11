@@ -1,3 +1,6 @@
+policy_name: "policy_lstm_1.pt"
+policy_config_name: "env_unitree.yaml"
+
 control_dt: 0.02
 
 mujoco:

@@ -25,8 +25,8 @@ if __name__ == "__main__":
     sim = H12Mujoco(scene_path, config)
 
     # Load policy
-    policy_path = str(Path(__file__).parent / "config" / "model.onnx")
-    policy_config_path = Path(__file__).parent / "config" / "env.yaml"
+    policy_path = str(Path(__file__).parent / "config" / config["policy_name"])
+    policy_config_path = Path(__file__).parent / "config" / config["policy_config_name"]
     with policy_config_path.open() as f:
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
     policy = RLPolicy(policy_path, policy_config)
