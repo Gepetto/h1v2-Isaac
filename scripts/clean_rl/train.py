@@ -70,6 +70,7 @@ import biped_tasks.tasks  # noqa: F401
 import gymnasium as gym
 import torch
 from biped_tasks.utils.cleanrl.ppo import PPO
+from biped_tasks.utils.mdp.config_exporter import get_deploy_config
 from isaaclab.envs import (
     DirectMARLEnvCfg,
     DirectRLEnvCfg,
@@ -121,6 +122,9 @@ def main(
     dump_yaml(os.path.join(log_root_path, log_dir, "params", "agent.yaml"), agent_cfg)
     dump_pickle(os.path.join(log_root_path, log_dir, "params", "env.pkl"), env_cfg)
     dump_pickle(os.path.join(log_root_path, log_dir, "params", "agent.pkl"), agent_cfg)
+
+    deploy_config = get_deploy_config(env_cfg)
+    dump_yaml(os.path.join(log_root_path, log_dir, "params", "deploy_config.yaml"), deploy_config)
 
     # create isaac environment
     env = gym.make(
