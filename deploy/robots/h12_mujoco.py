@@ -28,7 +28,7 @@ class H12Mujoco(MujocoSim):
         self.default_joint_pos = np.empty(num_joints)
         for joint_id in range(num_joints):
             # Joint is +1 because joint 0 is floating_base_joint
-            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint_id + 1).removesuffix("_joint")
+            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint_id + 1)
             if joint_name not in config_joint_names:
                 err_msg = f"Joint '{joint_name}' is not set up in the config file"
                 raise ConfigError(err_msg)
@@ -41,7 +41,7 @@ class H12Mujoco(MujocoSim):
         for joint in joints:
             if not joint["enabled"]:
                 continue
-            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint["name"] + "_joint")
+            joint_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, joint["name"])
             if joint_id == -1:
                 err_msg = f"Joint '{joint['name']}' is enabled, but cannot be found in the model"
                 raise ConfigError(err_msg)
