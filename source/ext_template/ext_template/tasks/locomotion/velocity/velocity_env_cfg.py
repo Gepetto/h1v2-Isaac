@@ -26,7 +26,6 @@ import ext_template.tasks.locomotion.velocity.mdp as mdp
 ##
 from isaaclab.terrains.config.rough import ROUGH_TERRAINS_CFG  # isort: skip
 
-
 ##
 # Scene definition
 ##
