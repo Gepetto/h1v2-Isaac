@@ -29,7 +29,7 @@ if __name__ == "__main__":
     policy_config_path = Path(__file__).parent / "config" / config["policy_config_name"]
     with policy_config_path.open() as f:
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
-    policy = RLPolicy(policy_path, policy_config)
+    policy = RLPolicy(policy_path, policy_config, log_data=config["mujoco"]["log_data"])
 
     try:
         while True:
@@ -46,3 +46,4 @@ if __name__ == "__main__":
 
     finally:
         sim.close(log_dir)
+        policy.save_data(log_dir)
