@@ -74,12 +74,31 @@ def extract_data(json_file):
     return extracted_data
 
 
+def check_position_limits(safety_file_path):
+    with open(safety_file_path, "r") as file:
+        safety_data = json.load(file)
+
+    violation_counts = {}
+
+    for entry in safety_data:
+        if entry["check_type"] == "position":
+            joint_name = entry["joint_name"]
+
+            if joint_name in violation_counts:
+                violation_counts[joint_name] += 1
+            else:
+                violation_counts[joint_name] = 1
+
+    return violation_counts
+
+
 def generate_safety_file(json_file):
     log_dir = json_file.parent
 
     safety_checker = SafetyChecker()
     safety_checker.check_safety(json_file)
     safety_checker.save_data(log_dir=log_dir)
+
 
 def prepare_action_rate_table(experiment_names, data):
     avg_action_rate_data = []
@@ -94,10 +113,10 @@ def prepare_action_rate_table(experiment_names, data):
         avg_action_rate_data.append(row)
 
     avg_action_rate_table = tabulate(avg_action_rate_data, headers=avg_action_rate_headers, tablefmt="grid")
-    return(avg_action_rate_table)
+    return avg_action_rate_table
+
 
 def prepare_contant_force_table(experiment_names, data):
-
     # Prepare Avg Force and Max Force table data
     force_data = []
     force_headers = ["Metric"] + experiment_names
@@ -110,24 +129,50 @@ def prepare_contant_force_table(experiment_names, data):
         force_data.append(row)
 
     force_table = tabulate(force_data, headers=force_headers, tablefmt="grid")
-    return(force_table)
+    return force_table
+
+
+def prepare_position_violations_table(experiment_names, data):
+    # Collect all joint names
+    all_joints = set()
+    for experiment in experiment_names:
+        if "Position Violations" in data[experiment]:
+            all_joints.update(data[experiment]["Position Violations"].keys())
+
+    # Prepare the table data
+    position_violations_data = []
+    position_violations_headers = ["Joint Name"] + experiment_names
+
+    for joint_name in sorted(all_joints):
+        row = [joint_name]
+        for experiment in experiment_names:
+            count = data[experiment].get("Position Violations", {}).get(joint_name, "N/A")
+            row.append(count)
+        position_violations_data.append(row)
+
+    position_violations_table = tabulate(position_violations_data, headers=position_violations_headers, tablefmt="grid")
+    return position_violations_table
+
 
 if __name__ == "__main__":
     current_dir = Path(__file__).parent.parent / "./logs/h12_locomotion"
     experiment_names = [
         "croux_sim",
+        "croux_sim_2",
         "unitree_sim",
+        "golden_sim",
         "croux_real",
+        "croux_real_2",
         "unitree_real",
+        "golden_real",
     ]
 
     data = {experiment: {} for experiment in experiment_names}
     # Extract Data
     for experiment in experiment_names:
         metrics_file = current_dir / experiment / "metrics.json"
-        generate_safety_file(metrics_file)
-
         if metrics_file.exists():
+            generate_safety_file(metrics_file)
             extracted_data = extract_data(str(metrics_file))
 
             data[experiment]["Avg Action Rate"] = {
@@ -135,19 +180,31 @@ if __name__ == "__main__":
             }
             data[experiment]["Avg Force"] = f"{extracted_data['avg_force']:.0f}"
             data[experiment]["Max Force"] = f"{extracted_data['max_force']:.0f}"
+
+            safety_file_path = current_dir / experiment / "safety_check.json"
+            violations = check_position_limits(safety_file_path)
+            data[experiment]["Position Violations"] = violations
         else:
             print(f"File not found: {metrics_file}")
 
-    # Print Avg Action Rate table
     avg_action_rate_table = prepare_action_rate_table(experiment_names, data)
+    force_table = prepare_contant_force_table(experiment_names, data)
+    position_violations_table = prepare_position_violations_table(experiment_names, data)
+
+    # Print Avg Action Rate table
     print("Avg Action Rate:")
     print(avg_action_rate_table)
     print("\n")
 
     # Print Avg Force and Max Force table
-    force_table = prepare_contant_force_table(experiment_names, data)
     print("Avg Force and Max Force:")
     print(force_table)
+    print("\n")
+
+    # Print Position Violations table
+    print("Position Violations:")
+    print(position_violations_table)
+    print("\n")
 
     # Write to log.txt in the parent directory
     log_file_path = Path(__file__).parent / "log.txt"
@@ -157,5 +214,8 @@ if __name__ == "__main__":
         log_file.write("\n\n")
         log_file.write("Avg Force and Max Force Table:\n")
         log_file.write(force_table)
+        log_file.write("\n\n")
+        log_file.write("Position Violations Table:\n")
+        log_file.write(position_violations_table)
 
     print(f"Tables have been written to {log_file_path}")
