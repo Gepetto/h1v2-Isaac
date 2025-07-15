@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 
+from safety_checker import SafetyChecker
+from tabulate import tabulate
+
 
 def extract_contact_force(data):
     max_force = 0
@@ -53,7 +56,7 @@ def extract_rate(data, rate_name):
 
 def extract_data(json_file):
     with open(json_file, "r") as file:
-        data = json.load(file)[1:] # First entry contains the limits
+        data = json.load(file)[1:]  # First entry contains the limits
 
         max_force, avg_force = extract_contact_force(data)
         max_action_rate, avg_action_rate = extract_rate(data, "action_rate")
@@ -71,27 +74,88 @@ def extract_data(json_file):
     return extracted_data
 
 
+def generate_safety_file(json_file):
+    log_dir = json_file.parent
+
+    safety_checker = SafetyChecker()
+    safety_checker.check_safety(json_file)
+    safety_checker.save_data(log_dir=log_dir)
+
+def prepare_action_rate_table(experiment_names, data):
+    avg_action_rate_data = []
+    avg_action_rate_headers = ["Joint Name"] + experiment_names
+
+    joint_names = data[experiment_names[0]]["Avg Action Rate"].keys()
+    for joint_name in joint_names:
+        row = [joint_name]
+        for experiment in experiment_names:
+            rate = data[experiment].get("Avg Action Rate", {}).get(joint_name, "N/A")
+            row.append(rate)
+        avg_action_rate_data.append(row)
+
+    avg_action_rate_table = tabulate(avg_action_rate_data, headers=avg_action_rate_headers, tablefmt="grid")
+    return(avg_action_rate_table)
+
+def prepare_contant_force_table(experiment_names, data):
+
+    # Prepare Avg Force and Max Force table data
+    force_data = []
+    force_headers = ["Metric"] + experiment_names
+
+    for metric in ["Avg Force", "Max Force"]:
+        row = [metric]
+        for experiment in experiment_names:
+            value = data[experiment].get(metric, "N/A")
+            row.append(value)
+        force_data.append(row)
+
+    force_table = tabulate(force_data, headers=force_headers, tablefmt="grid")
+    return(force_table)
+
 if __name__ == "__main__":
-    current_dir = Path(__file__).parent
-    json_files = [
-        "stable_policy.json",
-        "golden_policy.json",
-        "unitree_policy.json",
+    current_dir = Path(__file__).parent.parent / "./logs/h12_locomotion"
+    experiment_names = [
+        "croux_sim",
+        "unitree_sim",
+        "croux_real",
+        "unitree_real",
     ]
-    for json_file in json_files:
-        json_file_path = current_dir / json_file
-        if json_file_path.exists():
-            extracted_data = extract_data(str(json_file_path))
 
-            print(f"{json_file.replace('.json', '')}:")
-            for joint_name, rate in extracted_data["avg_action_rate"].items():
-                print(f"  - {joint_name}: {rate:.3f}")
+    data = {experiment: {} for experiment in experiment_names}
+    # Extract Data
+    for experiment in experiment_names:
+        metrics_file = current_dir / experiment / "metrics.json"
+        generate_safety_file(metrics_file)
 
-            # print(
-            #     f"{json_file.replace('.json', '')}: avg:{extracted_data['average_force']:.0f} max:{extracted_data['max_force']:.0f}"
-            # )
-            # print(
-            #     f"{json_file.replace('.json', '')}: avg:{extracted_data['avg_action_rate']} max:{extracted_data['max_action_rate']}"
-            # )
+        if metrics_file.exists():
+            extracted_data = extract_data(str(metrics_file))
+
+            data[experiment]["Avg Action Rate"] = {
+                joint_name: f"{rate:.3f}" for joint_name, rate in extracted_data["avg_action_rate"].items()
+            }
+            data[experiment]["Avg Force"] = f"{extracted_data['avg_force']:.0f}"
+            data[experiment]["Max Force"] = f"{extracted_data['max_force']:.0f}"
         else:
-            print(f"File not found: {json_file_path}")
+            print(f"File not found: {metrics_file}")
+
+    # Print Avg Action Rate table
+    avg_action_rate_table = prepare_action_rate_table(experiment_names, data)
+    print("Avg Action Rate:")
+    print(avg_action_rate_table)
+    print("\n")
+
+    # Print Avg Force and Max Force table
+    force_table = prepare_contant_force_table(experiment_names, data)
+    print("Avg Force and Max Force:")
+    print(force_table)
+
+    # Write to log.txt in the parent directory
+    log_file_path = Path(__file__).parent / "log.txt"
+    with open(log_file_path, "w") as log_file:
+        log_file.write("Avg Action Rate Table:\n")
+        log_file.write(avg_action_rate_table)
+        log_file.write("\n\n")
+        log_file.write("Avg Force and Max Force Table:\n")
+        log_file.write(force_table)
+
+    print(f"Tables have been written to {log_file_path}")

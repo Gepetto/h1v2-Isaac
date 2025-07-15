@@ -1,10 +1,15 @@
-import sys
 import json
 from dataclasses import asdict, dataclass, field
 from typing import Any
+import numpy as np
 
-sys.path.append("../")
-from utils.checker import _json_serializer
+# Save safety checker data
+def _json_serializer(obj):
+    """Handle numpy types and other non-serializable objects"""
+    if isinstance(obj, (np.ndarray, np.generic)):
+        return obj.tolist()
+    err_msg = f"Object of type {type(obj)} is not JSON serializable"
+    raise TypeError(err_msg)
 
 @dataclass
 class SafetyViolation:
