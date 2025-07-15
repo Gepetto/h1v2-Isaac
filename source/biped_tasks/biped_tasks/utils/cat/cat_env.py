@@ -154,11 +154,7 @@ class CaTEnv(ManagerBasedRLEnv):
         if hasattr(self.cfg, "constraints"):
             cstr_prob = self.constraint_manager.compute()
             # -- constrained reward computation
-            self.reward_buf = torch.clip(
-                self.reward_manager.compute(dt=self.step_dt) * (1.0 - cstr_prob),
-                min=0.0,
-                max=None,
-            )
+            self.reward_buf = self.reward_manager.compute(dt=self.step_dt) * (1.0 - cstr_prob)
             dones = cstr_prob.clone()
         else:
             self.reward_buf = self.reward_manager.compute(dt=self.step_dt)

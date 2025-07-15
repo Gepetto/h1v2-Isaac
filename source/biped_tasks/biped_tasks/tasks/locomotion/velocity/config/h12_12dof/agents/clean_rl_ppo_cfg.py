@@ -9,7 +9,7 @@ from biped_tasks.utils.cleanrl.rl_cfg import CleanRlPpoActorCriticCfg
 
 @configclass
 class H12_12dof_FlatPPORunnerCfg(CleanRlPpoActorCriticCfg):
-    save_interval = 50
+    save_interval = 200
     learning_rate = 3.0e-4
     num_steps = 24
     num_iterations = 50000

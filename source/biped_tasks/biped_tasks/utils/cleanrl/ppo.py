@@ -165,7 +165,7 @@ def PPO(envs, ppo_cfg, run_path):
     BATCH_SIZE = int(NUM_ENVS * NUM_STEPS)
 
     agent = Agent(envs).to(device)
-    optimizer = optim.Adam(agent.parameters(), lr=LEARNING_RATE, eps=1e-5)
+    optimizer = optim.RAdam(agent.parameters(), lr=LEARNING_RATE, eps=1e-5)
 
     obs = torch.zeros(
         (NUM_STEPS, NUM_ENVS) + SINGLE_OBSERVATION_SPACE, dtype=torch.float
