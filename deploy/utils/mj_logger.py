@@ -47,7 +47,6 @@ class MJLogger:
         self.data = data
 
         self.metrics_data: list[Metrics] = []
-        self.metrics_data: list[Metrics] = []
 
         self.prev_joint_pos = {}
         self.prev_action = {}

@@ -127,7 +127,7 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path, config, queue=None):
+    def __init__(self, policy_path, config):
         default_joint_pos = np.array(
             [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
         )
