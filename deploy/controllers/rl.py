@@ -1,3 +1,4 @@
+import sys
 from collections import deque
 from pathlib import Path
 
@@ -5,6 +6,9 @@ import numpy as np
 import onnxruntime as ort
 import torch
 import yaml
+
+sys.path.append("../")
+from utils.rl_logger import RLLogger
 
 
 class InferenceHandler:
@@ -127,7 +131,7 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path, config):
+    def __init__(self, policy_path, config, log_data = False):
         default_joint_pos = np.array(
             [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
         )
@@ -150,6 +154,10 @@ class RLPolicy:
             if isinstance(value, dict) and "func" in value
         ]
 
+        self.log_data = log_data
+        if self.log_data:
+            self.logger = RLLogger()
+
         if policy_path.endswith('.pt'):
             self.policy = InferenceHandlerTorch(policy_path=policy_path)
         elif policy_path.endswith('.onnx'):
@@ -170,7 +178,15 @@ class RLPolicy:
     def step(self, state, command=None):
         observations = self.observation_handler.get_observations(state, self.actions, command)
         self.actions = self.policy.inference(observations)
+
+        if self.log_data:
+            self.logger.record_metrics(observations = observations,actions= self.actions)
+
         return self.action_handler.get_scaled_action(self.actions)
+
+    def save_data(self, log_dir=None):
+        if log_dir is not None:
+            self.logger.save_data(log_dir=log_dir)
 
 
 if __name__ == "__main__":
