@@ -282,9 +282,8 @@ class RewardsCfg:
     joint_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-1.0e-3)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     joint_deviation_l1 = RewTerm(func=mdp.joint_deviation_l1, weight=-0.1,
-                                 params={"asset_cfg": SceneEntityCfg("robot", joint_names=["left_hip_yaw_joint", "left_hip_roll_joint", "right_hip_yaw_joint", "right_hip_roll_joint"])})
+                                 params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_ankle_roll_joint"])})
     
-
 
 # ========================================================
 # Constraints Configuration
@@ -511,4 +510,8 @@ class H12_12dof_EnvCfg_PLAY(H12_12dof_EnvCfg):
             self.scene.terrain.terrain_generator.num_rows = 5
             self.scene.terrain.terrain_generator.num_cols = 5
             self.scene.terrain.terrain_generator.curriculum = False
+    
+        self.commands.base_velocity.ranges.lin_vel_x = (0.0, 0.0)
+        self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
+        self.commands.base_velocity.ranges.ang_vel_z = (0.0, 0.0)
 

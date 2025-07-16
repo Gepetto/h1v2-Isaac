@@ -29,9 +29,9 @@ def joint_position_limits(
 ) -> torch.Tensor:
     data = env.scene[asset_cfg.name].data
     joint_pos = data.joint_pos[:, asset_cfg.joint_ids]
-    lower_violation = data.joint_pos_limits[:, asset_cfg.joint_ids, 0] - joint_pos
-    upper_violation = joint_pos - data.joint_pos_limits[:, asset_cfg.joint_ids, 1]
-    
+    lower_violation = data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 0] - joint_pos
+    upper_violation = joint_pos - data.soft_joint_pos_limits[:, asset_cfg.joint_ids, 1]
+
     return torch.maximum(lower_violation, upper_violation)
 
 
@@ -198,9 +198,8 @@ def no_move(
     asset_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     """Constraint that penalizes joint movement when the robot should be stationary.
-    
+
     Only applies when all components of the base velocity command are within the deadzone.
-    If `amplify` is True, duplicates the relevant environments to enhance constraint optimization.
     """
     data = env.scene[asset_cfg.name].data
 
@@ -209,17 +208,20 @@ def no_move(
 
     # Find environments where all command components are below the deadzone
     cmd_inactive_mask = torch.all(torch.abs(velocity_cmd) < velocity_deadzone, dim=1)  # (num_envs,)
-    
+
+    if cmd_inactive_mask.sum() == 0:
+        # No env matches — return zero constraint (or any safe fallback)
+        return torch.zeros((env.num_envs, sum(env.action_manager.action_term_dim)), device=env.device)
+
     # Filter only relevant environments
     active_joint_vel = data.joint_vel[cmd_inactive_mask][:, asset_cfg.joint_ids]
 
     # Compute constraint just for those
     cstr_nomove = torch.abs(active_joint_vel) - joint_vel_limit
-        
-    # Optionally repeat to balance the loss magnitude
-    # Repeat to match the number of original environments, if needed
-    num_repeat = env.num_envs // max(cstr_nomove.shape[0], 1)
-    cstr_nomove = cstr_nomove.repeat((num_repeat + 1), 1)[:env.num_envs]
+
+    # Repeat to match the number of original environments
+    num_repeat = env.num_envs // cstr_nomove.shape[0] + 1
+    cstr_nomove = cstr_nomove.repeat((num_repeat, 1))[:env.num_envs]
 
     return cstr_nomove
 
