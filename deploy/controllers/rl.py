@@ -11,13 +11,14 @@ sys.path.append("../")
 from utils.rl_logger import RLLogger
 
 
-class InferenceHandler:
+class InferenceHandlerONNX:
     def __init__(self, policy_path):
         self.ort_sess = ort.InferenceSession(policy_path)
+        self.input_name = self.ort_sess.get_inputs()[0].name
 
-    def inference(self, observations):
+    def __call__(self, observations):
         observations_unsqueezed = np.expand_dims(observations, axis=0)
-        actions = self.ort_sess.run(None, {"input": observations_unsqueezed})[0]
+        actions = self.ort_sess.run(None, {self.input_name: observations_unsqueezed})[0]
 
         return actions.flatten()
 
@@ -25,7 +26,7 @@ class InferenceHandlerTorch:
     def __init__(self, policy_path):
         self.policy = torch.jit.load(policy_path).to('cpu')
 
-    def inference(self, observations):
+    def __call__(self, observations):
         obs_tensor = torch.from_numpy(observations).unsqueeze(0)
         actions = self.policy(obs_tensor).detach().numpy().squeeze()
 
@@ -161,7 +162,7 @@ class RLPolicy:
         if policy_path.endswith('.pt'):
             self.policy = InferenceHandlerTorch(policy_path=policy_path)
         elif policy_path.endswith('.onnx'):
-            self.policy = InferenceHandler(policy_path=policy_path)
+            self.policy = InferenceHandlerONNX(policy_path=policy_path)
         else:
             raise ValueError(f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported.")
         self.observation_handler = ObservationHandler(
@@ -177,7 +178,7 @@ class RLPolicy:
 
     def step(self, state, command=None):
         observations = self.observation_handler.get_observations(state, self.actions, command)
-        self.actions = self.policy.inference(observations)
+        self.actions = self.policy(observations)
 
         if self.log_data:
             self.logger.record_metrics(observations = observations,actions= self.actions)
