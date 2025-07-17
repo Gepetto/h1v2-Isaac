@@ -282,7 +282,7 @@ class RewardsCfg:
     joint_vel_l2 = RewTerm(func=mdp.joint_vel_l2, weight=-1.0e-3)
     action_rate_l2 = RewTerm(func=mdp.action_rate_l2, weight=-0.01)
     joint_deviation_l1 = RewTerm(func=mdp.joint_deviation_l1, weight=-0.1,
-                                 params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_ankle_roll_joint"])})
+                                 params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_hip_yaw_joint", ".*_hip_roll_joint", ".*_ankle_pitch_joint", ".*_ankle_roll_joint"])})
     
 
 # ========================================================
@@ -319,7 +319,7 @@ class ConstraintsCfg:
         func=constraints.foot_contact_force,
         max_p=0.25,
         params={
-            "limit": 1000.0, 
+            "limit": 800.0, 
             "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_ankle_roll_link"])},
     )
     
