@@ -22,15 +22,16 @@ class InferenceHandlerONNX:
 
         return actions.flatten()
 
+
 class InferenceHandlerTorch:
     def __init__(self, policy_path):
-        self.policy = torch.jit.load(policy_path).to('cpu')
+        self.policy = torch.jit.load(policy_path).to("cpu")
 
     def __call__(self, observations):
         obs_tensor = torch.from_numpy(observations).unsqueeze(0)
         actions = self.policy(obs_tensor).detach().numpy().squeeze()
-
         return actions
+
 
 class ObservationHandler:
     def __init__(
@@ -132,45 +133,37 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path, config, log_data = False):
-        default_joint_pos = np.array(
-            [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
-        )
-        history_length = config["observations"]["policy"]["history_length"]
-        action_scale = config["actions"]["joint_pos"]["scale"]
-        commands_ranges = {k: v for k, v in config["commands"]["base_velocity"]["ranges"].items() if v is not None}
-        commands_ranges = {
-            "lower": np.array([commands_ranges[key][0] for key in commands_ranges]),
-            "upper": np.array([commands_ranges[key][1] for key in commands_ranges]),
-            "velocity_deadzone": config["commands"]["base_velocity"]["velocity_deadzone"],
+    def __init__(self, policy_path, config, log_data=False):
+        default_joint_pos = np.array([joint["default_joint_pos"] for joint in config["joints"] if joint["enabled"]])
+        history_length = config["history_length"]
+        action_scale = config["action_scale"]
+
+        command_ranges = {
+            "lower": np.array([cmd_range[0] for cmd_range in config["command_ranges"].values()]),
+            "upper": np.array([cmd_range[1] for cmd_range in config["command_ranges"].values()]),
+            "velocity_deadzone": config["velocity_deadzone"],
         }
-        observations_func = [
-            config["observations"]["policy"][key]["func"].split(":")[-1]
-            for key, value in config["observations"]["policy"].items()
-            if isinstance(value, dict) and "func" in value
-        ]
-        observations_scale = [
-            1 if value.get("scale") is None else value["scale"]
-            for value in config["observations"]["policy"].values()
-            if isinstance(value, dict) and "func" in value
-        ]
+        observations_func = [obs["name"] for obs in config["observations"]]
+        observations_scale = [obs.get("scale") or 1 for obs in config["observations"]]
 
         self.log_data = log_data
         if self.log_data:
             self.logger = RLLogger()
 
-        if policy_path.endswith('.pt'):
+        if policy_path.endswith(".pt"):
             self.policy = InferenceHandlerTorch(policy_path=policy_path)
-        elif policy_path.endswith('.onnx'):
+        elif policy_path.endswith(".onnx"):
             self.policy = InferenceHandlerONNX(policy_path=policy_path)
         else:
-            raise ValueError(f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported.")
+            raise ValueError(
+                f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported."
+            )
         self.observation_handler = ObservationHandler(
             observations_func,
             observations_scale,
             history_length,
             default_joint_pos,
-            commands_ranges,
+            command_ranges,
         )
         self.action_handler = ActionHandler(action_scale, default_joint_pos)
 
@@ -181,7 +174,7 @@ class RLPolicy:
         self.actions = self.policy(observations)
 
         if self.log_data:
-            self.logger.record_metrics(observations = observations,actions= self.actions)
+            self.logger.record_metrics(observations=observations, actions=self.actions)
 
         return self.action_handler.get_scaled_action(self.actions)
 
