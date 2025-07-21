@@ -24,12 +24,12 @@ class CaT:
 
     def __init__(self, tau: float = 0.95, min_p: float = 0.0):
         self.running_maxes: dict[str, torch.Tensor] = {}  # Polyak average of max constraint violation
-        self.probs: dict[str, torch.Tensor] = {}         # Termination probabilities
-        self.max_p: dict[str, torch.Tensor] = {}         # Maximum termination probabilities
-        self.raw_constraints: dict[str, torch.Tensor] = {} # Raw constraint values
-        self.tau = tau                                  # Discount factor
-        self.min_p = min_p                              # Minimum termination probability
-        self._device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.probs: dict[str, torch.Tensor] = {}  # Termination probabilities
+        self.max_p: dict[str, torch.Tensor] = {}  # Maximum termination probabilities
+        self.raw_constraints: dict[str, torch.Tensor] = {}  # Raw constraint values
+        self.tau = tau  # Discount factor
+        self.min_p = min_p  # Minimum termination probability
+        self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def reset(self):
         """Reset the termination probabilities and constraints."""
@@ -72,8 +72,7 @@ class CaT:
             probs[mask] = self.min_p + torch.clamp(normalized[mask], 0.0, 1.0) * (max_p - self.min_p)
 
         self.probs[name] = probs
-        self.max_p[name] = torch.full((constraint.shape[1],), max_p,
-                                    dtype=torch.float, device=self._device)
+        self.max_p[name] = torch.full((constraint.shape[1],), max_p, dtype=torch.float, device=self._device)
 
     def get_probs(self) -> torch.Tensor:
         """Returns the termination probabilities due to constraint violations."""
@@ -82,10 +81,18 @@ class CaT:
         return torch.cat(list(self.probs.values()), dim=1).max(1).values
 
     def get_raw_constraints(self) -> torch.Tensor:
-        return torch.cat(list(self.raw_constraints.values()), dim=1) if self.raw_constraints else torch.tensor([], device=self._device)
+        return (
+            torch.cat(list(self.raw_constraints.values()), dim=1)
+            if self.raw_constraints
+            else torch.tensor([], device=self._device)
+        )
 
     def get_running_maxes(self) -> torch.Tensor:
-        return torch.cat(list(self.running_maxes.values()), dim=1) if self.running_maxes else torch.tensor([], device=self._device)
+        return (
+            torch.cat(list(self.running_maxes.values()), dim=1)
+            if self.running_maxes
+            else torch.tensor([], device=self._device)
+        )
 
     def get_max_p(self) -> torch.Tensor:
         return torch.cat(list(self.max_p.values())) if self.max_p else torch.tensor([], device=self._device)
@@ -112,15 +119,18 @@ class CaT:
         return list(self.probs.keys())
 
     def get_vals(self) -> list[float]:
-        return [100.0 * probs.max(1).values.gt(0.0).float().mean().item()
-               for probs in self.probs.values()]
+        return [100.0 * probs.max(1).values.gt(0.0).float().mean().item() for probs in self.probs.values()]
 
 
 class ConstraintManager(ManagerBase):
     _env: ManagerBasedRLEnv
 
     def __init__(
-        self, cfg: object, env: ManagerBasedRLEnv, tau: float = 0.95, min_p: float = 0.0,
+        self,
+        cfg: object,
+        env: ManagerBasedRLEnv,
+        tau: float = 0.95,
+        min_p: float = 0.0,
     ):
         """Initialize the constraint manager."""
         # Initialize CaT with device from env
@@ -139,16 +149,10 @@ class ConstraintManager(ManagerBase):
         self._episode_sums: dict[str, torch.Tensor] = {}
         self._cstr_mean_values: dict[str, torch.Tensor] = {}
         for term_name in self._term_names:
-            self._episode_sums[term_name] = torch.zeros(self.num_envs,
-                                                      dtype=torch.float,
-                                                      device=self._device)
-            self._cstr_mean_values[term_name] = torch.zeros(self.num_envs,
-                                                          dtype=torch.float,
-                                                          device=self._device)
+            self._episode_sums[term_name] = torch.zeros(self.num_envs, dtype=torch.float, device=self._device)
+            self._cstr_mean_values[term_name] = torch.zeros(self.num_envs, dtype=torch.float, device=self._device)
 
-        self._cstr_prob_buf = torch.zeros(self.num_envs,
-                                         dtype=torch.float,
-                                         device=self._device)
+        self._cstr_prob_buf = torch.zeros(self.num_envs, dtype=torch.float, device=self._device)
 
     def __str__(self) -> str:
         """Returns a string representation of the constraint manager."""
@@ -171,6 +175,7 @@ class ConstraintManager(ManagerBase):
                 names_value = asset_cfg.body_names or asset_cfg.joint_names or "-"
             elif "names" in term_cfg.params:
                 import warnings
+
                 warnings.warn(
                     "Using 'names' parameter is deprecated. Use 'asset_cfg' instead.",
                     DeprecationWarning,
@@ -248,17 +253,11 @@ class ConstraintManager(ManagerBase):
                 continue
 
             if not isinstance(term_cfg, ConstraintTermCfg):
-                msg = (
-                    f"Configuration for term '{term_name}' is not ConstraintTermCfg. "
-                    f"Received: '{type(term_cfg)}'."
-                )
+                msg = f"Configuration for term '{term_name}' is not ConstraintTermCfg. Received: '{type(term_cfg)}'."
                 raise TypeError(msg)
 
             if not isinstance(term_cfg.max_p, float | int):
-                msg = (
-                    f"Limit for term '{term_name}' must be float or int. "
-                    f"Received: '{type(term_cfg.max_p)}'."
-                )
+                msg = f"Limit for term '{term_name}' must be float or int. Received: '{type(term_cfg.max_p)}'."
                 raise TypeError(msg)
 
             self._resolve_common_term_cfg(term_name, term_cfg, min_argc=1)

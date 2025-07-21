@@ -115,13 +115,15 @@ class H12_12dof_RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
-            "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"],
+            "robot",
+            joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"],
         )
 
         # Commands
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+
 
 @configclass
 class H12_12dof_RoughEnvCfg_PLAY(H12_12dof_RoughEnvCfg):

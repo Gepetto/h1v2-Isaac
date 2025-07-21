@@ -19,7 +19,10 @@ ROUGH_TERRAINS_CFG = TerrainGeneratorCfg(
     use_cache=False,
     sub_terrains={
         "random_rough": terrain_gen.HfRandomUniformTerrainCfg(
-            proportion=1.0, noise_range=(0.0, 0.02), noise_step=0.005, border_width=0.25,
+            proportion=1.0,
+            noise_range=(0.0, 0.02),
+            noise_step=0.005,
+            border_width=0.25,
         ),
     },
 )

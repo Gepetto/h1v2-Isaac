@@ -22,7 +22,9 @@ class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
     cfg: UniformVelocityCommandWithDeadzoneCfg
 
     def __init__(
-        self, cfg: UniformVelocityCommandWithDeadzoneCfg, env: ManagerBasedEnv,
+        self,
+        cfg: UniformVelocityCommandWithDeadzoneCfg,
+        env: ManagerBasedEnv,
     ):
         """Initializes the command generator.
 
@@ -81,9 +83,7 @@ class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
             self._resample(activate_envs)
 
         # Random angular velocity inversion during the episode to avoid having the robot moving in circle
-        p_ang_vel = (
-            self.dt / self.max_episode_length_s
-        )  # <- time step / duration of X seconds
+        p_ang_vel = self.dt / self.max_episode_length_s  # <- time step / duration of X seconds
         # There will be a probability of 0.63 of having at least one swap after X seconds have elapsed
         # (1 / p) policy steps for X seconds, and the probability of having no swap at all is (1 - p)**(1 / p) = 0.37
         # The mean number of swaps for (1 / p) steps with probability p is 1.

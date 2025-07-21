@@ -18,7 +18,10 @@ import cli_args  # isort: skip
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play an RL agent with CleanRL.")
 parser.add_argument(
-    "--video", action="store_true", default=False, help="Record videos during training.",
+    "--video",
+    action="store_true",
+    default=False,
+    help="Record videos during training.",
 )
 parser.add_argument(
     "--video_length",
@@ -33,7 +36,10 @@ parser.add_argument(
     help="Disable fabric and use USD I/O operations.",
 )
 parser.add_argument(
-    "--num_envs", type=int, default=None, help="Number of environments to simulate.",
+    "--num_envs",
+    type=int,
+    default=None,
+    help="Number of environments to simulate.",
 )
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 # append CleanRL cli arguments
@@ -82,14 +88,18 @@ def main():
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     resume_path = get_checkpoint_path(
-        log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint,
+        log_root_path,
+        agent_cfg.load_run,
+        agent_cfg.load_checkpoint,
     )
     print(f"[INFO] Loading model: {resume_path}")
     log_dir = os.path.dirname(resume_path)
 
     # create isaac environment
     env = gym.make(
-        args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None,
+        args_cli.task,
+        cfg=env_cfg,
+        render_mode="rgb_array" if args_cli.video else None,
     )
 
     # wrap for video recording
@@ -127,8 +137,8 @@ def main():
         export_params=True,
         opset_version=16,
         do_constant_folding=True,
-        input_names=['input'],
-        output_names=['output'],
+        input_names=["input"],
+        output_names=["output"],
         verbose=True,
     )
     print(f"[INFO] Exported ONNX model to {onnx_path}")
@@ -140,7 +150,8 @@ def main():
     for _ in range(args_cli.video_length):
         with torch.no_grad():
             actions, _, _, _ = actor.get_action_and_value(
-                actor.obs_rms(obs, update=False), deterministic=True,
+                actor.obs_rms(obs, update=False),
+                deterministic=True,
             )
         next_obs, rewards, next_done, timeouts, info = env.step(actions)
 

@@ -118,4 +118,3 @@ class ObservationGroupCfg:
     This parameter will override all :attr:`ObservationTermCfg.flatten_history_dim` in the group if
     ObservationGroupCfg.history_length is set.
     """
-

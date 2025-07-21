@@ -124,7 +124,8 @@ class ObservationManager(ManagerBase):
             # add info for each term
             obs_terms = zip(
                 self._group_obs_term_names[group_name],
-                self._group_obs_term_dim[group_name], strict=False,
+                self._group_obs_term_dim[group_name],
+                strict=False,
             )
             for index, (name, dims) in enumerate(obs_terms):
                 # resolve inputs to simplify prints
@@ -165,7 +166,8 @@ class ObservationManager(ManagerBase):
             data = obs_buffer[group_name]
             for name, shape in zip(
                 self._group_obs_term_names[group_name],
-                self._group_obs_term_dim[group_name], strict=False,
+                self._group_obs_term_dim[group_name],
+                strict=False,
             ):
                 data_length = np.prod(shape)
                 term = data[env_idx, idx : idx + data_length]
@@ -229,7 +231,9 @@ class ObservationManager(ManagerBase):
             for term_cfg in group_cfg:
                 term_cfg.func.reset(env_ids=env_ids)
             # reset terms with history
-            for term_name, term_cfg in zip(self._group_obs_term_names[group_name], self._group_obs_term_cfgs[group_name], strict=False):
+            for term_name, term_cfg in zip(
+                self._group_obs_term_names[group_name], self._group_obs_term_cfgs[group_name], strict=False
+            ):
                 if term_name in self._group_obs_term_history_buffer[group_name]:
                     self._group_obs_term_history_buffer[group_name][term_name].reset(batch_ids=env_ids)
 
@@ -332,11 +336,18 @@ class ObservationManager(ManagerBase):
             if term_cfg.history_length > 0:
                 self._group_obs_term_history_buffer[group_name][term_name].append(obs)
                 if term_cfg.flatten_history_dim:
-                    group_obs[term_name] = self._group_obs_term_history_buffer[group_name][term_name].buffer(term_cfg.history_step).reshape(
-                        self._env.num_envs, -1,
+                    group_obs[term_name] = (
+                        self._group_obs_term_history_buffer[group_name][term_name]
+                        .buffer(term_cfg.history_step)
+                        .reshape(
+                            self._env.num_envs,
+                            -1,
+                        )
                     )
                 else:
-                    group_obs[term_name] = self._group_obs_term_history_buffer[group_name][term_name].buffer(term_cfg.history_step)
+                    group_obs[term_name] = self._group_obs_term_history_buffer[group_name][term_name].buffer(
+                        term_cfg.history_step
+                    )
             else:
                 group_obs[term_name] = obs
 
@@ -392,7 +403,13 @@ class ObservationManager(ManagerBase):
             # iterate over all the terms in each group
             for term_name, term_cfg in group_cfg_items:
                 # skip non-obs settings
-                if term_name in ["enable_corruption", "concatenate_terms", "history_length", "history_step", "flatten_history_dim"]:
+                if term_name in [
+                    "enable_corruption",
+                    "concatenate_terms",
+                    "history_length",
+                    "history_step",
+                    "flatten_history_dim",
+                ]:
                     continue
                 # check for non config
                 if term_cfg is None:
@@ -415,7 +432,9 @@ class ObservationManager(ManagerBase):
                 # check noise type
                 if inspect.isclass(type(term_cfg.noise)):
                     if issubclass(type(term_cfg.noise), NoiseModelCfg):
-                        term_cfg.model_noise = term_cfg.noise.class_type(term_cfg.noise, self._env.num_envs, device=self._env.device)
+                        term_cfg.model_noise = term_cfg.noise.class_type(
+                            term_cfg.noise, self._env.num_envs, device=self._env.device
+                        )
 
                 # check group history params and override terms
                 if group_cfg.history_length is not None:
@@ -430,7 +449,9 @@ class ObservationManager(ManagerBase):
                 # create history buffers and calculate history term dimensions
                 if term_cfg.history_length > 0:
                     group_entry_history_buffer[term_name] = CircularBuffer(
-                        max_len=term_cfg.history_length * term_cfg.history_step, batch_size=self._env.num_envs, device=self._env.device,
+                        max_len=term_cfg.history_length * term_cfg.history_step,
+                        batch_size=self._env.num_envs,
+                        device=self._env.device,
                     )
                     old_dims = list(obs_dims)
                     old_dims.insert(1, term_cfg.history_length)

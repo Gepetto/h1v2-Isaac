@@ -32,20 +32,23 @@ class RunningMeanStd(nn.Module):
 
     def update_from_moments(self, batch_mean, batch_var, batch_count):
         """Updates from batch mean, variance and count moments."""
-        self.running_mean, self.running_var, self.count = (
-            update_mean_var_count_from_moments(
-                self.running_mean,
-                self.running_var,
-                self.count,
-                batch_mean,
-                batch_var,
-                batch_count,
-            )
+        self.running_mean, self.running_var, self.count = update_mean_var_count_from_moments(
+            self.running_mean,
+            self.running_var,
+            self.count,
+            batch_mean,
+            batch_var,
+            batch_count,
         )
 
 
 def update_mean_var_count_from_moments(
-    mean, var, count, batch_mean, batch_var, batch_count,
+    mean,
+    var,
+    count,
+    batch_mean,
+    batch_var,
+    batch_count,
 ):
     """Updates the mean, var and count using the previous mean, var, count and batch values."""
     delta = batch_mean - mean
@@ -70,9 +73,7 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):  # noqa: B008
 class Agent(nn.Module):
     def __init__(self, envs):
         super().__init__()
-        SINGLE_OBSERVATION_SPACE = envs.unwrapped.single_observation_space[
-            "policy"
-        ].shape
+        SINGLE_OBSERVATION_SPACE = envs.unwrapped.single_observation_space["policy"].shape
         SINGLE_ACTION_SPACE = envs.unwrapped.single_action_space.shape
         self.critic = nn.Sequential(
             layer_init(nn.Linear(np.array(SINGLE_OBSERVATION_SPACE).prod(), 512)),
@@ -124,7 +125,9 @@ def PPO(envs, ppo_cfg, run_path):
         from rsl_rl.utils.wandb_utils import WandbSummaryWriter
 
         writer = WandbSummaryWriter(
-            log_dir=run_path, flush_secs=10, cfg=ppo_cfg.to_dict(),
+            log_dir=run_path,
+            flush_secs=10,
+            cfg=ppo_cfg.to_dict(),
         )
     elif ppo_cfg.logger == "tensorboard":
         from torch.utils.tensorboard import SummaryWriter as TensorboardSummaryWriter
@@ -165,10 +168,12 @@ def PPO(envs, ppo_cfg, run_path):
     optimizer = optim.RAdam(agent.parameters(), lr=LEARNING_RATE, eps=1e-5)
 
     obs = torch.zeros(
-        (NUM_STEPS, NUM_ENVS, *SINGLE_OBSERVATION_SPACE), dtype=torch.float,
+        (NUM_STEPS, NUM_ENVS, *SINGLE_OBSERVATION_SPACE),
+        dtype=torch.float,
     ).to(device)
     actions = torch.zeros(
-        (NUM_STEPS, NUM_ENVS, *SINGLE_ACTION_SPACE), dtype=torch.float,
+        (NUM_STEPS, NUM_ENVS, *SINGLE_ACTION_SPACE),
+        dtype=torch.float,
     ).to(device)
     logprobs = torch.zeros((NUM_STEPS, NUM_ENVS), dtype=torch.float).to(device)
     rewards = torch.zeros((NUM_STEPS, NUM_ENVS), dtype=torch.float).to(device)
@@ -257,18 +262,9 @@ def PPO(envs, ppo_cfg, run_path):
                     nextnonterminal = 1.0 - dones[t + 1]
                     true_nextnonterminal = 1 - true_dones[t + 1]
                     nextvalues = values[t + 1]
-                delta = (
-                    rewards[t]
-                    + GAMMA * nextvalues * nextnonterminal * true_nextnonterminal
-                    - values[t]
-                )
+                delta = rewards[t] + GAMMA * nextvalues * nextnonterminal * true_nextnonterminal - values[t]
                 advantages[t] = lastgaelam = (
-                    delta
-                    + GAMMA
-                    * GAE_LAMBDA
-                    * nextnonterminal
-                    * true_nextnonterminal
-                    * lastgaelam
+                    delta + GAMMA * GAE_LAMBDA * nextnonterminal * true_nextnonterminal * lastgaelam
                 )
             returns = advantages + values
 
@@ -294,7 +290,8 @@ def PPO(envs, ppo_cfg, run_path):
                 mb_inds = b_inds[start:end]
 
                 _, newlogprob, entropy, newvalue = agent.get_action_and_value(
-                    b_obs[mb_inds], b_actions[mb_inds],
+                    b_obs[mb_inds],
+                    b_actions[mb_inds],
                 )
                 logratio = newlogprob - b_logprobs[mb_inds]
                 ratio = logratio.exp()
@@ -309,14 +306,14 @@ def PPO(envs, ppo_cfg, run_path):
 
                 mb_advantages = b_advantages[mb_inds]
                 if NORM_ADV:
-                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (
-                        mb_advantages.std() + 1e-8
-                    )
+                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
                 # Policy loss
                 pg_loss1 = -mb_advantages * ratio
                 pg_loss2 = -mb_advantages * torch.clamp(
-                    ratio, 1 - CLIP_COEF, 1 + CLIP_COEF,
+                    ratio,
+                    1 - CLIP_COEF,
+                    1 + CLIP_COEF,
                 )
                 pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
@@ -352,14 +349,20 @@ def PPO(envs, ppo_cfg, run_path):
         num_updates = UPDATES_EPOCHS * BATCH_SIZE / MINIBATCH_SIZE
         writer.add_scalar("Loss/mean_pg_loss", sum_pg_loss / num_updates, iteration)
         writer.add_scalar(
-            "Loss/mean_entropy_loss", sum_entropy_loss / num_updates, iteration,
+            "Loss/mean_entropy_loss",
+            sum_entropy_loss / num_updates,
+            iteration,
         )
         writer.add_scalar("Loss/mean_v_loss", sum_v_loss / num_updates, iteration)
         writer.add_scalar(
-            "Loss/mean_surrogate_loss", sum_surrogate_loss / num_updates, iteration,
+            "Loss/mean_surrogate_loss",
+            sum_surrogate_loss / num_updates,
+            iteration,
         )
         writer.add_scalar(
-            "Loss/learning_rate", optimizer.param_groups[0]["lr"], iteration,
+            "Loss/learning_rate",
+            optimizer.param_groups[0]["lr"],
+            iteration,
         )
 
         if (iteration + 1) % ppo_cfg.save_interval == 0:

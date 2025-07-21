@@ -3,6 +3,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 import numpy as np
 
+
 # Save safety checker data
 def _json_serializer(obj):
     """Handle numpy types and other non-serializable objects"""
@@ -10,6 +11,7 @@ def _json_serializer(obj):
         return obj.tolist()
     err_msg = f"Object of type {type(obj)} is not JSON serializable"
     raise TypeError(err_msg)
+
 
 @dataclass
 class SafetyViolation:
@@ -19,6 +21,7 @@ class SafetyViolation:
     value: float
     limit: float
     additional_info: dict[str, Any] = field(default_factory=dict)
+
 
 class SafetyChecker:
     def __init__(self):

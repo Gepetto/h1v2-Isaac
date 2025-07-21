@@ -40,7 +40,6 @@ class Limits:
     total_mass_force: float
 
 
-
 class MJLogger:
     def __init__(self, model, data):
         self.model = model

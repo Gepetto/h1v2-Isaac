@@ -28,6 +28,7 @@ class ElasticBand:
         v = np.dot(v, direction)
         return (self.stiffness * (distance - self.length) - self.damping * v) * direction
 
+
 class MujocoSim:
     def __init__(self, scene_path, config):
         mj_config = config["mujoco"]

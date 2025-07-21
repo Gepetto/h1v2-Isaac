@@ -74,7 +74,6 @@ class CaTEnv(ManagerBasedRLEnv):
             self.constraint_manager = ConstraintManager(self.cfg.constraints, self)
             print("[INFO] Constraint Manager: ", self.constraint_manager)
 
-
         # setup the action and observation spaces for Gym
         self._configure_gym_env_spaces()
 
@@ -83,7 +82,6 @@ class CaTEnv(ManagerBasedRLEnv):
         # when all the other managers are created
         if "startup" in self.event_manager.available_modes:
             self.event_manager.apply(mode="startup")
-
 
         # setup the action and observation spaces for Gym
         self._configure_gym_env_spaces()
@@ -134,10 +132,7 @@ class CaTEnv(ManagerBasedRLEnv):
             # render between steps only if the GUI or an RTX sensor needs it
             # note: we assume the render interval to be the shortest accepted rendering interval.
             #    If a camera needs rendering at a faster frequency, this will lead to unexpected behavior.
-            if (
-                self._sim_step_counter % self.cfg.sim.render_interval == 0
-                and is_rendering
-            ):
+            if self._sim_step_counter % self.cfg.sim.render_interval == 0 and is_rendering:
                 self.sim.render()
             # update buffers at sim dt
             self.scene.update(dt=self.physics_dt)
@@ -211,7 +206,9 @@ class CaTEnv(ManagerBasedRLEnv):
         if "reset" in self.event_manager.available_modes:
             env_step_count = self._sim_step_counter // self.cfg.decimation
             self.event_manager.apply(
-                mode="reset", env_ids=env_ids, global_env_step_count=env_step_count,
+                mode="reset",
+                env_ids=env_ids,
+                global_env_step_count=env_step_count,
             )
 
         # iterate over all managers and reset them
@@ -263,10 +260,12 @@ class CaTEnv(ManagerBasedRLEnv):
             if has_concatenated_obs:
                 self.single_observation_space[group_name] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=group_dim)
             else:
-                self.single_observation_space[group_name] = gym.spaces.Dict({
-                    term_name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=term_dim)
-                    for term_name, term_dim in zip(group_term_names, group_dim, strict=False)
-                })
+                self.single_observation_space[group_name] = gym.spaces.Dict(
+                    {
+                        term_name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=term_dim)
+                        for term_name, term_dim in zip(group_term_names, group_dim, strict=False)
+                    }
+                )
         # action space (unbounded since we don't impose any limits)
         action_dim = sum(self.action_manager.action_term_dim)
         self.single_action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(action_dim,))
