@@ -55,7 +55,7 @@ def extract_rate(data, rate_name):
 
 
 def extract_data(json_file):
-    with open(json_file, "r") as file:
+    with open(json_file) as file:
         data = json.load(file)[1:]  # First entry contains the limits
 
         max_force, avg_force = extract_contact_force(data)
@@ -75,7 +75,7 @@ def extract_data(json_file):
 
 
 def check_position_limits(safety_file_path):
-    with open(safety_file_path, "r") as file:
+    with open(safety_file_path) as file:
         safety_data = json.load(file)
 
     violation_counts = {}
@@ -102,7 +102,7 @@ def generate_safety_file(json_file):
 
 def prepare_action_rate_table(experiment_names, data):
     avg_action_rate_data = []
-    avg_action_rate_headers = ["Joint Name"] + experiment_names
+    avg_action_rate_headers = ["Joint Name", *experiment_names]
 
     joint_names = data[experiment_names[0]]["Avg Action Rate"].keys()
     for joint_name in joint_names:
@@ -119,7 +119,7 @@ def prepare_action_rate_table(experiment_names, data):
 def prepare_contant_force_table(experiment_names, data):
     # Prepare Avg Force and Max Force table data
     force_data = []
-    force_headers = ["Metric"] + experiment_names
+    force_headers = ["Metric", *experiment_names]
 
     for metric in ["Avg Force", "Max Force"]:
         row = [metric]
@@ -141,7 +141,7 @@ def prepare_position_violations_table(experiment_names, data):
 
     # Prepare the table data
     position_violations_data = []
-    position_violations_headers = ["Joint Name"] + experiment_names
+    position_violations_headers = ["Joint Name", *experiment_names]
 
     for joint_name in sorted(all_joints):
         row = [joint_name]

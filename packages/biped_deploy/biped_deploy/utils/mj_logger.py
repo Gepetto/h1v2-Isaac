@@ -8,7 +8,7 @@ import numpy as np
 # Save safety checker data
 def _json_serializer(obj):
     """Handle numpy types and other non-serializable objects"""
-    if isinstance(obj, (np.ndarray, np.generic)):
+    if isinstance(obj, np.ndarray | np.generic):
         return obj.tolist()
     err_msg = f"Object of type {type(obj)} is not JSON serializable"
     raise TypeError(err_msg)
@@ -155,7 +155,7 @@ class MJLogger:
         foot_bodies = ["left_ankle_roll_link", "right_ankle_roll_link"]
         foot_ids = {name: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, name) for name in foot_bodies}
 
-        foot_forces = {name: 0.0 for name in foot_bodies}
+        foot_forces = dict.fromkeys(foot_bodies, 0.0)
 
         for i in range(self.data.ncon):
             contact = self.data.contact[i]

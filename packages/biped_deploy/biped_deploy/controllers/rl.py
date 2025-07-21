@@ -153,9 +153,8 @@ class RLPolicy:
         elif policy_path.endswith(".onnx"):
             self.policy = InferenceHandlerONNX(policy_path=policy_path)
         else:
-            raise ValueError(
-                f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported."
-            )
+            msg = f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported."
+            raise ValueError(msg)
         self.observation_handler = ObservationHandler(
             observations_func,
             observations_scale,

@@ -7,7 +7,7 @@ import numpy as np
 # Save safety checker data
 def _json_serializer(obj):
     """Handle numpy types and other non-serializable objects"""
-    if isinstance(obj, (np.ndarray, np.generic)):
+    if isinstance(obj, np.ndarray | np.generic):
         return obj.tolist()
     err_msg = f"Object of type {type(obj)} is not JSON serializable"
     raise TypeError(err_msg)

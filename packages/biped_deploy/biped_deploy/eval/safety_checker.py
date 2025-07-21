@@ -6,7 +6,7 @@ import numpy as np
 # Save safety checker data
 def _json_serializer(obj):
     """Handle numpy types and other non-serializable objects"""
-    if isinstance(obj, (np.ndarray, np.generic)):
+    if isinstance(obj, np.ndarray | np.generic):
         return obj.tolist()
     err_msg = f"Object of type {type(obj)} is not JSON serializable"
     raise TypeError(err_msg)
@@ -26,7 +26,7 @@ class SafetyChecker:
 
     def check_safety(self, json_file):
         # Load data from file
-        with open(json_file, "r") as file:
+        with open(json_file) as file:
             data = json.load(file)
 
             self._extract_limits(data)
@@ -117,7 +117,7 @@ class SafetyChecker:
         check_type: str,
         value: float,
         limit: float,
-        additional_info: dict[str, Any] = None,
+        additional_info: dict[str, Any] | None = None,
     ):
         violation = SafetyViolation(
             timestamp=current_time,
