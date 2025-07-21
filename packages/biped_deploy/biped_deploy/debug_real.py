@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 from robots.h12_real import H12Real
-from utils.remote_controller import KeyMap
+from biped_deploy.utils.remote_controller import KeyMap
 
 
 class DebugMode(Enum):

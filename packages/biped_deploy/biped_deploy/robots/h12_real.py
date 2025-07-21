@@ -1,4 +1,3 @@
-import sys
 import time
 from pathlib import Path
 
@@ -20,9 +19,8 @@ from unitree_sdk2py.utils.crc import CRC
 
 from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
 
-sys.path.append("../")
-from utils.remote_controller import KeyMap, RemoteController
-from utils.rotation import transform_imu_data
+from biped_deploy.utils.remote_controller import KeyMap, RemoteController
+from biped_deploy.utils.rotation import transform_imu_data
 
 
 class ConfigError(Exception): ...

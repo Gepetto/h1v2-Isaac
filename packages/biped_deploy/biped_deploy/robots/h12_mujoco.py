@@ -1,13 +1,10 @@
-import sys
 from pathlib import Path
 
 import mujoco
 import numpy as np
 import yaml
 from biped_assets import SCENE_PATHS
-
-sys.path.append("../")
-from simulator.sim_mujoco import MujocoSim
+from biped_deploy.simulator.sim_mujoco import MujocoSim
 
 
 class ConfigError(Exception): ...

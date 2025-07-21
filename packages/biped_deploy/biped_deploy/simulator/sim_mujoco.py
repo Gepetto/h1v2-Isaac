@@ -1,4 +1,3 @@
-import sys
 import threading
 import time
 
@@ -6,8 +5,7 @@ import mujoco
 import mujoco.viewer
 import numpy as np
 
-sys.path.append("../")
-from utils.mj_logger import MJLogger
+from biped_deploy.utils.mj_logger import MJLogger
 
 
 class ElasticBand:

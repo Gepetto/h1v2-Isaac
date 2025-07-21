@@ -4,8 +4,8 @@ from pathlib import Path
 
 import yaml
 from biped_assets import SCENE_PATHS
-from controllers.rl import RLPolicy
-from robots.h12_mujoco import H12Mujoco
+from biped_deploy.controllers.rl import RLPolicy
+from biped_deploy.robots.h12_mujoco import H12Mujoco
 
 
 def parse_args():
@@ -17,7 +17,7 @@ def parse_args():
 if __name__ == "__main__":
     # Load config
     args = parse_args()
-    config_path = args.config_path or Path(__file__).parent / "config" / "config.yaml"
+    config_path = args.config_path or Path(__file__).parent / "config.yaml"
     with config_path.open() as file:
         config = yaml.safe_load(file)
 

@@ -1,4 +1,3 @@
-import sys
 from collections import deque
 from pathlib import Path
 
@@ -7,8 +6,7 @@ import onnxruntime as ort
 import torch
 import yaml
 
-sys.path.append("../")
-from utils.rl_logger import RLLogger
+from biped_deploy.utils.rl_logger import RLLogger
 
 
 class InferenceHandlerONNX:
