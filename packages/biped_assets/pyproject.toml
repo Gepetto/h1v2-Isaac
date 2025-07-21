@@ -1,3 +1,13 @@
+[project]
+name = "biped-assets"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.10"
+dependencies = []
+
 [build-system]
-requires = ["setuptools", "wheel", "toml"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
