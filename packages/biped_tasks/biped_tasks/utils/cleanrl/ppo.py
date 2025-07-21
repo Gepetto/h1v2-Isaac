@@ -8,7 +8,7 @@ from torch.distributions.normal import Normal
 
 class RunningMeanStd(nn.Module):
     def __init__(self, shape=(), epsilon=1e-08):
-        super(RunningMeanStd, self).__init__()  # noqa: UP008
+        super().__init__()
         self.register_buffer("running_mean", torch.zeros(shape))
         self.register_buffer("running_var", torch.ones(shape))
         self.register_buffer("count", torch.ones(()))

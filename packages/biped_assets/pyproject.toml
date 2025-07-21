@@ -1,13 +1,13 @@
-[project]
-name = "biped-assets"
-version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.10"
-dependencies = []
-
 [build-system]
-requires = ["uv_build"]
 build-backend = "uv_build"
+requires = ["uv_build"]
+
+[project]
+dependencies = []
+description = "Add your description here"
+name = "biped-assets"
+requires-python = ">=3.10"
+version = "0.1.0"
 
 [tool.uv.build-backend]
 module-root = ""

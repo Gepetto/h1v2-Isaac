@@ -1,24 +1,24 @@
-[project]
-name = "biped-deploy"
-version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.10"
-dependencies = [
-    "biped-assets",
-    "mujoco>=3.3.4",
-    "onnxruntime>=1.22.1",
-    "pyyaml>=6.0.2",
-    "torch>=2.5.1",
-    "unitree-sdk2py",
-]
-
-[tool.uv.sources]
-biped-assets = { workspace = true }
-unitree-sdk2py = { git = "https://github.com/ComePerrot/unitree_sdk2_python.git" }
-
 [build-system]
-requires = ["uv_build"]
 build-backend = "uv_build"
+requires = ["uv_build"]
+
+[project]
+dependencies = [
+  "biped-assets",
+  "mujoco>=3.3.4",
+  "onnxruntime>=1.22.1",
+  "pyyaml>=6.0.2",
+  "torch>=2.5.1",
+  "unitree-sdk2py"
+]
+description = "Add your description here"
+name = "biped-deploy"
+requires-python = ">=3.10"
+version = "0.1.0"
 
 [tool.uv.build-backend]
 module-root = ""
+
+[tool.uv.sources]
+biped-assets = {workspace = true}
+unitree-sdk2py = {git = "https://github.com/ComePerrot/unitree_sdk2_python.git"}

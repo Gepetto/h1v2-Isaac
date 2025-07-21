@@ -1,19 +1,19 @@
-[project]
-name = "biped-tasks"
-version = "0.1.0"
-description = "Add your description here"
-requires-python = ">=3.10"
-dependencies = [
-    "biped-assets",
-    "isaaclab[all,isaacsim]==2.1.0",
-]
-
-[tool.uv.sources]
-biped-assets = { workspace = true }
-
 [build-system]
-requires = ["uv_build"]
 build-backend = "uv_build"
+requires = ["uv_build"]
+
+[project]
+dependencies = [
+  "biped-assets",
+  "isaaclab[all,isaacsim]==2.1.0"
+]
+description = "Add your description here"
+name = "biped-tasks"
+requires-python = ">=3.10"
+version = "0.1.0"
 
 [tool.uv.build-backend]
 module-root = ""
+
+[tool.uv.sources]
+biped-assets = {workspace = true}
