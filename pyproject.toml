@@ -26,7 +26,7 @@ line-length = 120
 # E402: Module level import not at top of file
 # RET504: Unnecessary variable assignment before return statement.
 # SIM102: Use a single if-statement instead of nested if-statements
-ignore = ["D203", "D213", "E402", "RET504", "SIM102"]
+ignore = ["COM812", "D203", "D213", "E402", "RET504", "SIM102"]
 extend-select = [
     "A",
     "B",
