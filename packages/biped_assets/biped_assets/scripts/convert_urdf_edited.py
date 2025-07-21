@@ -72,7 +72,8 @@ def main():
     if not os.path.isabs(urdf_path):
         urdf_path = os.path.abspath(urdf_path)
     if not check_file_path(urdf_path):
-        raise ValueError(f"Invalid file path: {urdf_path}")
+        msg = f"Invalid file path: {urdf_path}"
+        raise ValueError(msg)
     # create destination path
     dest_path = args_cli.output
     if not os.path.isabs(dest_path):
@@ -91,7 +92,7 @@ def main():
         joint_drive=UrdfConverterCfg.JointDriveCfg(
             drive_type="force",
             target_type="position",
-            gains=UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0.0, damping=0.0)
+            gains=UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0.0, damping=0.0),
         ),
     )
 
