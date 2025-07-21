@@ -3,14 +3,9 @@ name = "h1v2-isaac"
 version = "0.1.0"
 description = "Reinforcement Learning pipeline for the h1v2"
 readme = "README.md"
-authors = [
-    { name = "Côme Perrot", email = "cperrot@laas.fr" }
-]
+authors = [{ name = "Côme Perrot", email = "cperrot@laas.fr" }]
 requires-python = ">=3.10"
-dependencies = [
-    "biped-tasks",
-    "biped-deploy",
-]
+dependencies = ["biped-tasks", "biped-deploy"]
 
 [tool.uv.workspace]
 members = [
@@ -22,3 +17,43 @@ members = [
 [tool.uv.sources]
 biped-tasks = { workspace = true }
 biped-deploy = { workspace = true }
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+# E402: Module level import not at top of file
+# RET504: Unnecessary variable assignment before return statement.
+ignore = ["D203", "D213", "E402", "RET504"]
+extend-select = [
+    "A",
+    "B",
+    "C",
+    "COM",
+    "DJ",
+    "EM",
+    "EXE",
+    "G",
+    # "PTH",
+    "RET",
+    "RUF",
+    "UP",
+    "W",
+    "YTT",
+]
+
+[tool.tomlsort]
+all = true
+
+[tool.pyright]
+exclude = ["**/__pycache__", "**/logs", ".git", ".vscode"]
+typeCheckingMode = "basic"
+pythonVersion = "3.10"
+pythonPlatform = "Linux"
+enableTypeIgnoreComments = true
+reportMissingImports = "none"
+reportMissingModuleSource = "none"
+reportGeneralTypeIssues = "none"
+reportOptionalMemberAccess = "warning"
+reportPrivateUsage = "warning"
