@@ -19,7 +19,7 @@ import cli_args  # isort: skip
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with CleanRL.")
 parser.add_argument(
-    "--video", action="store_true", default=False, help="Record videos during training."
+    "--video", action="store_true", default=False, help="Record videos during training.",
 )
 parser.add_argument(
     "--video_length",
@@ -34,14 +34,14 @@ parser.add_argument(
     help="Interval between video recordings (in steps).",
 )
 parser.add_argument(
-    "--num_envs", type=int, default=None, help="Number of environments to simulate."
+    "--num_envs", type=int, default=None, help="Number of environments to simulate.",
 )
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument(
-    "--seed", type=int, default=None, help="Seed used for the environment"
+    "--seed", type=int, default=None, help="Seed used for the environment",
 )
 parser.add_argument(
-    "--num_iterations", type=int, default=None, help="RL Policy training iterations."
+    "--num_iterations", type=int, default=None, help="RL Policy training iterations.",
 )
 # append CleanRL cli arguments
 cli_args.add_clean_rl_args(parser)
@@ -54,7 +54,7 @@ if args_cli.video:
     args_cli.enable_cameras = True
 
 # clear out sys.argv for Hydra
-sys.argv = [sys.argv[0]] + hydra_args
+sys.argv = [sys.argv[0]] + hydra_args  # noqa: RUF005
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -128,7 +128,7 @@ def main(
 
     # create isaac environment
     env = gym.make(
-        args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None
+        args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None,
     )
     # wrap for video recording
     if args_cli.video:

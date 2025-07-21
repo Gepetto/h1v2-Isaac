@@ -36,7 +36,7 @@ if args_cli.video:
     args_cli.enable_cameras = True
 
 # clear out sys.argv for Hydra
-sys.argv = [sys.argv[0]] + hydra_args
+sys.argv = [sys.argv[0]] + hydra_args  # noqa: RUF005
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
