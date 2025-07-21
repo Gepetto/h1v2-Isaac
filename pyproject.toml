@@ -48,6 +48,58 @@ extend-select = [
 [tool.ruff.lint.mccabe]
 max-complexity = 30
 
+[tool.ruff.lint.isort]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "isaaclab",
+    "first-party",
+    "local-folder",
+]
+extra-standard-library = [
+    "numpy",
+    "h5py",
+    "open3d",
+    "torch",
+    "tensordict",
+    "bpy",
+    "matplotlib",
+    "gymnasium",
+    "gym",
+    "scipy",
+    "hid",
+    "yaml",
+    "prettytable",
+    "toml",
+    "trimesh",
+    "tqdm",
+    "psutil",
+]
+known-third-party = [
+    "isaacsim.core.api",
+    "omni.replicator.core",
+    "pxr",
+    "omni.kit.*",
+    "warp",
+    "carb",
+    "Semantics",
+]
+known-first-party = [
+    "biped_tasks",
+    "biped_assets",
+    "biped_deploy",
+]
+
+[tool.ruff.lint.isort.sections]
+isaaclab = [
+    "isaaclab",
+    "isaaclab_tasks",
+    "isaaclab_assets",
+    "isaaclab_mimic",
+    "isaaclab_rl"
+]
+
 [tool.tomlsort]
 all = true
 
