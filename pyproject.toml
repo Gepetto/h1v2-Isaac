@@ -25,7 +25,8 @@ line-length = 120
 [tool.ruff.lint]
 # E402: Module level import not at top of file
 # RET504: Unnecessary variable assignment before return statement.
-ignore = ["D203", "D213", "E402", "RET504"]
+# SIM102: Use a single if-statement instead of nested if-statements
+ignore = ["D203", "D213", "E402", "RET504", "SIM102"]
 extend-select = [
     "A",
     "B",
@@ -38,10 +39,14 @@ extend-select = [
     # "PTH",
     "RET",
     "RUF",
+    "SIM",
     "UP",
     "W",
     "YTT",
 ]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 30
 
 [tool.tomlsort]
 all = true
