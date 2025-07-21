@@ -15,7 +15,6 @@ import torch
 from typing import TYPE_CHECKING
 
 from isaaclab.managers import SceneEntityCfg
-from isaaclab.managers.manager_base import ManagerTermBase
 
 from isaaclab.utils.math import matrix_from_quat
 
@@ -122,9 +121,9 @@ def air_time(
     velocity_cmd = env.command_manager.get_command("base_velocity")[:, :3]
     cmd_active = torch.any(
         torch.abs(velocity_cmd) > velocity_deadzone,  # Check x,y,z separately
-        dim=1
+        dim=1,
     ).float().unsqueeze(1)  # Shape: (num_envs, 1)
-    
+
     # Apply constraint only when command is active (any component > deadzone)
     cstr = (limit - last_air_time) * touchdown.float() * cmd_active
     return cstr
@@ -150,7 +149,7 @@ def action_rate(
     return (
         torch.abs(
             env.action_manager._action[:, asset_cfg.joint_ids]
-            - env.action_manager._prev_action[:, asset_cfg.joint_ids]
+            - env.action_manager._prev_action[:, asset_cfg.joint_ids],
         )
         / env.step_dt
         - limit
@@ -180,7 +179,7 @@ def foot_contact(
     foot_contacts = (
         torch.max(
             torch.norm(
-                net_contact_forces[:, :, asset_cfg.body_ids], dim=-1
+                net_contact_forces[:, :, asset_cfg.body_ids], dim=-1,
             ),
             dim=1,
         )[0] > 1.0  # Boolean: (envs, num_feet)
@@ -189,7 +188,7 @@ def foot_contact(
     # Penalize cases where number of contacts is not 1 or 2
     contact_cstr = ((foot_contacts < 1) | (foot_contacts > 2)).float()
 
-    return contact_cstr 
+    return contact_cstr
 
 def no_move(
     env: ManagerBasedRLEnv,
@@ -239,10 +238,10 @@ def foot_orientation(
     gravity_vec_foot = torch.matmul(foot_to_world, robot.data.GRAVITY_VEC_W[0].squeeze(0))
     desired_projected_gravity = torch.tensor(desired_projected_gravity, dtype=torch.float32, device=env.device)
     zero_mask = (desired_projected_gravity == 0)
-    
+
     contact_sensor = env.scene[sensor_cfg.name]
     touchdown = contact_sensor.compute_first_contact(env.step_dt)[:, sensor_cfg.body_ids]
-    
+
     return (torch.norm(gravity_vec_foot[:, zero_mask], dim=1).unsqueeze(-1) - limit) * touchdown.float()
 
 def base_height(
@@ -253,13 +252,13 @@ def base_height(
 ) -> torch.Tensor:
     robot = env.scene[asset_cfg.name]
     base_height = robot.data.root_pos_w[:, 2]
-    
+
     violation = torch.where(
         (base_height < height - std) | (base_height > height + std),
         torch.tensor(1.0, device=base_height.device),
-        torch.tensor(0.0, device=base_height.device) 
+        torch.tensor(0.0, device=base_height.device),
     )
-    
+
     return violation
 
 def foot_clearance(
@@ -275,11 +274,11 @@ def foot_clearance(
     # Get contact information
     contact_sensor = env.scene[contact_asset_cfg.name]
     touchdown = contact_sensor.compute_first_contact(env.step_dt)[:, contact_asset_cfg.body_ids]
-    
+
     # Initialize swing max height tracking if needed
     if not hasattr(pos_asset.data, 'swing_max_height'):
         pos_asset.data.swing_max_height = torch.zeros_like(foot_heights)
-    
+
     # violation
     violation = (min_height - pos_asset.data.swing_max_height.clone()) * touchdown.float()
 
@@ -287,15 +286,14 @@ def foot_clearance(
     pos_asset.data.swing_max_height = torch.where(
         ~touchdown.bool(),
         torch.maximum(pos_asset.data.swing_max_height, foot_heights),
-        torch.zeros_like(foot_heights)  # Reset when not in swing
+        torch.zeros_like(foot_heights),  # Reset when not in swing
     )
-    
+
     # Get velocity command and check ALL components against deadzone
     velocity_cmd = env.command_manager.get_command("base_velocity")[:, :3]
     cmd_active = torch.any(
         torch.abs(velocity_cmd) > velocity_deadzone,  # Check x,y,z separately
-        dim=1
+        dim=1,
     ).float().unsqueeze(1)  # Shape: (num_envs, 1)
-    
+
     return violation * cmd_active
-    

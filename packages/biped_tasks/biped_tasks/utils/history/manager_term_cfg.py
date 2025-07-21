@@ -10,20 +10,16 @@ from __future__ import annotations
 import torch
 from collections.abc import Callable
 from dataclasses import MISSING
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from isaaclab.utils import configclass
 from isaaclab.utils.modifiers import ModifierCfg
 from isaaclab.utils.noise import NoiseCfg, NoiseModelCfg
 
-from isaaclab.managers.scene_entity_cfg import SceneEntityCfg
 from isaaclab.managers.manager_term_cfg import ManagerTermBaseCfg
 
 if TYPE_CHECKING:
-    from isaaclab.managers.action_manager import ActionTerm
-    from isaaclab.managers.command_manager import CommandTerm
-    from isaaclab.managers.manager_base import ManagerTermBase
-    from isaaclab.managers.recorder_manager import RecorderTerm
+    pass
 
 
 ##
@@ -77,7 +73,7 @@ class ObservationTermCfg(ManagerTermBaseCfg):
     (N, H, D, ...) where N is the batch dimension and H is the history length will be reshaped to a 2D tensor of shape
     (N, H*D*...). Otherwise, the data will be returned as is.
     """
-    
+
     history_step: int = 1
 
     flatten_history_dim: bool = True
@@ -112,7 +108,7 @@ class ObservationGroupCfg:
     terms history will be controlled on a per term basis. See :class:`ObservationTermCfg` for details on history_length
     implementation.
     """
-    
+
     history_step: int = 1
 
     flatten_history_dim: bool = True

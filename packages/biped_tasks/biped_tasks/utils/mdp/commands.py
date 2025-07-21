@@ -19,10 +19,10 @@ if TYPE_CHECKING:
 class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
     """velocity command sampling class ported from isaacgym CaT"""
 
-    cfg: "UniformVelocityCommandWithDeadzoneCfg"
+    cfg: UniformVelocityCommandWithDeadzoneCfg
 
     def __init__(
-        self, cfg: "UniformVelocityCommandWithDeadzoneCfg", env: ManagerBasedEnv
+        self, cfg: UniformVelocityCommandWithDeadzoneCfg, env: ManagerBasedEnv,
     ):
         """Initializes the command generator.
 
@@ -48,7 +48,7 @@ class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
             env_ids = self.is_heading_env.nonzero(as_tuple=False).flatten()
             # compute angular velocity
             heading_error = math_utils.wrap_to_pi(
-                self.heading_target[env_ids] - self.robot.data.heading_w[env_ids]
+                self.heading_target[env_ids] - self.robot.data.heading_w[env_ids],
             )
             self.vel_command_b[env_ids, 2] = torch.clip(
                 self.cfg.heading_control_stiffness * heading_error,
@@ -59,28 +59,27 @@ class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
         # Identify which envs are in deadzone
         in_deadzone = torch.norm(self.vel_command_b[:, :2], dim=1) < self.velocity_deadzone
         num_envs = self.vel_command_b.shape[0]
-        
+
         # Calculate how many envs we want in deadzone (half of total)
         target_deadzone_count = num_envs // 2
-        
+
         # Get current counts
         current_deadzone_count = in_deadzone.sum().item()
-        current_active_count = num_envs - current_deadzone_count
-        
+
         if current_deadzone_count < target_deadzone_count:
             # Need to move some active envs to deadzone
             num_to_deactivate = target_deadzone_count - current_deadzone_count
             active_envs = (~in_deadzone).nonzero(as_tuple=False).flatten()
             deactivate_envs = active_envs[torch.randperm(len(active_envs))[:num_to_deactivate]]
             self.vel_command_b[deactivate_envs, :2] = 0.0
-            
+
         elif current_deadzone_count > target_deadzone_count:
             # Need to activate some deadzone envs
             num_to_activate = current_deadzone_count - target_deadzone_count
             deadzone_envs = in_deadzone.nonzero(as_tuple=False).flatten()
             activate_envs = deadzone_envs[torch.randperm(len(deadzone_envs))[:num_to_activate]]
             self._resample(activate_envs)
-        
+
         # Random angular velocity inversion during the episode to avoid having the robot moving in circle
         p_ang_vel = (
             self.dt / self.max_episode_length_s
@@ -92,7 +91,7 @@ class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
             1
             - 2
             * torch.bernoulli(
-                torch.full_like(self.vel_command_b[:, 2], p_ang_vel)
+                torch.full_like(self.vel_command_b[:, 2], p_ang_vel),
             ).float()
         )
 

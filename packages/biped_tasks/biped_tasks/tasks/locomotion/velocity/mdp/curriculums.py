@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 def terrain_levels_vel(
-    env: RLTaskEnv, env_ids: Sequence[int], asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+    env: RLTaskEnv, env_ids: Sequence[int], asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),  # noqa: B008
 ) -> torch.Tensor:
     """Curriculum based on the distance the robot walked when commanded to move at a desired velocity.
 

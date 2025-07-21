@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 def upside_down(
     env: ManagerBasedRLEnv,
     limit: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),  # noqa: B008
 ) -> torch.Tensor:
     data = env.scene[asset_cfg.name].data
     return torch.norm(data.projected_gravity_b[:, :2], dim=1) > limit

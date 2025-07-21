@@ -31,7 +31,8 @@ class CircularBuffer:
             ValueError: If the buffer size is less than one.
         """
         if max_len < 1:
-            raise ValueError(f"The buffer size should be greater than zero. However, it is set to {max_len}!")
+            msg = f"The buffer size should be greater than zero. However, it is set to {max_len}!"
+            raise ValueError(msg)
         # set the parameters
         self._batch_size = batch_size
         self._device = device
@@ -116,7 +117,8 @@ class CircularBuffer:
         """
         # check the batch size
         if data.shape[0] != self.batch_size:
-            raise ValueError(f"The input data has {data.shape[0]} environments while expecting {self.batch_size}")
+            msg = f"The input data has {data.shape[0]} environments while expecting {self.batch_size}"
+            raise ValueError(msg)
 
         # at the first call, initialize the buffer size
         if self._buffer is None:
@@ -153,10 +155,12 @@ class CircularBuffer:
         """
         # check the batch size
         if len(key) != self.batch_size:
-            raise ValueError(f"The argument 'key' has length {key.shape[0]}, while expecting {self.batch_size}")
+            msg = f"The argument 'key' has length {key.shape[0]}, while expecting {self.batch_size}"
+            raise ValueError(msg)
         # check if the buffer is empty
         if torch.any(self._num_pushes == 0) or self._buffer is None:
-            raise RuntimeError("Attempting to retrieve data on an empty circular buffer. Please append data first.")
+            msg = "Attempting to retrieve data on an empty circular buffer. Please append data first."
+            raise RuntimeError(msg)
 
         # admissible lag
         valid_keys = torch.minimum(key, self._num_pushes - 1)

@@ -29,7 +29,7 @@ class H12Rewards(RewardsCfg):
     track_ang_vel_z_exp = RewTerm(
         func=mdp.track_ang_vel_z_world_exp,
         weight=1.0,
-        params={"command_name": "base_velocity", "std": 0.5}
+        params={"command_name": "base_velocity", "std": 0.5},
     )
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
@@ -52,7 +52,7 @@ class H12Rewards(RewardsCfg):
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint", ".*_ankle_pitch_joint"])}
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint", ".*_ankle_pitch_joint"])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation_hip = RewTerm(
@@ -63,12 +63,12 @@ class H12Rewards(RewardsCfg):
     joint_deviation_arms = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.3,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_.*", ".*_elbow_joint", ".*_wrist_.*"])}
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_shoulder_.*", ".*_elbow_joint", ".*_wrist_.*"])},
     )
     joint_deviation_torso = RewTerm(
         func=mdp.joint_deviation_l1,
         weight=-0.2,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")}
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names="torso_joint")},
     )
 
 
@@ -125,7 +125,7 @@ class H12RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.action_rate_l2.weight = -0.005
         self.rewards.dof_acc_l2.weight = -1.25e-7
         self.rewards.dof_torques_l2.params["asset_cfg"] = SceneEntityCfg(
-            "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"]
+            "robot", joint_names=[".*_hip_.*", ".*_knee_joint", ".*_ankle_.*"],
         )
 
         # Commands

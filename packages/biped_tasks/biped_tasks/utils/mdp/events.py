@@ -15,8 +15,8 @@ from isaaclab.managers import SceneEntityCfg
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
-    
-    
+
+
 
 
 def randomize_body_coms(
@@ -35,10 +35,7 @@ def randomize_body_coms(
     asset: Articulation = env.scene[asset_cfg.name]
 
     # resolve environment ids
-    if env_ids is None:
-        env_ids = torch.arange(env.scene.num_envs, device="cpu")
-    else:
-        env_ids = env_ids.cpu()
+    env_ids = torch.arange(env.scene.num_envs, device="cpu") if env_ids is None else env_ids.cpu()
 
     # resolve body indices
     if asset_cfg.body_ids == slice(None):
@@ -62,7 +59,7 @@ def push_by_setting_velocity_with_random_envs(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
     velocity_range: dict[str, tuple[float, float]],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),  # noqa: B008
 ):
     """pushing function ported from isaacgym CaT"""
 
@@ -91,7 +88,7 @@ def push_by_setting_velocity_with_random_envs(
     ]
     ranges = torch.tensor(range_list, device=asset.device)
     vel_w[:] = math_utils.sample_uniform(
-        ranges[:, 0], ranges[:, 1], vel_w.shape, device=asset.device
+        ranges[:, 0], ranges[:, 1], vel_w.shape, device=asset.device,
     )
 
     # set the velocities into the physics simulation

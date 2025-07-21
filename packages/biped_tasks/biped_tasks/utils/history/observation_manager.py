@@ -78,13 +78,14 @@ class ObservationManager(ManagerBase):
         """
         # check that cfg is not None
         if cfg is None:
-            raise ValueError("Observation manager configuration is None. Please provide a valid configuration.")
+            msg = "Observation manager configuration is None. Please provide a valid configuration."
+            raise ValueError(msg)
 
         # call the base class constructor (this will parse the terms config)
         super().__init__(cfg, env)
 
         # compute combined vector for obs group
-        self._group_obs_dim: dict[str, tuple[int, ...] | list[tuple[int, ...]]] = dict()
+        self._group_obs_dim: dict[str, tuple[int, ...] | list[tuple[int, ...]]] = {}
         for group_name, group_term_dims in self._group_obs_term_dim.items():
             # if terms are concatenated, compute the combined shape into a single tuple
             # otherwise, keep the list of shapes as is
@@ -92,13 +93,14 @@ class ObservationManager(ManagerBase):
                 try:
                     term_dims = [torch.tensor(dims, device="cpu") for dims in group_term_dims]
                     self._group_obs_dim[group_name] = tuple(torch.sum(torch.stack(term_dims, dim=0), dim=0).tolist())
-                except RuntimeError:
-                    raise RuntimeError(
+                except RuntimeError as err:
+                    msg = (
                         f"Unable to concatenate observation terms in group '{group_name}'."
                         f" The shapes of the terms are: {group_term_dims}."
                         " Please ensure that the shapes are compatible for concatenation."
                         " Otherwise, set 'concatenate_terms' to False in the group configuration."
                     )
+                    raise RuntimeError(msg) from err
             else:
                 self._group_obs_dim[group_name] = group_term_dims
 
@@ -122,7 +124,7 @@ class ObservationManager(ManagerBase):
             # add info for each term
             obs_terms = zip(
                 self._group_obs_term_names[group_name],
-                self._group_obs_term_dim[group_name],
+                self._group_obs_term_dim[group_name], strict=False,
             )
             for index, (name, dims) in enumerate(obs_terms):
                 # resolve inputs to simplify prints
@@ -163,7 +165,7 @@ class ObservationManager(ManagerBase):
             data = obs_buffer[group_name]
             for name, shape in zip(
                 self._group_obs_term_names[group_name],
-                self._group_obs_term_dim[group_name],
+                self._group_obs_term_dim[group_name], strict=False,
             ):
                 data_length = np.prod(shape)
                 term = data[env_idx, idx : idx + data_length]
@@ -227,13 +229,13 @@ class ObservationManager(ManagerBase):
             for term_cfg in group_cfg:
                 term_cfg.func.reset(env_ids=env_ids)
             # reset terms with history
-            for term_name, term_cfg in zip(self._group_obs_term_names[group_name], self._group_obs_term_cfgs[group_name]):
+            for term_name, term_cfg in zip(self._group_obs_term_names[group_name], self._group_obs_term_cfgs[group_name], strict=False):
                 if term_name in self._group_obs_term_history_buffer[group_name]:
                     self._group_obs_term_history_buffer[group_name][term_name].reset(batch_ids=env_ids)
 
                 if hasattr(term_cfg, "model_noise"):
-                    obs = term_cfg.model_noise.reset(env_ids)
-                
+                    term_cfg.model_noise.reset(env_ids)
+
         # call all modifiers that are classes
         for mod in self._group_obs_class_modifiers:
             mod.reset(env_ids=env_ids)
@@ -253,7 +255,7 @@ class ObservationManager(ManagerBase):
             with keys corresponding to the term's name.
         """
         # create a buffer for storing obs from all the groups
-        obs_buffer = dict()
+        obs_buffer = {}
         # iterate over all the terms in each group
         for group_name in self._group_obs_term_names:
             obs_buffer[group_name] = self.compute_group(group_name)
@@ -297,16 +299,17 @@ class ObservationManager(ManagerBase):
         """
         # check ig group name is valid
         if group_name not in self._group_obs_term_names:
-            raise ValueError(
+            msg = (
                 f"Unable to find the group '{group_name}' in the observation manager."
                 f" Available groups are: {list(self._group_obs_term_names.keys())}"
             )
+            raise ValueError(msg)
         # iterate over all the terms in each group
         group_term_names = self._group_obs_term_names[group_name]
         # buffer to store obs per group
         group_obs = dict.fromkeys(group_term_names, None)
         # read attributes for each term
-        obs_terms = zip(group_term_names, self._group_obs_term_cfgs[group_name])
+        obs_terms = zip(group_term_names, self._group_obs_term_cfgs[group_name], strict=False)
 
         # evaluate terms: compute, add noise, clip, scale, custom modifiers
         for term_name, term_cfg in obs_terms:
@@ -330,9 +333,9 @@ class ObservationManager(ManagerBase):
                 self._group_obs_term_history_buffer[group_name][term_name].append(obs)
                 if term_cfg.flatten_history_dim:
                     group_obs[term_name] = self._group_obs_term_history_buffer[group_name][term_name].buffer(term_cfg.history_step).reshape(
-                        self._env.num_envs, -1
+                        self._env.num_envs, -1,
                     )
-                else: 
+                else:
                     group_obs[term_name] = self._group_obs_term_history_buffer[group_name][term_name].buffer(term_cfg.history_step)
             else:
                 group_obs[term_name] = obs
@@ -340,8 +343,7 @@ class ObservationManager(ManagerBase):
         # concatenate all observations in the group together
         if self._group_obs_concatenate[group_name]:
             return torch.cat(list(group_obs.values()), dim=-1)
-        else:
-            return group_obs
+        return group_obs
 
     """
     Helper functions.
@@ -351,21 +353,18 @@ class ObservationManager(ManagerBase):
         """Prepares a list of observation terms functions."""
         # create buffers to store information for each observation group
         # TODO: Make this more convenient by using data structures.
-        self._group_obs_term_names: dict[str, list[str]] = dict()
-        self._group_obs_term_dim: dict[str, list[tuple[int, ...]]] = dict()
-        self._group_obs_term_cfgs: dict[str, list[ObservationTermCfg]] = dict()
-        self._group_obs_class_term_cfgs: dict[str, list[ObservationTermCfg]] = dict()
-        self._group_obs_concatenate: dict[str, bool] = dict()
-        self._group_obs_term_history_buffer: dict[str, dict] = dict()
+        self._group_obs_term_names: dict[str, list[str]] = {}
+        self._group_obs_term_dim: dict[str, list[tuple[int, ...]]] = {}
+        self._group_obs_term_cfgs: dict[str, list[ObservationTermCfg]] = {}
+        self._group_obs_class_term_cfgs: dict[str, list[ObservationTermCfg]] = {}
+        self._group_obs_concatenate: dict[str, bool] = {}
+        self._group_obs_term_history_buffer: dict[str, dict] = {}
         # create a list to store modifiers that are classes
         # we store it as a separate list to only call reset on them and prevent unnecessary calls
-        self._group_obs_class_modifiers: list[modifiers.ModifierBase] = list()
+        self._group_obs_class_modifiers: list[modifiers.ModifierBase] = []
 
         # check if config is dict already
-        if isinstance(self.cfg, dict):
-            group_cfg_items = self.cfg.items()
-        else:
-            group_cfg_items = self.cfg.__dict__.items()
+        group_cfg_items = self.cfg.items() if isinstance(self.cfg, dict) else self.cfg.__dict__.items()
         # iterate over all the groups
         for group_name, group_cfg in group_cfg_items:
             # check for non config
@@ -373,23 +372,23 @@ class ObservationManager(ManagerBase):
                 continue
             # check if the term is a curriculum term
             if not isinstance(group_cfg, ObservationGroupCfg):
-                raise TypeError(
+                msg = (
                     f"Observation group '{group_name}' is not of type 'ObservationGroupCfg'."
                     f" Received: '{type(group_cfg)}'."
                 )
+                raise TypeError(
+                    msg,
+                )
             # initialize list for the group settings
-            self._group_obs_term_names[group_name] = list()
-            self._group_obs_term_dim[group_name] = list()
-            self._group_obs_term_cfgs[group_name] = list()
-            self._group_obs_class_term_cfgs[group_name] = list()
-            group_entry_history_buffer: dict[str, CircularBuffer] = dict()
+            self._group_obs_term_names[group_name] = []
+            self._group_obs_term_dim[group_name] = []
+            self._group_obs_term_cfgs[group_name] = []
+            self._group_obs_class_term_cfgs[group_name] = []
+            group_entry_history_buffer: dict[str, CircularBuffer] = []
             # read common config for the group
             self._group_obs_concatenate[group_name] = group_cfg.concatenate_terms
             # check if config is dict already
-            if isinstance(group_cfg, dict):
-                group_cfg_items = group_cfg.items()
-            else:
-                group_cfg_items = group_cfg.__dict__.items()
+            group_cfg_items = group_cfg.items() if isinstance(group_cfg, dict) else group_cfg.__dict__.items()
             # iterate over all the terms in each group
             for term_name, term_cfg in group_cfg_items:
                 # skip non-obs settings
@@ -399,9 +398,12 @@ class ObservationManager(ManagerBase):
                 if term_cfg is None:
                     continue
                 if not isinstance(term_cfg, ObservationTermCfg):
-                    raise TypeError(
+                    msg = (
                         f"Configuration for the term '{term_name}' is not of type ObservationTermCfg."
                         f" Received: '{type(term_cfg)}'."
+                    )
+                    raise TypeError(
+                        msg,
                     )
                 # resolve common terms in the config
                 self._resolve_common_term_cfg(f"{group_name}/{term_name}", term_cfg, min_argc=1)
@@ -409,12 +411,12 @@ class ObservationManager(ManagerBase):
                 # check noise settings
                 if not group_cfg.enable_corruption:
                     term_cfg.noise = None
-                
+
                 # check noise type
                 if inspect.isclass(type(term_cfg.noise)):
                     if issubclass(type(term_cfg.noise), NoiseModelCfg):
                         term_cfg.model_noise = term_cfg.noise.class_type(term_cfg.noise, self._env.num_envs, device=self._env.device)
-                
+
                 # check group history params and override terms
                 if group_cfg.history_length is not None:
                     term_cfg.history_length = group_cfg.history_length
@@ -428,7 +430,7 @@ class ObservationManager(ManagerBase):
                 # create history buffers and calculate history term dimensions
                 if term_cfg.history_length > 0:
                     group_entry_history_buffer[term_name] = CircularBuffer(
-                        max_len=term_cfg.history_length * term_cfg.history_step, batch_size=self._env.num_envs, device=self._env.device
+                        max_len=term_cfg.history_length * term_cfg.history_step, batch_size=self._env.num_envs, device=self._env.device,
                     )
                     old_dims = list(obs_dims)
                     old_dims.insert(1, term_cfg.history_length)
@@ -439,17 +441,19 @@ class ObservationManager(ManagerBase):
 
                 # if scale is set, check if single float or tuple
                 if term_cfg.scale is not None:
-                    if not isinstance(term_cfg.scale, (float, int, tuple)):
-                        raise TypeError(
+                    if not isinstance(term_cfg.scale, float | int | tuple):
+                        msg = (
                             f"Scale for observation term '{term_name}' in group '{group_name}'"
                             f" is not of type float, int or tuple. Received: '{type(term_cfg.scale)}'."
                         )
+                        raise TypeError(msg)
                     if isinstance(term_cfg.scale, tuple) and len(term_cfg.scale) != obs_dims[1]:
-                        raise ValueError(
+                        msg = (
                             f"Scale for observation term '{term_name}' in group '{group_name}'"
                             f" does not match the dimensions of the observation. Expected: {obs_dims[1]}"
                             f" but received: {len(term_cfg.scale)}."
                         )
+                        raise ValueError(msg)
 
                     # cast the scale into torch tensor
                     term_cfg.scale = torch.tensor(term_cfg.scale, dtype=torch.float, device=self._env.device)
@@ -463,26 +467,29 @@ class ObservationManager(ManagerBase):
                             # to list of modifiers
                             if inspect.isclass(mod_cfg.func):
                                 if not issubclass(mod_cfg.func, modifiers.ModifierBase):
-                                    raise TypeError(
+                                    msg = (
                                         f"Modifier function '{mod_cfg.func}' for observation term '{term_name}'"
                                         f" is not a subclass of 'ModifierBase'. Received: '{type(mod_cfg.func)}'."
                                     )
+                                    raise TypeError(msg)
                                 mod_cfg.func = mod_cfg.func(cfg=mod_cfg, data_dim=obs_dims, device=self._env.device)
 
                                 # add to list of class modifiers
                                 self._group_obs_class_modifiers.append(mod_cfg.func)
                         else:
-                            raise TypeError(
+                            msg = (
                                 f"Modifier configuration '{mod_cfg}' of observation term '{term_name}' is not of"
                                 f" required type ModifierCfg, Received: '{type(mod_cfg)}'"
                             )
+                            raise TypeError(msg)
 
                         # check if function is callable
                         if not callable(mod_cfg.func):
-                            raise AttributeError(
+                            msg = (
                                 f"Modifier '{mod_cfg}' of observation term '{term_name}' is not callable."
                                 f" Received: {mod_cfg.func}"
                             )
+                            raise AttributeError(msg)
 
                         # check if term's arguments are matched by params
                         term_params = list(mod_cfg.params.keys())
@@ -494,11 +501,12 @@ class ObservationManager(ManagerBase):
                         # Think: Check for cases when kwargs are set inside the function?
                         if len(args) > 1:
                             if set(args[1:]) != set(term_params + args_with_defaults):
-                                raise ValueError(
+                                msg = (
                                     f"Modifier '{mod_cfg}' of observation term '{term_name}' expects"
                                     f" mandatory parameters: {args_without_defaults[1:]}"
                                     f" and optional parameters: {args_with_defaults}, but received: {term_params}."
                                 )
+                                raise ValueError(msg)
 
                 # add term in a separate list if term is a class
                 if isinstance(term_cfg.func, ManagerTermBase):
