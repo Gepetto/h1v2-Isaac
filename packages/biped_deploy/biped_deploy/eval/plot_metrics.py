@@ -1,9 +1,8 @@
 import argparse
 import json
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 
 def load_metrics(log_dir: Path) -> list[dict]:

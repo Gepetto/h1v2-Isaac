@@ -74,15 +74,11 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
+import gymnasium as gym
 import os
+import torch
 from datetime import datetime
 
-# Import extensions to set up environment tasks
-import biped_tasks.tasks  # noqa: F401
-import gymnasium as gym
-import torch
-from biped_tasks.utils.cleanrl.ppo import PPO
-from biped_tasks.utils.mdp.config_exporter import get_deploy_config
 from isaaclab.envs import (
     DirectMARLEnvCfg,
     DirectRLEnvCfg,
@@ -91,6 +87,11 @@ from isaaclab.envs import (
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
 from isaaclab_tasks.utils.hydra import hydra_task_config
+
+# Import extensions to set up environment tasks
+import biped_tasks.tasks  # noqa: F401
+from biped_tasks.utils.cleanrl.ppo import PPO
+from biped_tasks.utils.mdp.config_exporter import get_deploy_config
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True

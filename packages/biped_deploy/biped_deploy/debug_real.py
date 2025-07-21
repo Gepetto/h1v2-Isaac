@@ -1,10 +1,10 @@
+import numpy as np
 import time
+import yaml
 from enum import Enum
 from pathlib import Path
 
-import numpy as np
-import yaml
-from robots.h12_real import H12Real
+from biped_deploy.robots.h12_real import H12Real
 from biped_deploy.utils.remote_controller import KeyMap
 
 

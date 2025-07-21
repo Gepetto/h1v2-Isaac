@@ -59,17 +59,14 @@ simulation_app = app_launcher.app
 
 import gymnasium as gym
 import os
+import torch
 
 from isaaclab.utils.dict import print_dict
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
-
-from biped_tasks.utils.cleanrl.ppo import Agent
-
 # Import extensions to set up environment tasks
 import biped_tasks.tasks  # noqa: F401
-
-import torch
+from biped_tasks.utils.cleanrl.ppo import Agent
 
 
 def main():

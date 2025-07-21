@@ -1,7 +1,6 @@
 import json
-from dataclasses import asdict, dataclass
-
 import numpy as np
+from dataclasses import asdict, dataclass
 
 
 # Save safety checker data

@@ -1,10 +1,10 @@
 import argparse
+import numpy as np
 import struct
 import time
+import yaml
 from pathlib import Path
 
-import numpy as np
-import yaml
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelSubscriber
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 

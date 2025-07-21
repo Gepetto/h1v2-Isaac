@@ -12,11 +12,10 @@ from collections.abc import Callable
 from dataclasses import MISSING
 from typing import TYPE_CHECKING
 
+from isaaclab.managers.manager_term_cfg import ManagerTermBaseCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.modifiers import ModifierCfg
 from isaaclab.utils.noise import NoiseCfg, NoiseModelCfg
-
-from isaaclab.managers.manager_term_cfg import ManagerTermBaseCfg
 
 if TYPE_CHECKING:
     pass

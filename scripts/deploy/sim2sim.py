@@ -1,8 +1,8 @@
 import argparse
 import time
+import yaml
 from pathlib import Path
 
-import yaml
 from biped_assets import SCENE_PATHS
 from biped_deploy.controllers.rl import RLPolicy
 from biped_deploy.robots.h12_mujoco import H12Mujoco

@@ -6,33 +6,40 @@
 import math
 
 import isaaclab.sim as sim_utils
+import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import (
     CurriculumTermCfg as CurrTerm,
+)
+from isaaclab.managers import (
     EventTermCfg as EventTerm,
+)
+from isaaclab.managers import (
     RewardTermCfg as RewTerm,
+)
+from isaaclab.managers import (
     SceneEntityCfg,
+)
+from isaaclab.managers import (
     TerminationTermCfg as DoneTerm,
 )
-
-from biped_tasks.utils.history.manager_term_cfg import (
-    ObservationGroupCfg as ObsGroup,
-    ObservationTermCfg as ObsTerm,
-)
-
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.noise import AdditiveUniformNoiseCfg as Unoise
 
-import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
-
-from biped_tasks.utils.cat.manager_constraint_cfg import ConstraintTermCfg as ConstraintTerm
 import biped_tasks.utils.cat.constraints as constraints
 import biped_tasks.utils.cat.curriculums as curriculums
 import biped_tasks.utils.mdp.commands as commands
+from biped_tasks.utils.cat.manager_constraint_cfg import ConstraintTermCfg as ConstraintTerm
+from biped_tasks.utils.history.manager_term_cfg import (
+    ObservationGroupCfg as ObsGroup,
+)
+from biped_tasks.utils.history.manager_term_cfg import (
+    ObservationTermCfg as ObsTerm,
+)
 
 from biped_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 

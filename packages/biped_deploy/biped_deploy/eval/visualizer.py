@@ -1,7 +1,7 @@
 import argparse
+import matplotlib.pyplot as plt
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 from logger import load_cmd_log, load_state_log
 
 

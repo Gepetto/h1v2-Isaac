@@ -11,17 +11,17 @@ import numpy as np
 import torch
 from collections.abc import Sequence
 
-from isaaclab.managers import (
-    CommandManager,
-    CurriculumManager,
-    RewardManager,
-    TerminationManager,
-    ActionManager,
-    EventManager,
-    RecorderManager,
-)
 from isaaclab.envs.common import VecEnvStepReturn
 from isaaclab.envs.manager_based_rl_env import ManagerBasedRLEnv
+from isaaclab.managers import (
+    ActionManager,
+    CommandManager,
+    CurriculumManager,
+    EventManager,
+    RecorderManager,
+    RewardManager,
+    TerminationManager,
+)
 
 from biped_tasks.utils.cat.constraint_manager import ConstraintManager
 from biped_tasks.utils.history.observation_manager import ObservationManager

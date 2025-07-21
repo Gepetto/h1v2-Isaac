@@ -1,8 +1,9 @@
+import numpy as np
+import yaml
 from pathlib import Path
 
 import mujoco
-import numpy as np
-import yaml
+
 from biped_assets import SCENE_PATHS
 from biped_deploy.simulator.sim_mujoco import MujocoSim
 

@@ -1,8 +1,8 @@
 import json
+import numpy as np
 from dataclasses import asdict, dataclass
 
 import mujoco
-import numpy as np
 
 
 # Save safety checker data

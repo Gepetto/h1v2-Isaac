@@ -5,8 +5,9 @@
 
 import gymnasium as gym
 
-from . import agents
 from biped_tasks.utils.cat.cat_env import CaTEnv
+
+from . import agents
 
 ##
 # Register Gym environments.

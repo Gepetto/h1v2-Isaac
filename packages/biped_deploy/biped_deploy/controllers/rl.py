@@ -1,10 +1,10 @@
+import numpy as np
+import torch
+import yaml
 from collections import deque
 from pathlib import Path
 
-import numpy as np
 import onnxruntime as ort
-import torch
-import yaml
 
 from biped_deploy.utils.rl_logger import RLLogger
 

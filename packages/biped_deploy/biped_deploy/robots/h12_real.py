@@ -1,9 +1,8 @@
+import numpy as np
 import time
+import yaml
 from pathlib import Path
 
-import numpy as np
-import yaml
-from biped_assets import SCENE_PATHS
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,
     ChannelPublisher,
@@ -17,10 +16,11 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
-from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
-
+from biped_assets import SCENE_PATHS
 from biped_deploy.utils.remote_controller import KeyMap, RemoteController
 from biped_deploy.utils.rotation import transform_imu_data
+
+from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
 
 
 class ConfigError(Exception): ...

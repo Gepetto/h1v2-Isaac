@@ -13,6 +13,7 @@ from prettytable import PrettyTable
 from typing import TYPE_CHECKING
 
 from isaaclab.managers.manager_base import ManagerBase, ManagerTermBase
+
 from .manager_constraint_cfg import ConstraintTermCfg
 
 if TYPE_CHECKING:

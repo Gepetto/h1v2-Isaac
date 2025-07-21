@@ -14,12 +14,11 @@ from collections.abc import Sequence
 from prettytable import PrettyTable
 from typing import TYPE_CHECKING
 
-from isaaclab.utils import modifiers
-from biped_tasks.utils.history.circular_buffer import CircularBuffer
-
 from isaaclab.managers.manager_base import ManagerBase, ManagerTermBase
+from isaaclab.utils import modifiers
 from isaaclab.utils.noise import NoiseModelCfg
 
+from biped_tasks.utils.history.circular_buffer import CircularBuffer
 from biped_tasks.utils.history.manager_term_cfg import ObservationGroupCfg, ObservationTermCfg
 
 if TYPE_CHECKING:
