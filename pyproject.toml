@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "biped-tasks",
+    "biped-deploy",
 ]
 
 [tool.uv.workspace]
@@ -20,3 +21,4 @@ members = [
 
 [tool.uv.sources]
 biped-tasks = { workspace = true }
+biped-deploy = { workspace = true }
