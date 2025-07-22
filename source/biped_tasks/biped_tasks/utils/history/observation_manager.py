@@ -241,7 +241,7 @@ class ObservationManager(ManagerBase):
         # nothing to log here
         return {}
 
-    def compute(self) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+    def compute(self, update_history=False) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
         """Compute the observations per group for all groups.
 
         The method computes the observations for all the groups handled by the observation manager.
