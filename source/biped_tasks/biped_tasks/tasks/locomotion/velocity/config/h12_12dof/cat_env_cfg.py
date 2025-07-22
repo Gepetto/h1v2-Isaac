@@ -41,7 +41,7 @@ from biped_tasks.utils.mdp.terrains import ROUGH_TERRAINS_CFG  # isort: skip
 
 
 MAX_CURRICULUM_ITERATIONS = 5000
-VELOCITY_DEADZONE = 0.0
+VELOCITY_DEADZONE = 0.2
 
 
 # ========================================================
@@ -212,6 +212,16 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
+    add_base_mass = EventTerm(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot",body_names=".*torso_link"),
+            "mass_distribution_params": (0.0, 6.0),
+            "operation": "add",
+            "recompute_inertia": False
+        },
+    )
 
     # reset
     base_external_force_torque = EventTerm(
@@ -319,15 +329,24 @@ class ConstraintsCfg:
         func=constraints.foot_contact_force,
         max_p=0.25,
         params={
-            "limit": 800.0, 
+            "limit": 750.0, 
             "asset_cfg": SceneEntityCfg("contact_forces", body_names=[".*_ankle_roll_link"])},
     )
     
     # Style constraints
+    no_move = ConstraintTerm(
+        func=constraints.no_move,
+        max_p=0.25,
+        params={
+            "velocity_deadzone": VELOCITY_DEADZONE,
+            "joint_vel_limit": 6.0,
+            "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"])
+        },
+    )
     base_orientation = ConstraintTerm(
         func=constraints.base_orientation, 
         max_p=0.25, 
-        params={"limit": 0.2,
+        params={"limit": 0.1,
             "asset_cfg": SceneEntityCfg("robot")
                 }
     )
@@ -422,6 +441,14 @@ class CurriculumCfg:
     )
     
     # Style constraints
+    no_move = CurrTerm(
+        func=curriculums.modify_constraint_p,
+        params={
+            "term_name": "no_move",
+            "num_steps": 24 * MAX_CURRICULUM_ITERATIONS,
+            "init_max_p": 0.25,
+        },
+    )
     base_orientation = CurrTerm(
         func=curriculums.modify_constraint_p,
         params={

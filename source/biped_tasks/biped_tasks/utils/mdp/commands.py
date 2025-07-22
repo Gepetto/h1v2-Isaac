@@ -56,26 +56,31 @@ class UniformVelocityCommandWithDeadzone(mdp.UniformVelocityCommand):
                 max=self.cfg.ranges.ang_vel_z[1],
             )
 
-        # set small commands to zero
-        self.vel_command_b *= (
-            torch.any(
-                torch.abs(self.vel_command_b[:, :3]) > self.velocity_deadzone, dim=1
-            )
-        ).unsqueeze(1)
-
-        # Random velocity command resampling
-        no_vel_command = (
-            torch.norm(self.vel_command_b[:, :3], dim=1) < self.velocity_deadzone
-        ).float()
-        p_resample_command = 0.01 * no_vel_command + (
-            self.dt / self.max_episode_length_s
-        ) * (1 - no_vel_command)
-        resample_command_idx = (
-            torch.bernoulli(p_resample_command).nonzero(as_tuple=False).flatten()
-        )
-        if len(resample_command_idx) > 0:
-            self._resample(resample_command_idx)
-
+        # Identify which envs are in deadzone
+        in_deadzone = torch.norm(self.vel_command_b[:, :2], dim=1) < self.velocity_deadzone
+        num_envs = self.vel_command_b.shape[0]
+        
+        # Calculate how many envs we want in deadzone (half of total)
+        target_deadzone_count = num_envs // 2
+        
+        # Get current counts
+        current_deadzone_count = in_deadzone.sum().item()
+        current_active_count = num_envs - current_deadzone_count
+        
+        if current_deadzone_count < target_deadzone_count:
+            # Need to move some active envs to deadzone
+            num_to_deactivate = target_deadzone_count - current_deadzone_count
+            active_envs = (~in_deadzone).nonzero(as_tuple=False).flatten()
+            deactivate_envs = active_envs[torch.randperm(len(active_envs))[:num_to_deactivate]]
+            self.vel_command_b[deactivate_envs, :2] = 0.0
+            
+        elif current_deadzone_count > target_deadzone_count:
+            # Need to activate some deadzone envs
+            num_to_activate = current_deadzone_count - target_deadzone_count
+            deadzone_envs = in_deadzone.nonzero(as_tuple=False).flatten()
+            activate_envs = deadzone_envs[torch.randperm(len(deadzone_envs))[:num_to_activate]]
+            self._resample(activate_envs)
+        
         # Random angular velocity inversion during the episode to avoid having the robot moving in circle
         p_ang_vel = (
             self.dt / self.max_episode_length_s
