@@ -11,6 +11,7 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    parser.add_argument("config_path", nargs="?", type=Path, default=None, help="Path to config file")
     parser.add_argument("-o", "--output", type=str, default=None)
     return parser.parse_args()
 
@@ -87,11 +88,11 @@ def load_state_log(path):
 
 
 if __name__ == "__main__":
-    config_path = Path(__file__).parent / "config" / "config.yaml"
+    args = parse_args()
+    config_path = args.config_path or Path(__file__).parent / "config.yaml"
     with config_path.open() as file:
         config = yaml.safe_load(file)
 
-    args = parse_args()
     logger = Logger(args.output, config["real"])
     print("Logging commands and states")
     try:
