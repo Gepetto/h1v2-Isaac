@@ -394,7 +394,7 @@ class ObservationManager(ManagerBase):
             self._group_obs_term_dim[group_name] = []
             self._group_obs_term_cfgs[group_name] = []
             self._group_obs_class_term_cfgs[group_name] = []
-            group_entry_history_buffer: dict[str, CircularBuffer] = []
+            group_entry_history_buffer: dict[str, CircularBuffer] = {}
             # read common config for the group
             self._group_obs_concatenate[group_name] = group_cfg.concatenate_terms
             # check if config is dict already
