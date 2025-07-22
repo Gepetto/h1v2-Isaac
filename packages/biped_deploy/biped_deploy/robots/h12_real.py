@@ -228,8 +228,8 @@ class H12Real:
         # t_pose = np.array([motor.q for motor in self.low_state.motor_state])
         t_pose = np.array([self.low_state.motor_state[i].q for i in range(27)])
         t_pose[leg_joint_idx] = self.default_joint_pos[leg_joint_idx]
-        t_pose[self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll")] = 0.6
-        t_pose[self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll")] = -0.6
+        t_pose[self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint")] = 0.6
+        t_pose[self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint")] = -0.6
         self.move_to_pos(range(27), t_pose, 2)
 
         # Then set up the default position
