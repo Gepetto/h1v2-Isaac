@@ -171,7 +171,8 @@ H12_12DOF_IDEAL = ArticulationCfg(
                 ".*_hip_roll_joint": 2.5,
                 ".*_hip_pitch_joint": 2.5,
             },
-            armature=0.1,
+            armature=0.01,
+            friction=0.0,
         ),
         "knees": IdealPDActuatorCfg(
             joint_names_expr=[".*_knee_joint"],
@@ -183,7 +184,8 @@ H12_12DOF_IDEAL = ArticulationCfg(
             damping={
                 ".*_knee_joint": 4.0,
             },
-            armature=0.1,
+            armature=0.01,
+            friction=0.0,
         ),
         "feet": IdealPDActuatorCfg(
             joint_names_expr=[".*_ankle_pitch_joint", ".*_ankle_roll_joint"],
@@ -197,7 +199,8 @@ H12_12DOF_IDEAL = ArticulationCfg(
                 ".*_ankle_pitch_joint": 2.0,
                 ".*_ankle_roll_joint": 2.0,
             },
-            armature=0.1,
+            armature=0.01,
+            friction=0.0,
         ),
     },
 )

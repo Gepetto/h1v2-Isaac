@@ -39,7 +39,7 @@ python $WORK/v1.0/h1v2-Isaac/scripts/rsl_rl/train.py \
     --task=Isaac-Velocity-Rsl-H12_12dof-v0 \
     --headless \
     --num_envs=8192 \
-    #--max_iterations=5000 \
+    --max_iterations=5000 \
     #agent.experiment_name="${EXPERIMENT_NAME}" \
     #${CONFIG}
 
