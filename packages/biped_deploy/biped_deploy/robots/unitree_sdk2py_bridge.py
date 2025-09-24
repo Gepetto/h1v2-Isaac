@@ -19,7 +19,6 @@ class UnitreeSdk2Bridge:
         self.simulator = MujocoSim(scene_path, config)
 
         self.num_motor = len(config["joints"])
-        self.torques = [0.0] * self.num_motor
 
         # Unitree sdk2 message
         self.low_state = LowState_default()
@@ -30,11 +29,12 @@ class UnitreeSdk2Bridge:
         self.low_cmd_suber = ChannelSubscriber(TOPIC_LOWCMD, LowCmd_)
         self.low_cmd_suber.Init(self.low_cmd_handler, 10)
 
-        self.torques_lock = threading.Lock()
+        self.motor_cmd_lock = threading.Lock()
+        self.motor_cmd = None
+
         self.close_event = threading.Event()
         self.sim_thread = threading.Thread(target=self.run_sim, args=(self.close_event,))
 
-        self.state_lock = threading.Lock()
         self.state_thread = RecurrentThread(interval=config["control_dt"] / 5, target=self.publish_low_state)
 
         self.sim_thread.start()
@@ -44,37 +44,46 @@ class UnitreeSdk2Bridge:
         return self.simulator.get_controller_command()
 
     def low_cmd_handler(self, msg: LowCmd_):
-        state = self.simulator.get_robot_sim_state()
-        qpos = state["qpos"]
-        qvel = state["qvel"]
-
-        with self.torques_lock:
-            for i in range(self.num_motor):
-                motor = msg.motor_cmd[i]
-                self.torques[i] = motor.tau + motor.kp * (motor.q - qpos[i]) + motor.kd * (motor.dq - qvel[i])
+        with self.motor_cmd_lock:
+            self.motor_cmd = msg.motor_cmd
 
     def publish_low_state(self):
         state = self.simulator.get_robot_sim_state()
         qpos = state["qpos"]
         qvel = state["qvel"]
 
-        with self.state_lock:
-            for i in range(self.num_motor):
-                motor_state = self.low_state.motor_state[i]
-                motor_state.q = qpos[i]
-                motor_state.dq = qvel[i]
-                motor_state.tau_est = 0.0
+        for i in range(self.num_motor):
+            motor_state = self.low_state.motor_state[i]
+            motor_state.q = qpos[i]
+            motor_state.dq = qvel[i]
+            motor_state.tau_est = 0.0
 
-            self.low_state.imu_state.quaternion = state["base_orientation"]
-            self.low_state.imu_state.gyroscope = state["base_angular_vel"]
+        self.low_state.imu_state.quaternion = state["base_orientation"]
+        self.low_state.imu_state.gyroscope = state["base_angular_vel"]
 
-            self.low_state_puber.Write(self.low_state)
+        self.low_state_puber.Write(self.low_state)
+
+    def pd_control(self):
+        state = self.simulator.get_robot_sim_state()
+        qpos = state["qpos"]
+        qvel = state["qvel"]
+
+        torques = [0.0] * self.num_motor
+        if self.motor_cmd is None:
+            return torques
+
+        with self.motor_cmd_lock:
+            motor_cmd = self.motor_cmd.copy()
+
+        for i in range(self.num_motor):
+            motor = motor_cmd[i]
+            torques[i] = motor.tau + motor.kp * (motor.q - qpos[i]) + motor.kd * (motor.dq - qvel[i])
+
+        return torques
 
     def run_sim(self, close_event):
         while not close_event.is_set():
-            with self.torques_lock:
-                torques = self.torques.copy()
-
+            torques = self.pd_control()
             self.simulator.sim_step(torques)
 
     def close(self, log_dir=None):
