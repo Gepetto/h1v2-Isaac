@@ -61,6 +61,7 @@ class H12Real:
         ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
         self.control_dt = config["control_dt"]
+        self.step_time = time.perf_counter()
 
         joints = config["joints"]
         config_joint_names = [joint["name"] for joint in joints]
@@ -264,7 +265,11 @@ class H12Real:
             self.joint_kd[self.enabled_joint_idx],
         )
         self.send_cmd(self.low_cmd)
-        time.sleep(self.control_dt)
+
+        time_to_wait = self.control_dt - (time.perf_counter() - self.step_time)
+        if time_to_wait > 0:
+            time.sleep(time_to_wait)
+        self.step_time = time.perf_counter()
 
     def wait_for_button(self, button):
         button_name = next(k for k, v in KeyMap.__dict__.items() if v == button)
