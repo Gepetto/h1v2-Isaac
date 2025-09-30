@@ -50,6 +50,8 @@ uv run scripts/deploy/sim2real.py
 ```
 This command can be used to deploy the trained policy onto a real robot.
 
+Note: in order to avoid installing `isaacsim` for deployment, add `--package biped_deploy` to the uv command.
+
 ## License
 
 This project is licensed under the BSD 2-Clause License - see the [LICENSE](LICENSE) file for details.
