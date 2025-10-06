@@ -1,9 +1,9 @@
+import numpy as np
 import sys
+import yaml
 from pathlib import Path
 
 import mujoco
-import numpy as np
-import yaml
 from biped_assets import SCENE_PATHS
 
 sys.path.append("../")

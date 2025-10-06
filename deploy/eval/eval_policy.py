@@ -55,7 +55,7 @@ def extract_rate(data, rate_name):
 
 
 def extract_data(json_file):
-    with open(json_file, "r") as file:
+    with open(json_file) as file:
         data = json.load(file)[1:]  # First entry contains the limits
 
         max_force, avg_force = extract_contact_force(data)
@@ -75,7 +75,7 @@ def extract_data(json_file):
 
 
 def check_position_limits(safety_file_path):
-    with open(safety_file_path, "r") as file:
+    with open(safety_file_path) as file:
         safety_data = json.load(file)
 
     violation_counts = {}

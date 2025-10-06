@@ -1,7 +1,7 @@
 import time
+import yaml
 from pathlib import Path
 
-import yaml
 from biped_assets import SCENE_PATHS
 from controllers.rl import RLPolicy
 from robots.h12_mujoco import H12Mujoco

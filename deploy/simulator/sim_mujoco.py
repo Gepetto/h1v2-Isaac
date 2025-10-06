@@ -1,10 +1,10 @@
+import numpy as np
 import sys
 import threading
 import time
 
 import mujoco
 import mujoco.viewer
-import numpy as np
 
 sys.path.append("../")
 from utils.mj_logger import MJLogger
@@ -29,6 +29,7 @@ class ElasticBand:
         direction = dx / distance
         v = np.dot(v, direction)
         return (self.stiffness * (distance - self.length) - self.damping * v) * direction
+
 
 class MujocoSim:
     def __init__(self, scene_path, config):

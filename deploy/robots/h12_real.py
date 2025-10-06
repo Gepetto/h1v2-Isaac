@@ -1,9 +1,9 @@
+import numpy as np
 import sys
 import time
+import yaml
 from pathlib import Path
 
-import numpy as np
-import yaml
 from biped_assets import SCENE_PATHS
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,

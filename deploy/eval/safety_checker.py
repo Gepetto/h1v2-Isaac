@@ -1,7 +1,8 @@
 import json
+import numpy as np
 from dataclasses import asdict, dataclass, field
 from typing import Any
-import numpy as np
+
 
 # Save safety checker data
 def _json_serializer(obj):
@@ -10,6 +11,7 @@ def _json_serializer(obj):
         return obj.tolist()
     err_msg = f"Object of type {type(obj)} is not JSON serializable"
     raise TypeError(err_msg)
+
 
 @dataclass
 class SafetyViolation:
@@ -20,13 +22,14 @@ class SafetyViolation:
     limit: float
     additional_info: dict[str, Any] = field(default_factory=dict)
 
+
 class SafetyChecker:
     def __init__(self):
         self.safety_violations: list[SafetyViolation] = []
 
     def check_safety(self, json_file):
         # Load data from file
-        with open(json_file, "r") as file:
+        with open(json_file) as file:
             data = json.load(file)
 
             self._extract_limits(data)

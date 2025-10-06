@@ -1,8 +1,8 @@
 import json
+import numpy as np
 from dataclasses import asdict, dataclass
 
 import mujoco
-import numpy as np
 
 
 # Save safety checker data
@@ -38,7 +38,6 @@ class Limits:
     joint_pos_limits: dict[str, float]
 
     total_mass_force: float
-
 
 
 class MJLogger:

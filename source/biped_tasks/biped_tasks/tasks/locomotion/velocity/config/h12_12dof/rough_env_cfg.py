@@ -27,9 +27,7 @@ class H12_12dof_Rewards(RewardsCfg):
         params={"command_name": "base_velocity", "std": 0.5},
     )
     track_ang_vel_z_exp = RewTerm(
-        func=mdp.track_ang_vel_z_world_exp,
-        weight=1.0,
-        params={"command_name": "base_velocity", "std": 0.5}
+        func=mdp.track_ang_vel_z_world_exp, weight=1.0, params={"command_name": "base_velocity", "std": 0.5}
     )
     feet_air_time = RewTerm(
         func=mdp.feet_air_time_positive_biped,
@@ -52,7 +50,7 @@ class H12_12dof_Rewards(RewardsCfg):
     dof_pos_limits = RewTerm(
         func=mdp.joint_pos_limits,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint", ".*_ankle_pitch_joint"])}
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=[".*_ankle_roll_joint", ".*_ankle_pitch_joint"])},
     )
     # Penalize deviation from default of the joints that are not essential for locomotion
     joint_deviation_hip = RewTerm(
@@ -122,6 +120,7 @@ class H12_12dof_RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.commands.base_velocity.ranges.lin_vel_x = (0.0, 1.0)
         self.commands.base_velocity.ranges.lin_vel_y = (0.0, 0.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
+
 
 @configclass
 class H12_12dof_RoughEnvCfg_PLAY(H12_12dof_RoughEnvCfg):

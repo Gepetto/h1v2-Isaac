@@ -11,17 +11,17 @@ import numpy as np
 import torch
 from collections.abc import Sequence
 
-from isaaclab.managers import (
-    CommandManager,
-    CurriculumManager,
-    RewardManager,
-    TerminationManager,
-    ActionManager, 
-    EventManager,
-    RecorderManager
-)
 from isaaclab.envs.common import VecEnvStepReturn
 from isaaclab.envs.manager_based_rl_env import ManagerBasedRLEnv
+from isaaclab.managers import (
+    ActionManager,
+    CommandManager,
+    CurriculumManager,
+    EventManager,
+    RecorderManager,
+    RewardManager,
+    TerminationManager,
+)
 
 from biped_tasks.utils.cat.constraint_manager import ConstraintManager
 from biped_tasks.utils.history.observation_manager import ObservationManager
@@ -73,21 +73,19 @@ class CaTEnv(ManagerBasedRLEnv):
         if hasattr(self.cfg, "constraints"):
             self.constraint_manager = ConstraintManager(self.cfg.constraints, self)
             print("[INFO] Constraint Manager: ", self.constraint_manager)
-        
-        
+
         # setup the action and observation spaces for Gym
         self._configure_gym_env_spaces()
-        
+
         # perform events at the start of the simulation
         # in-case a child implementation creates other managers, the randomization should happen
         # when all the other managers are created
         if "startup" in self.event_manager.available_modes:
             self.event_manager.apply(mode="startup")
 
-
         # setup the action and observation spaces for Gym
         self._configure_gym_env_spaces()
-        
+
         # perform events at the start of the simulation
         # in-case a child implementation creates other managers, the randomization should happen
         # when all the other managers are created
@@ -134,10 +132,7 @@ class CaTEnv(ManagerBasedRLEnv):
             # render between steps only if the GUI or an RTX sensor needs it
             # note: we assume the render interval to be the shortest accepted rendering interval.
             #    If a camera needs rendering at a faster frequency, this will lead to unexpected behavior.
-            if (
-                self._sim_step_counter % self.cfg.sim.render_interval == 0
-                and is_rendering
-            ):
+            if self._sim_step_counter % self.cfg.sim.render_interval == 0 and is_rendering:
                 self.sim.render()
             # update buffers at sim dt
             self.scene.update(dt=self.physics_dt)
@@ -210,9 +205,7 @@ class CaTEnv(ManagerBasedRLEnv):
         # apply events such as randomizations for environments that need a reset
         if "reset" in self.event_manager.available_modes:
             env_step_count = self._sim_step_counter // self.cfg.decimation
-            self.event_manager.apply(
-                mode="reset", env_ids=env_ids, global_env_step_count=env_step_count
-            )
+            self.event_manager.apply(mode="reset", env_ids=env_ids, global_env_step_count=env_step_count)
 
         # iterate over all managers and reset them
         # this returns a dictionary of information which is stored in the extras
@@ -249,7 +242,7 @@ class CaTEnv(ManagerBasedRLEnv):
 
         # reset the episode length buffer
         self.episode_length_buf[env_ids] = 0
-    
+
     def _configure_gym_env_spaces(self):
         """Configure the action and observation spaces for the Gym environment."""
         # observation space (unbounded since we don't impose any limits)
@@ -263,10 +256,12 @@ class CaTEnv(ManagerBasedRLEnv):
             if has_concatenated_obs:
                 self.single_observation_space[group_name] = gym.spaces.Box(low=-np.inf, high=np.inf, shape=group_dim)
             else:
-                self.single_observation_space[group_name] = gym.spaces.Dict({
-                    term_name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=term_dim)
-                    for term_name, term_dim in zip(group_term_names, group_dim)
-                })
+                self.single_observation_space[group_name] = gym.spaces.Dict(
+                    {
+                        term_name: gym.spaces.Box(low=-np.inf, high=np.inf, shape=term_dim)
+                        for term_name, term_dim in zip(group_term_names, group_dim)
+                    }
+                )
         # action space (unbounded since we don't impose any limits)
         action_dim = sum(self.action_manager.action_term_dim)
         self.single_action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(action_dim,))

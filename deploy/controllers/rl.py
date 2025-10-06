@@ -1,11 +1,11 @@
+import numpy as np
 import sys
+import torch
+import yaml
 from collections import deque
 from pathlib import Path
 
-import numpy as np
 import onnxruntime as ort
-import torch
-import yaml
 
 sys.path.append("../")
 from utils.rl_logger import RLLogger
@@ -22,15 +22,17 @@ class InferenceHandlerONNX:
 
         return actions.flatten()
 
+
 class InferenceHandlerTorch:
     def __init__(self, policy_path):
-        self.policy = torch.jit.load(policy_path).to('cpu')
+        self.policy = torch.jit.load(policy_path).to("cpu")
 
     def __call__(self, observations):
         obs_tensor = torch.from_numpy(observations).unsqueeze(0)
         actions = self.policy(obs_tensor).detach().numpy().squeeze()
 
         return actions
+
 
 class ObservationHandler:
     def __init__(
@@ -132,10 +134,8 @@ class ActionHandler:
 
 
 class RLPolicy:
-    def __init__(self, policy_path, config, log_data = False):
-        default_joint_pos = np.array(
-            [x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()]
-        )
+    def __init__(self, policy_path, config, log_data=False):
+        default_joint_pos = np.array([x for x in config["scene"]["robot"]["init_state"]["joint_pos"].values()])
         history_length = config["observations"]["policy"]["history_length"]
         action_scale = config["actions"]["joint_pos"]["scale"]
         commands_ranges = {k: v for k, v in config["commands"]["base_velocity"]["ranges"].items() if v is not None}
@@ -159,12 +159,14 @@ class RLPolicy:
         if self.log_data:
             self.logger = RLLogger()
 
-        if policy_path.endswith('.pt'):
+        if policy_path.endswith(".pt"):
             self.policy = InferenceHandlerTorch(policy_path=policy_path)
-        elif policy_path.endswith('.onnx'):
+        elif policy_path.endswith(".onnx"):
             self.policy = InferenceHandlerONNX(policy_path=policy_path)
         else:
-            raise ValueError(f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported.")
+            raise ValueError(
+                f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported."
+            )
         self.observation_handler = ObservationHandler(
             observations_func,
             observations_scale,
@@ -181,7 +183,7 @@ class RLPolicy:
         self.actions = self.policy(observations)
 
         if self.log_data:
-            self.logger.record_metrics(observations = observations,actions= self.actions)
+            self.logger.record_metrics(observations=observations, actions=self.actions)
 
         return self.action_handler.get_scaled_action(self.actions)
 

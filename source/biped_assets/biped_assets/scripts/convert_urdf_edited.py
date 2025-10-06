@@ -91,7 +91,7 @@ def main():
         joint_drive=UrdfConverterCfg.JointDriveCfg(
             drive_type="force",
             target_type="position",
-            gains=UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0.0, damping=0.0)
+            gains=UrdfConverterCfg.JointDriveCfg.PDGainsCfg(stiffness=0.0, damping=0.0),
         ),
     )
 
