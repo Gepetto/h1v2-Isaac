@@ -147,7 +147,7 @@ H12_12DOF_IDEAL = ArticulationCfg(
             "right_hip_roll_joint": 0.0,
             "right_knee_joint": 0.36,
             "right_ankle_pitch_joint": -0.2,
-            "right_ankle_roll_joint": 0.0
+            "right_ankle_roll_joint": 0.0,
         },
         joint_vel={".*": 0.0},
     ),
