@@ -58,6 +58,22 @@ This project is licensed under the BSD 2-Clause License - see the [LICENSE](LICE
 
 ## Contributors
 
-- [Valentin Guillet](https://github.com/Valentin-Guillet)
-- [Côme Perrot](https://github.com/ComePerrot)
-- [Constant Roux](https://github.com/ConstantRoux)
+- [Valentin Guillet](https://github.com/Valentin-Guillet): Core developer
+- [Côme Perrot](https://github.com/ComePerrot): Core developer
+- [Constant Roux](https://github.com/ConstantRoux): Core developer
+- [Victor Lutz](https://github.com/vicltz): Robot model integration
+- [Alessandro Trovatello](https://github.com/alessandrotrovatello): RSL-RL training implementation
+- [Olivier Stasse](https://github.com/olivier-stasse): Project supervisor
+
+## Citation
+
+To cite this work in a publication:
+
+```
+@misc{h1v2Isaac2025,
+  author = {Valentin Guillet and Côme Perrot and Constant Roux and Olivier Stasse},
+  title = {h1v2-Isaac: Reinforcement Learning Framework for Unitree H1-2 Robot},
+  year = {2025},
+  howpublished = {\url{https://github.com/Gepetto/h1v2-Isaac}},
+}
+```
