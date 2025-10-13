@@ -126,7 +126,7 @@ class H12Real:
     def set_motor_commands(self, motor_indices, positions, kps, kds):
         for i, motor_idx in enumerate(motor_indices):
             self.low_cmd.motor_cmd[motor_idx].q = positions[i]
-            self.low_cmd.motor_cmd[motor_idx].qd = 0
+            self.low_cmd.motor_cmd[motor_idx].dq = 0
             self.low_cmd.motor_cmd[motor_idx].kp = kps[i]
             self.low_cmd.motor_cmd[motor_idx].kd = kds[i]
             self.low_cmd.motor_cmd[motor_idx].tau = 0
