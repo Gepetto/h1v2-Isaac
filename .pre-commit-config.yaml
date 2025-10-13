@@ -1,12 +1,12 @@
 repos:
 - repo: https://github.com/asottile/pyupgrade
-  rev: v3.20.0
+  rev: v3.21.0
   hooks:
   - id: pyupgrade
     args:
     - --py37-plus
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.12.4
+  rev: v0.14.0
   hooks:
   - id: ruff
     args:
@@ -19,12 +19,12 @@ repos:
   hooks:
   - id: pre-commit-sort
 - repo: https://github.com/pappasam/toml-sort
-  rev: v0.24.2
+  rev: v0.24.3
   hooks:
   - id: toml-sort-fix
     exclude: uv.lock
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v5.0.0
+  rev: v6.0.0
   hooks:
   - id: check-added-large-files
   - id: check-ast
