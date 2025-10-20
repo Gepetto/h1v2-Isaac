@@ -8,6 +8,9 @@ import mujoco.viewer
 from biped_deploy.utils.mj_logger import MJLogger
 
 
+class ConfigError(Exception): ...
+
+
 class ElasticBand:
     def __init__(self):
         self.stiffness = 200
@@ -55,12 +58,27 @@ class MujocoSim:
 
         self.reset()
 
-        self.ctrl_idx = []
-        for jnt_id in range(1, self.model.njnt):  # skip joint 0 'floating_base_joint'
-            joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id)
-            actuator_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, joint_name)
-            assert actuator_id != -1, f"Joint {joint_name} is not an actuator!"
-            self.ctrl_idx.append(actuator_id)
+        if self.model.nu != self.model.njnt - 1:
+            err_msg = "Not all joints are actuated"
+            raise ConfigError(err_msg)
+
+        self.ctrl_idx = [None] * self.model.nu
+        for act_id in range(self.model.nu):
+            if self.model.actuator_trntype[act_id] != mujoco.mjtTrn.mjTRN_JOINT:
+                act_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, act_id)
+                err_msg = f'Actuator "{act_name}" is not of transmission type JOINT'
+                raise ConfigError(err_msg)
+
+            jnt_id = self.model.actuator_trnid[act_id, 0]
+            if self.ctrl_idx[jnt_id - 1] is not None:
+                joint_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, jnt_id)
+                act_name_1 = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, self.ctrl_idx[jnt_id - 1])
+                act_name_2 = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_ACTUATOR, act_id)
+                err_msg = (
+                    f'The "{act_name_1}" and "{act_name_2}" actuators are controlling the same joint ("{joint_name}")'
+                )
+                raise ConfigError(err_msg)
+            self.ctrl_idx[jnt_id - 1] = act_id
 
         self.enable_keyboard = mj_config["enable_keyboard"]
         self.keyboard_lock = threading.Lock()
