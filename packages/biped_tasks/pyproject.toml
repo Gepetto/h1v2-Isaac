@@ -9,7 +9,7 @@ dependencies = [
 ]
 description = "Add your description here"
 name = "biped-tasks"
-requires-python = ">=3.10"
+requires-python = "==3.10.*"
 version = "0.1.0"
 
 [tool.uv.build-backend]

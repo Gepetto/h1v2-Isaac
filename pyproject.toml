@@ -4,7 +4,7 @@ dependencies = ["biped-deploy", "biped-tasks"]
 description = "Reinforcement Learning pipeline for the h1v2"
 name = "h1v2-isaac"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = "==3.10.*"
 version = "0.1.0"
 
 [tool.pyright]
