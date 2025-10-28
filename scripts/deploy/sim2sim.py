@@ -3,9 +3,9 @@ import time
 import yaml
 from pathlib import Path
 
-from biped_assets import SCENE_PATHS
-from biped_deploy.controllers.rl import RLPolicy
-from biped_deploy.robots.h12_mujoco import H12Mujoco
+from robot_assets import SCENE_PATHS
+from robot_deploy.controllers.rl import RLPolicy
+from robot_deploy.robots.h12_mujoco import H12Mujoco
 
 
 def parse_args():

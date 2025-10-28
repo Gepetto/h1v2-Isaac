@@ -48,7 +48,7 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, expor
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 # Import extensions to set up environment tasks
-import biped_tasks.tasks  # noqa: F401
+import robot_tasks.tasks  # noqa: F401
 
 
 def main():

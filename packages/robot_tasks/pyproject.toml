@@ -1,0 +1,19 @@
+[build-system]
+build-backend = "uv_build"
+requires = ["uv_build"]
+
+[project]
+dependencies = [
+  "robot-assets",
+  "isaaclab[all,isaacsim]==2.1.0"
+]
+description = "Add your description here"
+name = "robot-tasks"
+requires-python = "==3.10.*"
+version = "0.1.0"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.uv.sources]
+robot-assets = {workspace = true}

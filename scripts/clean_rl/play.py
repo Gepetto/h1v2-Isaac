@@ -65,8 +65,8 @@ from isaaclab.utils.dict import print_dict
 from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg
 
 # Import extensions to set up environment tasks
-import biped_tasks.tasks  # noqa: F401
-from biped_tasks.utils.cleanrl.ppo import Agent
+import robot_tasks.tasks  # noqa: F401
+from robot_tasks.utils.cleanrl.ppo import Agent
 
 
 def main():

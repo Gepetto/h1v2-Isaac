@@ -22,11 +22,11 @@ The sim2sim validation is done with [Mujoco](https://github.com/google-deepmind/
 The sim2real deployment pipe depends on [unitree_sdk2_python](https://github.com/unitreerobotics/unitree_sdk2_python).
 
 The project is structured around three main packages:
-- **biped_assets**: Manages the models of the robot
-- **biped_deploy**: Handles deployment-related functionalities (sim2sim and sim2real).
-- **biped_tasks**: Contains the core definition of the training environment for the robot.
+- **robot_assets**: Manages the models of the robot
+- **robot_deploy**: Handles deployment-related functionalities (sim2sim and sim2real).
+- **robot_tasks**: Contains the core definition of the training environment for the robot.
 
-Both `biped_deploy` and `biped_assets` are adapted from the template provided for [Isaac Lab Projects](https://github.com/isaac-sim/IsaacLabExtensionTemplate) to facilitate integration.
+Both `robot_deploy` and `robot_assets` are adapted from the template provided for [Isaac Lab Projects](https://github.com/isaac-sim/IsaacLabExtensionTemplate) to facilitate integration.
 
 ## Usage
 
@@ -50,7 +50,7 @@ uv run scripts/deploy/sim2real.py
 ```
 This command can be used to deploy the trained policy onto a real robot.
 
-Note: in order to avoid installing `isaacsim` for deployment, add `--package biped_deploy` to the uv command.
+Note: in order to avoid installing `isaacsim` for deployment, add `--package robot_deploy` to the uv command.
 
 ## License
 

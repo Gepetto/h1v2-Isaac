@@ -20,7 +20,7 @@ import gymnasium as gym
 from prettytable import PrettyTable
 
 # Import extensions to set up environment tasks
-import biped_tasks.tasks  # noqa: F401
+import robot_tasks.tasks  # noqa: F401
 
 
 def main():

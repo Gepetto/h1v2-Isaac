@@ -1,6 +1,6 @@
 [project]
 authors = [{email = "cperrot@laas.fr", name = "Côme Perrot"}]
-dependencies = ["biped-deploy", "biped-tasks"]
+dependencies = ["robot-deploy", "robot-tasks"]
 description = "Reinforcement Learning pipeline for the h1v2"
 name = "h1v2-isaac"
 readme = "README.md"
@@ -67,9 +67,9 @@ extra-standard-library = [
   "yaml"
 ]
 known-first-party = [
-  "biped_assets",
-  "biped_deploy",
-  "biped_tasks"
+  "robot_assets",
+  "robot_deploy",
+  "robot_tasks"
 ]
 known-third-party = [
   "Semantics",
@@ -106,12 +106,12 @@ all = true
 overrides."tool.ruff.lint.isort.section-order".inline_arrays = false
 
 [tool.uv.sources]
-biped-deploy = {workspace = true}
-biped-tasks = {workspace = true}
+robot-deploy = {workspace = true}
+robot-tasks = {workspace = true}
 
 [tool.uv.workspace]
 members = [
-  "packages/biped_assets",
-  "packages/biped_deploy",
-  "packages/biped_tasks"
+  "packages/robot_assets",
+  "packages/robot_deploy",
+  "packages/robot_tasks"
 ]
