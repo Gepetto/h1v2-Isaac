@@ -1,10 +1,7 @@
 import numpy as np
-import yaml
-from pathlib import Path
 
 import mujoco
 
-from robot_assets import SCENE_PATHS
 from robot_deploy.simulator.sim_mujoco import MujocoSim
 
 
@@ -65,16 +62,3 @@ class H12Mujoco(MujocoSim):
         q_err = q_ref - state["qpos"]
         q_err_dot = np.zeros_like(q_ref) - state["qvel"]
         return self.joint_kp * q_err + self.joint_kd * q_err_dot
-
-
-if __name__ == "__main__":
-    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
-    with config_path.open() as file:
-        config = yaml.safe_load(file)
-
-    scene_path = SCENE_PATHS["h12"]["27dof"]
-    sim = H12Mujoco(scene_path, config)
-
-    state = sim.get_robot_state()
-    while True:
-        sim.step(state["qpos"])

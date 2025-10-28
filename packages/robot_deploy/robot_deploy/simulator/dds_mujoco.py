@@ -11,7 +11,7 @@ TOPIC_LOWCMD = "rt/lowcmd"
 TOPIC_LOWSTATE = "rt/lowstate"
 
 
-class UnitreeSdk2Bridge:
+class DDSToMujoco:
     def __init__(self, config):
         scene_path = config["mujoco"]["scene_path"]
         config["mujoco"]["real_time"] = True

@@ -1,7 +1,5 @@
 import numpy as np
 import time
-import yaml
-from pathlib import Path
 
 from unitree_sdk2py.core.channel import (
     ChannelFactoryInitialize,
@@ -16,11 +14,9 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
-from robot_assets import SCENE_PATHS
+from robot_deploy.simulator.dds_mujoco import DDSToMujoco
 from robot_deploy.utils.remote_controller import KeyMap, RemoteController
 from robot_deploy.utils.rotation import transform_imu_data
-
-from .unitree_sdk2py_bridge import UnitreeSdk2Bridge
 
 
 class ConfigError(Exception): ...
@@ -104,7 +100,7 @@ class H12Real:
 
         self.use_mujoco = config["real"]["use_mujoco"]
         if self.use_mujoco:
-            self.unitree = UnitreeSdk2Bridge(config)
+            self.unitree = DDSToMujoco(config)
 
         # Wait for the subscriber to receive data
         self.wait_for_low_state()
@@ -283,30 +279,3 @@ class H12Real:
             self.unitree.close(log_dir)
         else:
             self.enter_damping_state()
-
-
-if __name__ == "__main__":
-    config_path = Path(__file__).parent.parent / "config" / "config.yaml"
-    with config_path.open() as file:
-        config = yaml.safe_load(file)
-
-    if config["real"]["use_mujoco"]:
-        config["mujoco"]["scene_path"] = SCENE_PATHS["h12"]["27dof"]
-    robot = H12Real(config["real"])
-
-    robot.enter_zero_torque_state()
-    robot.move_to_default_pos()
-
-    state = robot.get_robot_state()
-    while True:
-        try:
-            robot.step(state["qpos"])
-            # Press the select key to exit
-            if robot.remote_controller.is_pressed(KeyMap.select):
-                break
-        except KeyboardInterrupt:
-            break
-
-    robot.enter_damping_state()
-    robot.close()
-    print("Exit")
