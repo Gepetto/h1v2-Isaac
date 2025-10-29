@@ -15,6 +15,7 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
 from robot_deploy.simulator.dds_mujoco import DDSToMujoco
+from robot_deploy.robots.robot import Robot
 from robot_deploy.utils.remote_controller import KeyMap, RemoteController
 from robot_deploy.utils.rotation import transform_imu_data
 
@@ -22,7 +23,7 @@ from robot_deploy.utils.rotation import transform_imu_data
 class ConfigError(Exception): ...
 
 
-class H12Real:
+class H12Real(Robot):
     REAL_JOINT_NAME_ORDER = (
         "left_hip_yaw_joint",
         "left_hip_pitch_joint",
@@ -53,11 +54,38 @@ class H12Real:
         "right_wrist_yaw_joint",
     )
 
-    def __init__(self, config):
+    def __init__(self, config: dict):
         ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
-        self.control_dt = config["control_dt"]
+        self.set_config(config)
         self.step_time = time.perf_counter()
+
+        self.remote_controller = RemoteController()
+
+        self.low_cmd = unitree_hg_msg_dds__LowCmd_()
+        self.low_state = unitree_hg_msg_dds__LowState_()
+        self.mode_pr_ = 0  # MotorMode.PR in unitree code
+        self.mode_machine_ = 0
+
+        self.lowcmd_publisher_ = ChannelPublisher("rt/lowcmd", LowCmdHG)
+        self.lowcmd_publisher_.Init()
+
+        self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
+        self.lowstate_subscriber.Init(self.low_state_handler, 10)
+
+        self.num_joints_total = len(self.low_cmd.motor_cmd)  # type: ignore
+
+        self.use_mujoco = config["real"]["use_mujoco"]
+        if self.use_mujoco:
+            self.simulator = DDSToMujoco(config)
+
+        # Wait for the subscriber to receive data
+        self.wait_for_low_state()
+
+        self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
+
+    def set_config(self, config: dict):
+        self.control_dt = config["control_dt"]
 
         joints = config["joints"]
         config_joint_names = [joint["name"] for joint in joints]
@@ -85,29 +113,30 @@ class H12Real:
                 raise ConfigError(err_msg)
             self.enabled_joint_idx.append(self.REAL_JOINT_NAME_ORDER.index(joint["name"]))
 
-        self.remote_controller = RemoteController()
+    def get_robot_state(self):
+        base_orientation, base_angular_vel = self._get_base_state()
+        qpos, qvel = self._get_joint_state()
 
-        self.low_cmd = unitree_hg_msg_dds__LowCmd_()
-        self.low_state = unitree_hg_msg_dds__LowState_()
-        self.mode_pr_ = 0  # MotorMode.PR in unitree code
-        self.mode_machine_ = 0
+        return {
+            "base_orientation": base_orientation,
+            "qpos": qpos,
+            "base_angular_vel": base_angular_vel,
+            "qvel": qvel,
+        }
 
-        self.lowcmd_publisher_ = ChannelPublisher("rt/lowcmd", LowCmdHG)
-        self.lowcmd_publisher_.Init()
+    def step(self, q_ref):
+        self.set_motor_commands(
+            self.enabled_joint_idx,
+            q_ref,
+            self.joint_kp[self.enabled_joint_idx],
+            self.joint_kd[self.enabled_joint_idx],
+        )
+        self.send_cmd(self.low_cmd)
 
-        self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
-        self.lowstate_subscriber.Init(self.low_state_handler, 10)
-
-        self.use_mujoco = config["real"]["use_mujoco"]
-        if self.use_mujoco:
-            self.unitree = DDSToMujoco(config)
-
-        # Wait for the subscriber to receive data
-        self.wait_for_low_state()
-
-        self.num_joints_total = len(self.low_cmd.motor_cmd)
-
-        self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
+        time_to_wait = self.control_dt - (time.perf_counter() - self.step_time)
+        if time_to_wait > 0:
+            time.sleep(time_to_wait)
+        self.step_time = time.perf_counter()
 
     def low_state_handler(self, msg: LowStateHG):
         self.low_state = msg
@@ -133,21 +162,10 @@ class H12Real:
 
     def get_controller_command(self):
         if self.use_mujoco:
-            command = self.unitree.get_controller_command()
+            command = self.simulator.get_controller_command()
         else:
             command = [self.remote_controller.ly, -self.remote_controller.lx, -self.remote_controller.rx]
         return np.clip(np.array(command), -1, 1)
-
-    def get_robot_state(self):
-        base_orientation, base_angular_vel = self._get_base_state()
-        qpos, qvel = self._get_joint_state()
-
-        return {
-            "base_orientation": base_orientation,
-            "qpos": qpos,
-            "base_angular_vel": base_angular_vel,
-            "qvel": qvel,
-        }
 
     def _get_base_state(self):
         # h1_2 imu is in the torso
@@ -253,20 +271,6 @@ class H12Real:
         self.set_motor_commands(joint_idx, pos, kp, kd)
         self.send_cmd(self.low_cmd)
 
-    def step(self, target_dof_pos):
-        self.set_motor_commands(
-            self.enabled_joint_idx,
-            target_dof_pos,
-            self.joint_kp[self.enabled_joint_idx],
-            self.joint_kd[self.enabled_joint_idx],
-        )
-        self.send_cmd(self.low_cmd)
-
-        time_to_wait = self.control_dt - (time.perf_counter() - self.step_time)
-        if time_to_wait > 0:
-            time.sleep(time_to_wait)
-        self.step_time = time.perf_counter()
-
     def wait_for_button(self, button):
         button_name = next(k for k, v in KeyMap.__dict__.items() if v == button)
         print(f"Waiting to press '{button_name}'...")
@@ -276,6 +280,6 @@ class H12Real:
 
     def close(self, log_dir=None):
         if self.use_mujoco:
-            self.unitree.close(log_dir)
+            self.simulator.close(log_dir)
         else:
             self.enter_damping_state()

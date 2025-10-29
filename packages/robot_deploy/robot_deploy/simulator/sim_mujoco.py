@@ -136,7 +136,7 @@ class MujocoSim:
     def _apply_torques(self, torques):
         self.data.ctrl[self.ctrl_idx] = torques
 
-    def get_robot_sim_state(self):
+    def get_robot_state(self):
         with self.sim_lock:
             return {
                 "base_orientation": self.data.qpos[3:7],

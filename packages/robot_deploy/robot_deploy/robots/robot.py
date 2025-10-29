@@ -4,21 +4,14 @@ from abc import ABC, abstractmethod
 
 class Robot(ABC):
     @abstractmethod
-    def initialize(self) -> None:
+    def set_config(self, config: dict) -> None:
         pass
 
     @abstractmethod
-    def apply_commands(self, u_ref, q_ref, v_ref) -> None:
+    def get_robot_state(self) -> dict:
         pass
 
     @abstractmethod
-    def get_X_dX(self) -> (np.ndarray, np.ndarray):
+    def step(self, q_ref: np.ndarray) -> None:
         pass
 
-    @abstractmethod
-    def get_euler_orientation(self) -> np.ndarray:
-        pass
-
-    @abstractmethod
-    def get_IMU(self, q, v):
-        pass

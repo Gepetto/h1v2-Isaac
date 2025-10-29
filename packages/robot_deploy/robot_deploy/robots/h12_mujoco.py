@@ -2,16 +2,19 @@ import numpy as np
 
 import mujoco
 
+from robot_deploy.robots.robot import Robot
 from robot_deploy.simulator.sim_mujoco import MujocoSim
 
 
 class ConfigError(Exception): ...
 
 
-class H12Mujoco(MujocoSim):
+class H12Mujoco(MujocoSim, Robot):
     def __init__(self, scene_path, config):
         super().__init__(scene_path, config)
+        self.set_config(config)
 
+    def set_config(self, config: dict):
         self.decimation = config["mujoco"]["decimation"]
 
         joints = config["joints"]
@@ -44,7 +47,7 @@ class H12Mujoco(MujocoSim):
         self.enabled_joint_mujoco_idx = np.array(enabled_joint_mujoco_idx)
 
     def get_robot_state(self):
-        state = self.get_robot_sim_state()
+        state = super().get_robot_state()
         state["qpos"] = state["qpos"][self.enabled_joint_mujoco_idx]
         state["qvel"] = state["qvel"][self.enabled_joint_mujoco_idx]
         return state
@@ -57,7 +60,7 @@ class H12Mujoco(MujocoSim):
             self.sim_step(torques)
 
     def _pd_control(self, q_ref):
-        state = self.get_robot_sim_state()
+        state = super().get_robot_state()
 
         q_err = q_ref - state["qpos"]
         q_err_dot = np.zeros_like(q_ref) - state["qvel"]

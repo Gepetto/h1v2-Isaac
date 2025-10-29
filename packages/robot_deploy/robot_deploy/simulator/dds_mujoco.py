@@ -48,7 +48,7 @@ class DDSToMujoco:
             self.motor_cmd = msg.motor_cmd
 
     def publish_low_state(self):
-        state = self.simulator.get_robot_sim_state()
+        state = self.simulator.get_robot_state()
         qpos = state["qpos"]
         qvel = state["qvel"]
 
@@ -64,7 +64,7 @@ class DDSToMujoco:
         self.low_state_puber.Write(self.low_state)
 
     def pd_control(self):
-        state = self.simulator.get_robot_sim_state()
+        state = self.simulator.get_robot_state()
         qpos = state["qpos"]
         qvel = state["qvel"]
 
