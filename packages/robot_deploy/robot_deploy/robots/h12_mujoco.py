@@ -10,8 +10,8 @@ class ConfigError(Exception): ...
 
 
 class H12Mujoco(MujocoSim, Robot):
-    def __init__(self, scene_path, config):
-        super().__init__(scene_path, config)
+    def __init__(self, config):
+        super().__init__(config)
         self.set_config(config)
 
     def set_config(self, config: dict):

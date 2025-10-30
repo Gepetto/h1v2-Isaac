@@ -5,6 +5,7 @@ import time
 import mujoco
 import mujoco.viewer
 
+from robot_assets import SCENE_PATHS
 from robot_deploy.utils.mj_logger import MJLogger
 
 
@@ -33,8 +34,9 @@ class ElasticBand:
 
 
 class MujocoSim:
-    def __init__(self, scene_path, config):
+    def __init__(self, config):
         mj_config = config["mujoco"]
+        scene_path = SCENE_PATHS[mj_config["robot_name"]][mj_config["scene_name"]]
 
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3

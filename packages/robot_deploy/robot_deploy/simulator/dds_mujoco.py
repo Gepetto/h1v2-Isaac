@@ -9,7 +9,6 @@ from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowState_ as LowState
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
-from robot_assets import SCENE_PATHS
 from robot_deploy.controllers.policy_controller import PolicyController
 from robot_deploy.simulator.sim_mujoco import MujocoSim
 
@@ -20,8 +19,7 @@ TOPIC_LOWSTATE = "rt/lowstate"
 class DDSToMujoco:
     def __init__(self, config):
         config["mujoco"]["real_time"] = True
-        scene_path = SCENE_PATHS[config["mujoco"]["robot_name"]][config["mujoco"]["scene_name"]]
-        self.simulator = MujocoSim(scene_path, config)
+        self.simulator = MujocoSim(config)
 
         self.num_motor = len(config["joints"])
 
