@@ -5,12 +5,14 @@ from pathlib import Path
 
 from robot_assets import SCENE_PATHS
 from robot_deploy.controllers.rl import RLPolicy
+from robot_deploy.robots.h12_real import H12Real
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("config_path", nargs="?", type=Path, default=None, help="Path to config file")
+    parser.add_argument("--sim", action="store_true", help="Flag to run the policy in simulation")
     return parser.parse_args()
 
 
@@ -21,8 +23,10 @@ if __name__ == "__main__":
     with config_path.open() as file:
         config = yaml.safe_load(file)
 
-    # Create unique log directory
-    if config["mujoco"]["log_data"]:
+    # Set up interface to real robot
+    use_mujoco = config["real"]["use_mujoco"]
+    if use_mujoco and config["mujoco"]["log_data"]:
+        # Create unique log directory
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
         log_dir.mkdir(parents=True, exist_ok=True)
@@ -38,24 +42,25 @@ if __name__ == "__main__":
         policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
     config.update(policy_config)
 
-    # Set up simulation
-    scene_path = SCENE_PATHS["h12"]["27dof"]
-    sim = H12Mujoco(scene_path, config)
+    robot = H12Mujoco(config=config) if args.sim else H12Real(config=config)
     policy = RLPolicy(policy_path, policy_config, log_data=config["mujoco"]["log_data"])
 
+    robot.initialize()
     try:
         while True:
-            state = sim.get_robot_state()
-            command = sim.get_controller_command()
-            q_ref = policy.step(state, command)
-            sim.step(q_ref)
+            state = robot.get_robot_state()
 
-            if sim.current_time > sim.episode_length:
+            command = robot.get_controller_command()
+            q_ref = policy.step(state, command)
+            robot.step(q_ref)
+
+            if robot.should_quit():
                 break
 
     except KeyboardInterrupt:
-        pass
+        print("Interruption")
 
     finally:
-        sim.close(log_dir)
+        robot.close(log_dir)
         policy.save_data(log_dir)
+    print("Exit")
