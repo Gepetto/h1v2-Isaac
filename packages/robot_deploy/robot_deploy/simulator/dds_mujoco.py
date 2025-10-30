@@ -1,11 +1,16 @@
+import argparse
 import threading
+import time
+import yaml
+from pathlib import Path
 
-from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber
+from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelPublisher, ChannelSubscriber
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowState_ as LowState_default
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
 from robot_assets import SCENE_PATHS
+from robot_deploy.controllers.policy_controller import PolicyController
 from robot_deploy.simulator.sim_mujoco import MujocoSim
 
 TOPIC_LOWCMD = "rt/lowcmd"
@@ -90,3 +95,23 @@ class DDSToMujoco:
         self.simulator.close(log_dir)
         self.close_event.set()
         self.sim_thread.join()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_path", type=Path, help="Path to config file")
+    args = parser.parse_args()
+
+    config_path = args.config_path
+    policy_controller = PolicyController(config_path, transition_steps=50)
+    config = policy_controller.get_config()
+
+    ChannelFactoryInitialize(0, config["real"]["net_interface"])
+    simulator = DDSToMujoco(config)
+    print("Running Mujoco simulator")
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        simulator.close()
+    print("Simulation closed.")
