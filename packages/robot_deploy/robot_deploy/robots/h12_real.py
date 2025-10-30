@@ -113,6 +113,16 @@ class H12Real(Robot):
                 raise ConfigError(err_msg)
             self.enabled_joint_idx.append(self.REAL_JOINT_NAME_ORDER.index(joint["name"]))
 
+    def initialize(self) -> None:
+        if not self.use_mujoco:
+            self.enter_zero_torque_state()
+            self.wait_for_button(KeyMap.start)
+
+            self.move_to_default_pos()
+            self.wait_for_button(KeyMap.A)
+        else:
+            self.set_init_state()
+
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()
         qpos, qvel = self._get_joint_state()
@@ -137,6 +147,9 @@ class H12Real(Robot):
         if time_to_wait > 0:
             time.sleep(time_to_wait)
         self.step_time = time.perf_counter()
+
+    def should_quit(self) -> bool:
+        return self.remote_controller.is_pressed(KeyMap.select)
 
     def low_state_handler(self, msg: LowStateHG):
         self.low_state = msg

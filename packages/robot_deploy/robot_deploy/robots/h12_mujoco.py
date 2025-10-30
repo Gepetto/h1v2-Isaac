@@ -46,6 +46,9 @@ class H12Mujoco(MujocoSim, Robot):
             enabled_joint_mujoco_idx.append(joint_id - 1)  # -1 because 0 is floating_base_joint
         self.enabled_joint_mujoco_idx = np.array(enabled_joint_mujoco_idx)
 
+    def initialize(self) -> None:
+        pass
+
     def get_robot_state(self):
         state = super().get_robot_state()
         state["qpos"] = state["qpos"][self.enabled_joint_mujoco_idx]
@@ -58,6 +61,9 @@ class H12Mujoco(MujocoSim, Robot):
         for _ in range(self.decimation):
             torques = self._pd_control(q_whole)
             self.sim_step(torques)
+
+    def should_quit(self) -> bool:
+        return self.current_time > self.episode_length
 
     def _pd_control(self, q_ref):
         state = super().get_robot_state()

@@ -8,6 +8,10 @@ class Robot(ABC):
         pass
 
     @abstractmethod
+    def initialize(self) -> None:
+        pass
+
+    @abstractmethod
     def get_robot_state(self) -> dict:
         pass
 
@@ -15,3 +19,7 @@ class Robot(ABC):
     def step(self, q_ref: np.ndarray) -> None:
         pass
 
+
+    @abstractmethod
+    def should_quit(self) -> bool:
+        pass
