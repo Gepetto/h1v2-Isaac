@@ -1,6 +1,8 @@
 policy_name: "unitree"
 
 mujoco:
+  robot_name: "h12"
+  scene_name: "27dof"
   experiment_name: "h12_locomotion"
 
   render_dt: 0.02

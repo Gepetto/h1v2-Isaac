@@ -24,9 +24,6 @@ if __name__ == "__main__":
 
     # Set up interface to real robot
     use_mujoco = config["real"]["use_mujoco"]
-    if use_mujoco:
-        config["mujoco"]["scene_path"] = SCENE_PATHS["h12"]["27dof"]
-
     if use_mujoco and config["mujoco"]["log_data"]:
         # Create unique log directory
         timestamp = time.strftime("%Y%m%d_%H%M%S")
@@ -47,6 +44,7 @@ if __name__ == "__main__":
     robot = H12Real(config=config)
     policy = RLPolicy(policy_path, policy_config, log_data=config["mujoco"]["log_data"])
 
+    use_mujoco = config["real"]["use_mujoco"]
     if not use_mujoco:
         robot.enter_zero_torque_state()
         robot.wait_for_button(KeyMap.start)
