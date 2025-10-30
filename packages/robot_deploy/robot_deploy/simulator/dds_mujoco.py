@@ -101,7 +101,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config_path = args.config_path
-    policy_controller = PolicyController(config_path, transition_steps=50)
+    policy_controller = PolicyController(config_path)
     config = policy_controller.get_config()
 
     ChannelFactoryInitialize(0, config["real"]["net_interface"])

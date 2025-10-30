@@ -1,10 +1,7 @@
 import argparse
-import time
-import yaml
 from pathlib import Path
 
-from robot_assets import SCENE_PATHS
-from robot_deploy.controllers.rl import RLPolicy
+from robot_deploy.controllers.policy_controller import PolicyController
 from robot_deploy.robots.h12_real import H12Real
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 
@@ -20,30 +17,12 @@ if __name__ == "__main__":
     # Load config
     args = parse_args()
     config_path = args.config_path or Path(__file__).parent / "config.yaml"
-    with config_path.open() as file:
-        config = yaml.safe_load(file)
 
     # Set up interface to real robot
-    use_mujoco = config["real"]["use_mujoco"]
-    if use_mujoco and config["mujoco"]["log_data"]:
-        # Create unique log directory
-        timestamp = time.strftime("%Y%m%d_%H%M%S")
-        log_dir = Path(__file__).parent / "logs" / config["mujoco"]["experiment_name"] / timestamp
-        log_dir.mkdir(parents=True, exist_ok=True)
-    else:
-        log_dir = None
-
-    # Load policy
-    policy_dir: Path = Path(__file__).parent / "policies" / config["policy_name"]
-    policy_path = str(next(filter(lambda file: file.name.endswith((".pt", ".onnx")), policy_dir.iterdir())))
-    env_config_path = policy_dir / "env.yaml"
-
-    with env_config_path.open() as f:
-        policy_config = yaml.load(f, Loader=yaml.UnsafeLoader)
-    config.update(policy_config)
+    policy_controller = PolicyController(config_path)
+    config = policy_controller.get_config()
 
     robot = H12Mujoco(config=config) if args.sim else H12Real(config=config)
-    policy = RLPolicy(policy_path, policy_config, log_data=config["mujoco"]["log_data"])
 
     robot.initialize()
     try:
@@ -51,7 +30,7 @@ if __name__ == "__main__":
             state = robot.get_robot_state()
 
             command = robot.get_controller_command()
-            q_ref = policy.step(state, command)
+            q_ref = policy_controller.step(state, command)
             robot.step(q_ref)
 
             if robot.should_quit():
@@ -61,6 +40,5 @@ if __name__ == "__main__":
         print("Interruption")
 
     finally:
-        robot.close(log_dir)
-        policy.save_data(log_dir)
+        robot.close()
     print("Exit")
