@@ -6,6 +6,7 @@ import mujoco
 import mujoco.viewer
 
 from robot_assets import SCENE_PATHS
+from robot_deploy.input_device import KeyboardDevice, InputDevice
 from robot_deploy.utils.mj_logger import MJLogger
 
 
@@ -34,9 +35,11 @@ class ElasticBand:
 
 
 class MujocoSim:
-    def __init__(self, config):
+    def __init__(self, config: dict, input_device: InputDevice | None):
         mj_config = config["mujoco"]
         scene_path = SCENE_PATHS[mj_config["robot_name"]][mj_config["scene_name"]]
+
+        self.input_device = input_device
 
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
@@ -82,20 +85,15 @@ class MujocoSim:
                 raise ConfigError(err_msg)
             self.ctrl_idx[jnt_id - 1] = act_id
 
-        self.enable_keyboard = mj_config["enable_keyboard"]
-        self.keyboard_lock = threading.Lock()
-        self.controller_command = np.zeros(3)
+        self.elastic_band_enabled = mj_config["elastic_band"]
+        self.elastic_band = ElasticBand()
+        self.band_attached_link = self.model.body("torso_link").id
 
         self.enable_GUI = mj_config["enable_GUI"]
         if self.enable_GUI:
             self.close_event = threading.Event()
             self.viewer_thread = threading.Thread(target=self.run_render, args=(self.close_event,))
             self.viewer_thread.start()
-
-        self.elastic_band_enabled = mj_config["elastic_band"]
-        if self.elastic_band_enabled:
-            self.elastic_band = ElasticBand()
-            self.band_attached_link = self.model.body("torso_link").id
 
     def reset(self):
         with self.sim_lock:
@@ -122,10 +120,6 @@ class MujocoSim:
 
         self.current_time += self.model.opt.timestep
 
-    def get_controller_command(self):
-        with self.keyboard_lock:
-            return self.controller_command
-
     def close(self, log_dir=None):
         # Close Mujoco viewer if opened
         if self.enable_GUI:
@@ -148,7 +142,7 @@ class MujocoSim:
             }
 
     def run_render(self, close_event):
-        key_cb = self.key_callback if self.enable_keyboard else None
+        key_cb = self.input_device.key_callback if isinstance(self.input_device, KeyboardDevice) else None
         with self.sim_lock:
             viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
 
@@ -157,25 +151,3 @@ class MujocoSim:
                 viewer.sync()
             time.sleep(self.render_dt)
         viewer.close()
-
-    def key_callback(self, key):
-        glfw = mujoco.glfw.glfw
-        with self.keyboard_lock:
-            if key == glfw.KEY_UP or key == glfw.KEY_KP_8:
-                self.controller_command[0] += 0.1
-            elif key == glfw.KEY_DOWN or key == glfw.KEY_KP_5:
-                self.controller_command[0] -= 0.1
-            elif key == glfw.KEY_LEFT or key == glfw.KEY_KP_4:
-                self.controller_command[1] += 0.1
-            elif key == glfw.KEY_RIGHT or key == glfw.KEY_KP_6:
-                self.controller_command[1] -= 0.1
-            elif key == glfw.KEY_Z or key == glfw.KEY_KP_7:
-                self.controller_command[2] += 0.1
-            elif key == glfw.KEY_X or key == glfw.KEY_KP_9:
-                self.controller_command[2] -= 0.1
-            elif key == glfw.KEY_B:
-                self.elastic_band_enabled = not self.elastic_band_enabled
-            elif key == glfw.KEY_I:
-                self.elastic_band.length += 0.1
-            elif key == glfw.KEY_K:
-                self.elastic_band.length -= 0.1

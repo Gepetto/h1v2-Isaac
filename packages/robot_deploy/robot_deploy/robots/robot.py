@@ -1,8 +1,14 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
+from robot_deploy.input_device import InputDevice
+
 
 class Robot(ABC):
+    @abstractmethod
+    def __init__(self, config: dict, input_device: InputDevice | None):
+        pass
+
     @abstractmethod
     def set_config(self, config: dict) -> None:
         pass

@@ -1,3 +1,4 @@
+import contextlib
 import numpy as np
 import time
 
@@ -14,9 +15,9 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
-from robot_deploy.simulator.dds_mujoco import DDSToMujoco
+from robot_deploy.input_device import InputDevice
 from robot_deploy.robots.robot import Robot
-from robot_deploy.utils.remote_controller import KeyMap, RemoteController
+from robot_deploy.simulator.dds_mujoco import DDSToMujoco
 from robot_deploy.utils.rotation import transform_imu_data
 
 
@@ -54,13 +55,13 @@ class H12Real(Robot):
         "right_wrist_yaw_joint",
     )
 
-    def __init__(self, config: dict):
-        ChannelFactoryInitialize(0, config["real"]["net_interface"])
+    def __init__(self, config: dict, input_device: InputDevice | None):
+        with contextlib.suppress(Exception):
+            ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
         self.set_config(config)
+        self.input_device = input_device
         self.step_time = time.perf_counter()
-
-        self.remote_controller = RemoteController()
 
         self.low_cmd = unitree_hg_msg_dds__LowCmd_()
         self.low_state = unitree_hg_msg_dds__LowState_()
@@ -77,7 +78,7 @@ class H12Real(Robot):
 
         self.use_mujoco = config["real"]["use_mujoco"]
         if self.use_mujoco:
-            self.simulator = DDSToMujoco(config)
+            self.simulator = DDSToMujoco(config, self.input_device)
 
         # Wait for the subscriber to receive data
         self.wait_for_low_state()
@@ -116,12 +117,17 @@ class H12Real(Robot):
     def initialize(self) -> None:
         if not self.use_mujoco:
             self.enter_zero_torque_state()
-            self.wait_for_button(KeyMap.start)
+            self.wait_for_button("start")
 
             self.move_to_default_pos()
-            self.wait_for_button(KeyMap.A)
+            self.wait_for_button("A")
         else:
-            self.set_init_state()
+            self.set_motor_commands(
+                motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
+                positions=self.default_joint_pos,
+                kps=self.joint_kp,
+                kds=self.joint_kd,
+            )
 
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()
@@ -149,12 +155,13 @@ class H12Real(Robot):
         self.step_time = time.perf_counter()
 
     def should_quit(self) -> bool:
-        return self.remote_controller.is_pressed(KeyMap.select)
+        if self.input_device is not None:
+            return self.input_device.is_pressed("select")
+        return False
 
     def low_state_handler(self, msg: LowStateHG):
         self.low_state = msg
         self.mode_machine_ = self.low_state.mode_machine
-        self.remote_controller.set(self.low_state.wireless_remote)
 
     def wait_for_low_state(self):
         while self.low_state.tick == 0:
@@ -172,13 +179,6 @@ class H12Real(Robot):
     def send_cmd(self, cmd: LowCmdHG):
         cmd.crc = CRC().Crc(cmd)
         self.lowcmd_publisher_.Write(cmd)
-
-    def get_controller_command(self):
-        if self.use_mujoco:
-            command = self.simulator.get_controller_command()
-        else:
-            command = [self.remote_controller.ly, -self.remote_controller.lx, -self.remote_controller.rx]
-        return np.clip(np.array(command), -1, 1)
 
     def _get_base_state(self):
         # h1_2 imu is in the torso
@@ -213,17 +213,6 @@ class H12Real(Robot):
             positions=np.zeros(self.num_joints_total),
             kps=np.zeros(self.num_joints_total),
             kds=np.zeros(self.num_joints_total),
-        )
-
-    def set_init_state(self):
-        if not self.use_mujoco:
-            return
-
-        self.set_motor_commands(
-            motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
-            positions=self.default_joint_pos,
-            kps=self.joint_kp,
-            kds=self.joint_kd,
         )
 
     def enter_zero_torque_state(self):
@@ -285,9 +274,10 @@ class H12Real(Robot):
         self.send_cmd(self.low_cmd)
 
     def wait_for_button(self, button):
-        button_name = next(k for k, v in KeyMap.__dict__.items() if v == button)
-        print(f"Waiting to press '{button_name}'...")
-        while not self.remote_controller.is_pressed(button):
+        if self.input_device is None:
+            return
+        print(f"Waiting to press '{button}'...")
+        while not self.input_device.is_pressed(button):
             self.send_cmd(self.low_cmd)
             time.sleep(self.control_dt)
 
