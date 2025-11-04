@@ -4,8 +4,8 @@ requires = ["uv_build"]
 
 [project]
 dependencies = [
-  "robot-assets",
-  "isaaclab[all,isaacsim]==2.1.0"
+  "isaaclab[all,isaacsim]==2.1.0",
+  "robot-assets"
 ]
 description = "Add your description here"
 name = "robot-tasks"

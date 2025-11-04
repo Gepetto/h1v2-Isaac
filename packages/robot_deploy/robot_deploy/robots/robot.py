@@ -25,7 +25,6 @@ class Robot(ABC):
     def step(self, q_ref: np.ndarray) -> None:
         pass
 
-
     @abstractmethod
     def should_quit(self) -> bool:
         pass

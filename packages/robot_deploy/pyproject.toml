@@ -4,10 +4,10 @@ requires = ["uv_build"]
 
 [project]
 dependencies = [
-  "robot-assets",
   "mujoco>=3.3.4",
   "onnxruntime>=1.22.1",
   "pyyaml>=6.0.2",
+  "robot-assets",
   "torch>=2.5.1",
   "unitree-sdk2py"
 ]
