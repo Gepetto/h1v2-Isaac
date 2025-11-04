@@ -1,12 +1,13 @@
 import numpy as np
 import threading
 import time
+import typing
 
 import mujoco
 import mujoco.viewer
 
 from robot_assets import SCENE_PATHS
-from robot_deploy.input_device import KeyboardDevice, InputDevice
+from robot_deploy.input_device import InputDevice, KeyboardDevice
 from robot_deploy.utils.mj_logger import MJLogger
 
 
@@ -133,6 +134,9 @@ class MujocoSim:
         self.data.ctrl[self.ctrl_idx] = torques
 
     def get_robot_state(self):
+        if isinstance(self.input_device, KeyboardDevice):
+            self.input_device.clear()
+
         with self.sim_lock:
             return {
                 "base_orientation": self.data.qpos[3:7],
@@ -142,12 +146,25 @@ class MujocoSim:
             }
 
     def run_render(self, close_event):
-        key_cb = self.input_device.key_callback if isinstance(self.input_device, KeyboardDevice) else None
+        if enable_inputs := isinstance(self.input_device, KeyboardDevice):
+            key_cb = self.input_device.key_callback
+        else:
+            key_cb = None
         with self.sim_lock:
             viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
 
         while viewer.is_running() and not close_event.is_set():
             with self.sim_lock:
                 viewer.sync()
+
+            if enable_inputs:
+                self.input_device = typing.cast(KeyboardDevice, self.input_device)
+                if self.input_device.is_pressed("b"):
+                    self.elastic_band_enabled = not self.elastic_band_enabled
+                elif self.input_device.is_pressed("i"):
+                    self.elastic_band.length += 0.1
+                elif self.input_device.is_pressed("k"):
+                    self.elastic_band.length -= 0.1
+
             time.sleep(self.render_dt)
         viewer.close()

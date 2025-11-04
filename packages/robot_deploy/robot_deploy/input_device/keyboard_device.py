@@ -14,9 +14,10 @@ class KeyboardDevice(InputDevice):
         return self.command
 
     def is_pressed(self, *buttons: Button) -> bool:
-        is_pressed = any(button in self.key_pressed for button in buttons)
+        return any(button in self.key_pressed for button in buttons)
+
+    def clear(self) -> None:
         self.key_pressed.clear()
-        return is_pressed
 
     def key_callback(self, key) -> None:
         glfw = mujoco.glfw.glfw  # type: ignore
