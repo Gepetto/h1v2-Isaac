@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-from robot_deploy.input_device import InputDevice
+from robot_deploy.input_devices import InputDevice
 
 
 class Robot(ABC):

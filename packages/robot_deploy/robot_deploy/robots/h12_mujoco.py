@@ -2,9 +2,9 @@ import numpy as np
 
 import mujoco
 
-from robot_deploy.input_device import InputDevice
+from robot_deploy.input_devices import InputDevice
 from robot_deploy.robots.robot import Robot
-from robot_deploy.simulator.sim_mujoco import MujocoSim
+from robot_deploy.simulators.sim_mujoco import MujocoSim
 
 
 class ConfigError(Exception): ...

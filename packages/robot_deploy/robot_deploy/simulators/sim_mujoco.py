@@ -7,7 +7,7 @@ import mujoco
 import mujoco.viewer
 
 from robot_assets import SCENE_PATHS
-from robot_deploy.input_device import InputDevice, KeyboardDevice
+from robot_deploy.input_devices import InputDevice, KeyboardDevice
 from robot_deploy.utils.mj_logger import MJLogger
 
 

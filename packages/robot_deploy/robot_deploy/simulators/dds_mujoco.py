@@ -9,8 +9,8 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
 from robot_deploy.controllers.policy_controller import PolicyController
-from robot_deploy.input_device import InputDevice, UnitreeRemoteDevice
-from robot_deploy.simulator.sim_mujoco import MujocoSim
+from robot_deploy.input_devices import InputDevice, UnitreeRemoteDevice
+from robot_deploy.simulators.sim_mujoco import MujocoSim
 
 TOPIC_LOWCMD = "rt/lowcmd"
 TOPIC_LOWSTATE = "rt/lowstate"

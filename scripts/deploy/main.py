@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from robot_deploy.controllers.policy_controller import PolicyController
-from robot_deploy.input_device import KeyboardDevice, UnitreeRemoteDevice
+from robot_deploy.input_devices import KeyboardDevice, UnitreeRemoteDevice
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 from robot_deploy.robots.h12_real import H12Real
 
