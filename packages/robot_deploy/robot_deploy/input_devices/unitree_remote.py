@@ -8,22 +8,22 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from .input_device import Button, InputDevice
 
 REMOTE_INPUT_ORDER = [
-    "R1",
-    "L1",
-    "start",
-    "select",
-    "R2",
-    "L2",
-    "F1",
-    "F2",
-    "A",
-    "B",
-    "X",
-    "Y",
-    "up",
-    "right",
-    "down",
-    "left",
+    Button.R1,
+    Button.L1,
+    Button.start,
+    Button.select,
+    Button.R2,
+    Button.L2,
+    Button.F1,
+    Button.F2,
+    Button.A,
+    Button.B,
+    Button.X,
+    Button.Y,
+    Button.up,
+    Button.right,
+    Button.down,
+    Button.left,
 ]
 
 

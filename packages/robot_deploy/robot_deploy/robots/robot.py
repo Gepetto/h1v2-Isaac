@@ -4,10 +4,6 @@ from abc import ABC, abstractmethod
 
 class Robot(ABC):
     @abstractmethod
-    def __init__(self, config: dict):
-        pass
-
-    @abstractmethod
     def set_config(self, config: dict) -> None:
         pass
 

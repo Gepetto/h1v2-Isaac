@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 
 from robot_deploy.controllers.policy_controller import PolicyController
-from robot_deploy.input_devices import MujocoDevice, UnitreeRemoteDevice
+from robot_deploy.input_devices import Button, MujocoDevice, UnitreeRemoteDevice
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 from robot_deploy.robots.h12_real import H12Real
 from robot_deploy.simulators.dds_mujoco import DDSToMujoco
@@ -32,9 +32,9 @@ if __name__ == "__main__":
     input_device = MujocoDevice() if (args.sim or use_bridge) else UnitreeRemoteDevice(config["real"]["net_interface"])
 
     try:
-        input_device.wait_for("start")
+        input_device.wait_for(Button.start)
         robot.initialize()
-        input_device.wait_for("A")
+        input_device.wait_for(Button.A)
 
         print("Start control")
         while True:
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             q_ref = policy_controller.step(state, command)
             robot.step(q_ref)
 
-            if robot.should_quit() or input_device.is_pressed("select"):
+            if robot.should_quit() or input_device.is_pressed(Button.select):
                 break
 
     except KeyboardInterrupt:
