@@ -7,7 +7,7 @@ import mujoco
 import mujoco.viewer
 
 from robot_assets import SCENE_PATHS
-from robot_deploy.input_devices import InputDevice, KeyboardDevice
+from robot_deploy.input_devices import InputDevice, MujocoDevice
 from robot_deploy.utils.mj_logger import MJLogger
 
 
@@ -134,7 +134,7 @@ class MujocoSim:
         self.data.ctrl[self.ctrl_idx] = torques
 
     def get_robot_state(self):
-        if isinstance(self.input_device, KeyboardDevice):
+        if isinstance(self.input_device, MujocoDevice):
             self.input_device.clear()
 
         with self.sim_lock:
@@ -146,7 +146,7 @@ class MujocoSim:
             }
 
     def run_render(self, close_event):
-        if enable_inputs := isinstance(self.input_device, KeyboardDevice):
+        if enable_inputs := isinstance(self.input_device, MujocoDevice):
             key_cb = self.input_device.key_callback
         else:
             key_cb = None
@@ -158,7 +158,7 @@ class MujocoSim:
                 viewer.sync()
 
             if enable_inputs:
-                self.input_device = typing.cast(KeyboardDevice, self.input_device)
+                self.input_device = typing.cast(MujocoDevice, self.input_device)
                 if self.input_device.is_pressed("b"):
                     self.elastic_band_enabled = not self.elastic_band_enabled
                 elif self.input_device.is_pressed("i"):

@@ -6,7 +6,7 @@ import mujoco
 from .input_device import Button, InputDevice
 
 
-class KeyboardDevice(InputDevice):
+class MujocoDevice(InputDevice):
     def __init__(self) -> None:
         self.command = np.zeros(3)
         self.key_pressed = set()
