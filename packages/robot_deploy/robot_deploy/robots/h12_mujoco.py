@@ -65,6 +65,8 @@ class H12Mujoco(MujocoSim, Robot):
             self.sim_step(torques)
 
     def should_quit(self) -> bool:
+        if self.input_device is not None:
+            return self.input_device.is_pressed(Button.select)
         return self.current_time > self.episode_length
 
     def _pd_control(self, q_ref):

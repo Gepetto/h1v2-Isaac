@@ -159,6 +159,8 @@ class H12Real(Robot):
         self.step_time = time.perf_counter()
 
     def should_quit(self) -> bool:
+        if self.input_device is not None:
+            return self.input_device.is_pressed(Button.select)
         return False
 
     def low_state_handler(self, msg: LowStateHG):
