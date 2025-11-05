@@ -15,6 +15,7 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
+from robot_deploy.input_devices import Button, InputDevice
 from robot_deploy.robots.robot import Robot
 from robot_deploy.utils.rotation import transform_imu_data
 
@@ -53,11 +54,12 @@ class H12Real(Robot):
         "right_wrist_yaw_joint",
     )
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         with contextlib.suppress(Exception):
             ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
         self.set_config(config)
+        self.input_device = input_device
         self.step_time = time.perf_counter()
 
         self.low_cmd = unitree_hg_msg_dds__LowCmd_()
@@ -108,6 +110,9 @@ class H12Real(Robot):
             self.enabled_joint_idx.append(self.REAL_JOINT_NAME_ORDER.index(joint["name"]))
 
     def initialize(self) -> None:
+        if self.input_device is not None:
+            self.input_device.wait_for(Button.start)
+
         print("Moving to default pos.")
 
         leg_joint_idx = np.arange(0, 12)
@@ -125,6 +130,8 @@ class H12Real(Robot):
         self.move_to_pos(arm_joint_idx, self.default_joint_pos[arm_joint_idx], 2)
 
         print("Reached default pos state.")
+        if self.input_device is not None:
+            self.input_device.wait_for(Button.A)
 
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()

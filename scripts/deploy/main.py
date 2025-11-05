@@ -25,16 +25,14 @@ if __name__ == "__main__":
     config = policy_controller.get_config()
     use_bridge = not args.sim and config["real"]["use_mujoco"]
 
-    if use_bridge:
-        simulator = DDSToMujoco(config)
-
-    robot = H12Mujoco(config) if args.sim else H12Real(config)
     input_device = MujocoDevice() if (args.sim or use_bridge) else UnitreeRemoteDevice(config["real"]["net_interface"])
+    if use_bridge:
+        simulator = DDSToMujoco(config, input_device)
+
+    robot = H12Mujoco(config, input_device) if args.sim else H12Real(config, input_device)
 
     try:
-        input_device.wait_for(Button.start)
         robot.initialize()
-        input_device.wait_for(Button.A)
 
         print("Start control")
         while True:

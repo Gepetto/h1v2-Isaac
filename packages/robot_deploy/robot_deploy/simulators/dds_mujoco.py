@@ -10,7 +10,7 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
 from robot_deploy.controllers.policy_controller import PolicyController
-from robot_deploy.input_devices import UnitreeRemoteDevice
+from robot_deploy.input_devices import InputDevice
 from robot_deploy.simulators.sim_mujoco import MujocoSim
 
 TOPIC_LOWCMD = "rt/lowcmd"
@@ -18,9 +18,9 @@ TOPIC_LOWSTATE = "rt/lowstate"
 
 
 class DDSToMujoco:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, input_device: InputDevice | None = None):
         config["mujoco"]["real_time"] = True
-        self.simulator = MujocoSim(config)
+        self.simulator = MujocoSim(config, input_device)
 
         self.num_motor = len(config["joints"])
 
@@ -105,7 +105,6 @@ if __name__ == "__main__":
     policy_controller = PolicyController(config_path)
     config = policy_controller.get_config()
 
-    input_device = UnitreeRemoteDevice(config["real"]["net_interface"])
     simulator = DDSToMujoco(config)
     print("Running Mujoco simulator")
     try:

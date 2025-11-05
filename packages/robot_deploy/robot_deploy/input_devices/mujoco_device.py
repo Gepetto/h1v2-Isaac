@@ -1,8 +1,6 @@
 import numpy as np
-import threading
 
 import glfw
-import mujoco.viewer
 
 from .input_device import Button, InputDevice
 
@@ -20,22 +18,12 @@ BUTTON_KEYMAP = {
 
 class MujocoDevice(InputDevice):
     def __init__(self) -> None:
+        super().__init__()
         self.command = np.zeros(3)
-        self.key_pressed = set()
-        self.lock = threading.Lock()
-
-        if not hasattr(mujoco.viewer, "key_callbacks"):
-            mujoco.viewer.key_callbacks = []  # type: ignore
-        mujoco.viewer.key_callbacks.append(self.key_callback)  # type: ignore
 
     def get_command(self) -> np.ndarray:
-        self.key_pressed.clear()
         with self.lock:
             return self.command
-
-    def is_pressed(self, *buttons: Button) -> bool:
-        with self.lock:
-            return any(button in self.key_pressed for button in buttons)
 
     def key_callback(self, key) -> None:
         with self.lock:
@@ -52,5 +40,6 @@ class MujocoDevice(InputDevice):
                     self.command[2] += 0.1
                 case glfw.KEY_X | glfw.KEY_KP_9:
                     self.command[2] -= 0.1
+
             if key in BUTTON_KEYMAP:
-                self.key_pressed.add(BUTTON_KEYMAP[key])
+                self._press_button(BUTTON_KEYMAP[key])

@@ -2,6 +2,7 @@ import numpy as np
 
 import mujoco
 
+from robot_deploy.input_devices import Button, InputDevice
 from robot_deploy.robots.robot import Robot
 from robot_deploy.simulators.sim_mujoco import MujocoSim
 
@@ -10,9 +11,10 @@ class ConfigError(Exception): ...
 
 
 class H12Mujoco(MujocoSim, Robot):
-    def __init__(self, config: dict):
-        super().__init__(config)
+    def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
+        super().__init__(config, input_device)
         self.set_config(config)
+        self.input_device = input_device
 
     def set_config(self, config: dict):
         self.decimation = config["mujoco"]["decimation"]
@@ -47,7 +49,8 @@ class H12Mujoco(MujocoSim, Robot):
         self.enabled_joint_mujoco_idx = np.array(enabled_joint_mujoco_idx)
 
     def initialize(self) -> None:
-        pass
+        if self.input_device is not None:
+            self.input_device.wait_for(Button.start)
 
     def get_robot_state(self):
         state = super().get_robot_state()
