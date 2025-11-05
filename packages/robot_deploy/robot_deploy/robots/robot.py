@@ -5,9 +5,9 @@ from robot_deploy.input_devices import InputDevice
 
 
 class Robot(ABC):
-    @abstractmethod
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
-        pass
+        self.set_config(config)
+        self.input_device = input_device
 
     @abstractmethod
     def set_config(self, config: dict) -> None:

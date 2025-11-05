@@ -55,11 +55,11 @@ class H12Real(Robot):
     )
 
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
+        super().__init__(config, input_device)
+
         with contextlib.suppress(Exception):
             ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
-        self.set_config(config)
-        self.input_device = input_device
         self.step_time = time.perf_counter()
 
         self.low_cmd = unitree_hg_msg_dds__LowCmd_()

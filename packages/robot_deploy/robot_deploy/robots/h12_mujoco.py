@@ -12,9 +12,8 @@ class ConfigError(Exception): ...
 
 class H12Mujoco(MujocoSim, Robot):
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
-        super().__init__(config, input_device)
-        self.set_config(config)
-        self.input_device = input_device
+        MujocoSim.__init__(self, config, input_device)
+        Robot.__init__(self, config, input_device)
 
     def set_config(self, config: dict):
         self.decimation = config["mujoco"]["decimation"]
