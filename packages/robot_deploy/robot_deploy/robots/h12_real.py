@@ -15,9 +15,7 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_ as LowCmdHG
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
-from robot_deploy.input_devices import InputDevice
 from robot_deploy.robots.robot import Robot
-from robot_deploy.simulators.dds_mujoco import DDSToMujoco
 from robot_deploy.utils.rotation import transform_imu_data
 
 
@@ -55,12 +53,11 @@ class H12Real(Robot):
         "right_wrist_yaw_joint",
     )
 
-    def __init__(self, config: dict, input_device: InputDevice | None):
+    def __init__(self, config: dict):
         with contextlib.suppress(Exception):
             ChannelFactoryInitialize(0, config["real"]["net_interface"])
 
         self.set_config(config)
-        self.input_device = input_device
         self.step_time = time.perf_counter()
 
         self.low_cmd = unitree_hg_msg_dds__LowCmd_()
@@ -75,10 +72,6 @@ class H12Real(Robot):
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
         self.num_joints_total = len(self.low_cmd.motor_cmd)  # type: ignore
-
-        self.use_mujoco = config["real"]["use_mujoco"]
-        if self.use_mujoco:
-            self.simulator = DDSToMujoco(config, self.input_device)
 
         # Wait for the subscriber to receive data
         self.wait_for_low_state()
@@ -115,19 +108,23 @@ class H12Real(Robot):
             self.enabled_joint_idx.append(self.REAL_JOINT_NAME_ORDER.index(joint["name"]))
 
     def initialize(self) -> None:
-        if not self.use_mujoco:
-            self.enter_zero_torque_state()
-            self.wait_for_button("start")
+        print("Moving to default pos.")
 
-            self.move_to_default_pos()
-            self.wait_for_button("A")
-        else:
-            self.set_motor_commands(
-                motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
-                positions=self.default_joint_pos,
-                kps=self.joint_kp,
-                kds=self.joint_kd,
-            )
+        leg_joint_idx = np.arange(0, 12)
+        arm_joint_idx = np.arange(12, 27)
+
+        # First, set legs and raise shoulders to avoid hitting itself
+        # t_pose = np.array([motor.q for motor in self.low_state.motor_state])
+        t_pose = np.array([self.low_state.motor_state[i].q for i in range(27)])
+        t_pose[leg_joint_idx] = self.default_joint_pos[leg_joint_idx]
+        t_pose[self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint")] = 0.6
+        t_pose[self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint")] = -0.6
+        self.move_to_pos(range(27), t_pose, 2)
+
+        # Then set up the default position
+        self.move_to_pos(arm_joint_idx, self.default_joint_pos[arm_joint_idx], 2)
+
+        print("Reached default pos state.")
 
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()
@@ -155,8 +152,6 @@ class H12Real(Robot):
         self.step_time = time.perf_counter()
 
     def should_quit(self) -> bool:
-        if self.input_device is not None:
-            return self.input_device.is_pressed("select")
         return False
 
     def low_state_handler(self, msg: LowStateHG):
@@ -208,12 +203,7 @@ class H12Real(Robot):
         cmd.mode_pr = mode_pr
         for i in range(len(cmd.motor_cmd)):
             cmd.motor_cmd[i].mode = 1
-        self.set_motor_commands(
-            motor_indices=range(self.num_joints_total),
-            positions=np.zeros(self.num_joints_total),
-            kps=np.zeros(self.num_joints_total),
-            kds=np.zeros(self.num_joints_total),
-        )
+        self.enter_zero_torque_state()
 
     def enter_zero_torque_state(self):
         print("Entering zero torque state.")
@@ -235,25 +225,6 @@ class H12Real(Robot):
         )
         self.send_cmd(self.low_cmd)
 
-    def move_to_default_pos(self):
-        print("Moving to default pos.")
-
-        leg_joint_idx = np.arange(0, 12)
-        arm_joint_idx = np.arange(12, 27)
-
-        # First, set legs and raise shoulders to avoid hitting itself
-        # t_pose = np.array([motor.q for motor in self.low_state.motor_state])
-        t_pose = np.array([self.low_state.motor_state[i].q for i in range(27)])
-        t_pose[leg_joint_idx] = self.default_joint_pos[leg_joint_idx]
-        t_pose[self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint")] = 0.6
-        t_pose[self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint")] = -0.6
-        self.move_to_pos(range(27), t_pose, 2)
-
-        # Then set up the default position
-        self.move_to_pos(arm_joint_idx, self.default_joint_pos[arm_joint_idx], 2)
-
-        print("Reached default pos state.")
-
     def move_to_pos(self, joint_idx, pos, duration):
         num_step = int(duration / self.control_dt)
         kp = self.joint_kp[joint_idx]
@@ -273,16 +244,5 @@ class H12Real(Robot):
         self.set_motor_commands(joint_idx, pos, kp, kd)
         self.send_cmd(self.low_cmd)
 
-    def wait_for_button(self, button):
-        if self.input_device is None:
-            return
-        print(f"Waiting to press '{button}'...")
-        while not self.input_device.is_pressed(button):
-            self.send_cmd(self.low_cmd)
-            time.sleep(self.control_dt)
-
-    def close(self, log_dir=None):
-        if self.use_mujoco:
-            self.simulator.close(log_dir)
-        else:
-            self.enter_damping_state()
+    def close(self):
+        self.enter_damping_state()

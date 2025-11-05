@@ -2,6 +2,7 @@ import numpy as np
 import threading
 
 import mujoco
+import mujoco.viewer
 
 from .input_device import Button, InputDevice
 
@@ -12,13 +13,17 @@ class MujocoDevice(InputDevice):
         self.key_pressed = set()
         self.lock = threading.Lock()
 
+        if not hasattr(mujoco.viewer, "key_callbacks"):
+            mujoco.viewer.key_callbacks = []  # type: ignore
+        mujoco.viewer.key_callbacks.append(self.key_callback)  # type: ignore
+
     def get_command(self) -> np.ndarray:
         with self.lock:
             return self.command
 
     def is_pressed(self, *buttons: Button) -> bool:
         with self.lock:
-            return any(button in self.key_pressed for button in buttons)
+            return any(button.lower() in self.key_pressed for button in buttons)
 
     def clear(self) -> None:
         with self.lock:
@@ -40,5 +45,9 @@ class MujocoDevice(InputDevice):
                     self.command[2] += 0.1
                 case glfw.KEY_X | glfw.KEY_KP_9:
                     self.command[2] -= 0.1
+                case glfw.KEY_ENTER:
+                    self.key_pressed.add("start")
+                case glfw.KEY_ESCAPE:
+                    self.key_pressed.add("select")
                 case _:
                     self.key_pressed.add(glfw.get_key_name(key, 0))

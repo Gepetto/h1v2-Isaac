@@ -2,7 +2,6 @@ import numpy as np
 
 import mujoco
 
-from robot_deploy.input_devices import InputDevice
 from robot_deploy.robots.robot import Robot
 from robot_deploy.simulators.sim_mujoco import MujocoSim
 
@@ -11,8 +10,8 @@ class ConfigError(Exception): ...
 
 
 class H12Mujoco(MujocoSim, Robot):
-    def __init__(self, config: dict, input_device: InputDevice):
-        super().__init__(config, input_device)
+    def __init__(self, config: dict):
+        super().__init__(config)
         self.set_config(config)
 
     def set_config(self, config: dict):

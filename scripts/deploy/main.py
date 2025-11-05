@@ -5,6 +5,7 @@ from robot_deploy.controllers.policy_controller import PolicyController
 from robot_deploy.input_devices import MujocoDevice, UnitreeRemoteDevice
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 from robot_deploy.robots.h12_real import H12Real
+from robot_deploy.simulators.dds_mujoco import DDSToMujoco
 
 
 def parse_args():
@@ -22,23 +23,28 @@ if __name__ == "__main__":
     # Set up interface to real robot
     policy_controller = PolicyController(config_path)
     config = policy_controller.get_config()
+    use_bridge = not args.sim and config["real"]["use_mujoco"]
 
-    if args.sim or config["real"]["use_mujoco"]:
-        input_device = MujocoDevice()
-    else:
-        input_device = UnitreeRemoteDevice(config["real"]["net_interface"])
-    robot = H12Mujoco(config, input_device) if args.sim else H12Real(config, input_device)
+    if use_bridge:
+        simulator = DDSToMujoco(config)
 
-    robot.initialize()
+    robot = H12Mujoco(config) if args.sim else H12Real(config)
+    input_device = MujocoDevice() if (args.sim or use_bridge) else UnitreeRemoteDevice(config["real"]["net_interface"])
+
     try:
+        input_device.wait_for("start")
+        robot.initialize()
+        input_device.wait_for("A")
+
+        print("Start control")
         while True:
+            command = input_device.get_command()
             state = robot.get_robot_state()
 
-            command = input_device.get_command()
             q_ref = policy_controller.step(state, command)
             robot.step(q_ref)
 
-            if robot.should_quit():
+            if robot.should_quit() or input_device.is_pressed("select"):
                 break
 
     except KeyboardInterrupt:
@@ -46,4 +52,6 @@ if __name__ == "__main__":
 
     finally:
         robot.close()
+        if use_bridge:
+            simulator.close()
     print("Exit")

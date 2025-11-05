@@ -1,12 +1,10 @@
 import numpy as np
 from abc import ABC, abstractmethod
 
-from robot_deploy.input_devices import InputDevice
-
 
 class Robot(ABC):
     @abstractmethod
-    def __init__(self, config: dict, input_device: InputDevice | None):
+    def __init__(self, config: dict):
         pass
 
     @abstractmethod
@@ -27,4 +25,8 @@ class Robot(ABC):
 
     @abstractmethod
     def should_quit(self) -> bool:
+        pass
+
+    @abstractmethod
+    def close(self):
         pass

@@ -1,13 +1,11 @@
 import numpy as np
 import threading
 import time
-import typing
 
 import mujoco
 import mujoco.viewer
 
 from robot_assets import SCENE_PATHS
-from robot_deploy.input_devices import InputDevice, MujocoDevice
 from robot_deploy.utils.mj_logger import MJLogger
 
 
@@ -36,11 +34,9 @@ class ElasticBand:
 
 
 class MujocoSim:
-    def __init__(self, config: dict, input_device: InputDevice | None):
+    def __init__(self, config: dict):
         mj_config = config["mujoco"]
         scene_path = SCENE_PATHS[mj_config["robot_name"]][mj_config["scene_name"]]
-
-        self.input_device = input_device
 
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
@@ -134,9 +130,6 @@ class MujocoSim:
         self.data.ctrl[self.ctrl_idx] = torques
 
     def get_robot_state(self):
-        if isinstance(self.input_device, MujocoDevice):
-            self.input_device.clear()
-
         with self.sim_lock:
             return {
                 "base_orientation": self.data.qpos[3:7],
@@ -146,25 +139,30 @@ class MujocoSim:
             }
 
     def run_render(self, close_event):
-        if enable_inputs := isinstance(self.input_device, MujocoDevice):
-            key_cb = self.input_device.key_callback
-        else:
-            key_cb = None
+        if not hasattr(mujoco.viewer, "key_callbacks"):
+            mujoco.viewer.key_callbacks = []  # type: ignore
+
+        def key_callback(key):
+            for callback in mujoco.viewer.key_callbacks:  # type: ignore
+                callback(key)
+
+        mujoco.viewer.key_callbacks.append(self.elastic_band_callback)  # type: ignore
         with self.sim_lock:
-            viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
+            viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_callback)
 
         while viewer.is_running() and not close_event.is_set():
             with self.sim_lock:
                 viewer.sync()
 
-            if enable_inputs:
-                self.input_device = typing.cast(MujocoDevice, self.input_device)
-                if self.input_device.is_pressed("b"):
-                    self.elastic_band_enabled = not self.elastic_band_enabled
-                elif self.input_device.is_pressed("i"):
-                    self.elastic_band.length += 0.1
-                elif self.input_device.is_pressed("k"):
-                    self.elastic_band.length -= 0.1
-
             time.sleep(self.render_dt)
         viewer.close()
+
+    def elastic_band_callback(self, key):
+        glfw = mujoco.glfw.glfw  # type: ignore
+        match key:
+            case glfw.KEY_B:
+                self.elastic_band_enabled = not self.elastic_band_enabled
+            case glfw.KEY_I:
+                self.elastic_band.length += 0.1
+            case glfw.KEY_K:
+                self.elastic_band.length = max(0, self.elastic_band.length - 0.1)
