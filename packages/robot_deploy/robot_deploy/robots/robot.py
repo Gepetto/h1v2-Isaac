@@ -5,12 +5,8 @@ from robot_deploy.input_devices import InputDevice
 
 
 class Robot(ABC):
-    def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
-        self.set_config(config)
-        self.input_device = input_device
-
     @abstractmethod
-    def set_config(self, config: dict) -> None:
+    def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         pass
 
     @abstractmethod
@@ -18,11 +14,15 @@ class Robot(ABC):
         pass
 
     @abstractmethod
+    def get_joint_names(self) -> list[str]:
+        pass
+
+    @abstractmethod
     def get_robot_state(self) -> dict:
         pass
 
     @abstractmethod
-    def step(self, q_ref: np.ndarray) -> None:
+    def step(self, dt: float, q_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
         pass
 
     @abstractmethod

@@ -1,12 +1,16 @@
 import numpy as np
 import torch
-import yaml
 from collections import deque
 from pathlib import Path
 
 import onnxruntime as ort
 
+from robot_deploy.controllers.policy import Policy
+from robot_deploy.robots.robot import Robot
 from robot_deploy.utils.rl_logger import RLLogger
+
+
+class ConfigError(Exception): ...
 
 
 class InferenceHandlerONNX:
@@ -18,7 +22,7 @@ class InferenceHandlerONNX:
         observations_unsqueezed = np.expand_dims(observations, axis=0)
         actions = self.ort_sess.run(None, {self.input_name: observations_unsqueezed})[0]
 
-        return actions.flatten()
+        return actions.flatten()  # type: ignore
 
 
 class InferenceHandlerTorch:
@@ -130,43 +134,90 @@ class ActionHandler:
         return self.action_scale * action + self.default_joint_pos
 
 
-class RLPolicy:
-    def __init__(self, policy_path, config, log_data=False):
-        default_joint_pos = np.array([joint["default_joint_pos"] for joint in config["joints"] if joint["enabled"]])
-        history_length = config["history_length"]
-        action_scale = config["action_scale"]
+class RLPolicy(Policy):
+    def __init__(self, robot: Robot, policy_dir: Path, log_data: bool = False):
+        super().__init__(robot, policy_dir, log_data)
+        self._get_joint_config(robot)
+        self.control_dt = self.config["control_dt"]
+
+        enabled_default_joint_pos = self.default_joint_pos[self.enabled_joints_idx]
+        history_length = self.config["history_length"]
+        action_scale = self.config["action_scale"]
 
         command_ranges = {
-            "lower": np.array([cmd_range[0] for cmd_range in config["command_ranges"].values()]),
-            "upper": np.array([cmd_range[1] for cmd_range in config["command_ranges"].values()]),
-            "velocity_deadzone": config["velocity_deadzone"],
+            "lower": np.array([cmd_range[0] for cmd_range in self.config["command_ranges"].values()]),
+            "upper": np.array([cmd_range[1] for cmd_range in self.config["command_ranges"].values()]),
+            "velocity_deadzone": self.config["velocity_deadzone"],
         }
-        observations_func = [obs["name"] for obs in config["observations"]]
-        observations_scale = [obs.get("scale") or 1 for obs in config["observations"]]
+        observations_func = [obs["name"] for obs in self.config["observations"]]
+        observations_scale = [obs.get("scale") or 1 for obs in self.config["observations"]]
 
-        self.log_data = log_data
-        if self.log_data:
-            self.logger = RLLogger()
-
-        if policy_path.endswith(".pt"):
-            self.policy = InferenceHandlerTorch(policy_path=policy_path)
-        elif policy_path.endswith(".onnx"):
-            self.policy = InferenceHandlerONNX(policy_path=policy_path)
+        if self.policy_path.suffix == ".pt":
+            self.policy = InferenceHandlerTorch(policy_path=(self.policy_path))
+        elif self.policy_path.suffix == ".onnx":
+            self.policy = InferenceHandlerONNX(policy_path=str(self.policy_path))
         else:
-            msg = f"Unsupported file extension for policy_path: {policy_path}. Only .pt and .onnx are supported."
+            msg = f"Unsupported file extension for policy_path: {self.policy_path}. Only .pt and .onnx are supported."
             raise ValueError(msg)
         self.observation_handler = ObservationHandler(
             observations_func,
             observations_scale,
             history_length,
-            default_joint_pos,
+            enabled_default_joint_pos,
             command_ranges,
         )
-        self.action_handler = ActionHandler(action_scale, default_joint_pos)
+        self.action_handler = ActionHandler(action_scale, enabled_default_joint_pos)
+        self.actions = np.zeros_like(enabled_default_joint_pos)
 
-        self.actions = np.zeros_like(default_joint_pos)
+        if self.log_data:
+            self.logger = RLLogger()
 
-    def step(self, state, command=None):
+    def step(self, state: dict, command: np.ndarray | None = None) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+        state["qpos"] = state["qpos"][self.enabled_joints_idx]
+        state["qvel"] = state["qvel"][self.enabled_joints_idx]
+
+        q_ref = self._policy_step(state, command)
+        q_whole = self.default_joint_pos.copy()
+        q_whole[self.enabled_joints_idx] = q_ref
+        return self.control_dt, q_whole, self.kps, self.kds
+
+    def save_data(self, log_dir=None):
+        if log_dir is not None:
+            self.logger.save_data(log_dir=log_dir)
+
+    def _get_joint_config(self, robot: Robot) -> None:
+        robot_joints = robot.get_joint_names()
+        num_joints = len(robot_joints)
+        self.kps = np.empty(num_joints)
+        self.kds = np.empty(num_joints)
+        self.default_joint_pos = np.empty(num_joints)
+
+        for joint_id, joint_name in enumerate(robot_joints):
+            joint_config = [joint for joint in self.config["joints"] if joint["name"] == joint_name]
+            if len(joint_config) != 1:
+                if len(joint_config) == 0:
+                    err_msg = f"Joint '{joint_name}' is not set up in the config file"
+                else:
+                    err_msg = f"Found multiple config for joint '{joint_name}' in the config file"
+                raise ConfigError(err_msg)
+            joint_config = joint_config[0]
+            self.kps[joint_id] = joint_config["kp"]
+            self.kds[joint_id] = joint_config["kd"]
+            self.default_joint_pos[joint_id] = joint_config["default_joint_pos"]
+
+        enabled_joints_idx = []
+        for joint in self.config["joints"]:
+            if not joint["enabled"]:
+                continue
+            if joint["name"] not in robot_joints:
+                err_msg = f"Joint '{joint['name']}' is enabled, but cannot be found in the model"
+                raise ConfigError(err_msg)
+
+            joint_id = robot_joints.index(joint["name"])
+            enabled_joints_idx.append(joint_id)
+        self.enabled_joints_idx = np.array(enabled_joints_idx)
+
+    def _policy_step(self, state: dict, command: np.ndarray | None) -> np.ndarray:
         observations = self.observation_handler.get_observations(state, self.actions, command)
         self.actions = self.policy(observations)
 
@@ -174,19 +225,3 @@ class RLPolicy:
             self.logger.record_metrics(observations=observations, actions=self.actions)
 
         return self.action_handler.get_scaled_action(self.actions)
-
-    def save_data(self, log_dir=None):
-        if log_dir is not None:
-            self.logger.save_data(log_dir=log_dir)
-
-
-if __name__ == "__main__":
-    config_path = Path(__file__).parent / "config" / "config.yaml"
-    with config_path.open() as file:
-        config = yaml.safe_load(file)
-
-    policy_path = str(Path(__file__).parent / "config" / "agent_model.onnx")
-    policy = RLPolicy(policy_path, config["rl"])
-
-    state = np.zeros(12 * 2 + 7 + 6)
-    print(policy.step(state))

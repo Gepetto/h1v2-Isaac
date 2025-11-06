@@ -56,6 +56,7 @@ class H12Real(Robot):
 
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         super().__init__(config, input_device)
+        self.input_device = input_device
 
         with contextlib.suppress(Exception):
             ChannelFactoryInitialize(0, config["real"]["net_interface"])
@@ -80,34 +81,8 @@ class H12Real(Robot):
 
         self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
 
-    def set_config(self, config: dict):
-        self.control_dt = config["control_dt"]
-
-        joints = config["joints"]
-        config_joint_names = [joint["name"] for joint in joints]
-
-        num_joints = len(self.REAL_JOINT_NAME_ORDER)
-        self.joint_kp = np.empty(num_joints)
-        self.joint_kd = np.empty(num_joints)
-        self.default_joint_pos = np.empty(num_joints)
-        for joint_id in range(num_joints):
-            joint_name = self.REAL_JOINT_NAME_ORDER[joint_id]
-            if joint_name not in config_joint_names:
-                err_msg = f"Joint '{joint_name}' is not set up in the config file"
-                raise ConfigError(err_msg)
-            joint_config = joints[config_joint_names.index(joint_name)]
-            self.joint_kp[joint_id] = joint_config["kp"]
-            self.joint_kd[joint_id] = joint_config["kd"]
-            self.default_joint_pos[joint_id] = joint_config["default_joint_pos"]
-
-        self.enabled_joint_idx = []
-        for joint in joints:
-            if not joint["enabled"]:
-                continue
-            if joint["name"] not in self.REAL_JOINT_NAME_ORDER:
-                err_msg = f"Joint '{joint['name']}' is enabled, but cannot be found in the model"
-                raise ConfigError(err_msg)
-            self.enabled_joint_idx.append(self.REAL_JOINT_NAME_ORDER.index(joint["name"]))
+    def get_joint_names(self) -> list[str]:
+        return list(self.REAL_JOINT_NAME_ORDER)
 
     def initialize(self) -> None:
         if self.input_device is not None:
@@ -115,19 +90,42 @@ class H12Real(Robot):
 
         print("Moving to default pos.")
 
-        leg_joint_idx = np.arange(0, 12)
-        arm_joint_idx = np.arange(12, 27)
+        # fmt: off
+        default_joint_pos = np.array([
+            0.0, -0.16, 0.0, 0.36, -0.2, 0.0,   # Left lower body
+            0.0, -0.16, 0.0, 0.36, -0.2, 0.0,   # Right lower body
+            0.0,                                # Torso
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Left upper body
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,  # Right upper body
+        ])
+        init_kps = np.array([
+            200.0, 200.0, 200.0, 300.0, 40.0, 40.0,
+            200.0, 200.0, 200.0, 300.0, 40.0, 40.0,
+            300.0,
+            120.0, 120.0, 120.0, 80.0, 80.0, 80.0, 80.0,
+            120.0, 120.0, 120.0, 80.0, 80.0, 80.0, 80.0,
+        ])
+        init_kds = np.array([
+            2.5, 2.5, 2.5, 4.0, 2.0, 2.0,
+            2.5, 2.5, 2.5, 4.0, 2.0, 2.0,
+            3.0,
+            2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0,
+            2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0,
+        ])
+        # fmt: on
 
         # First, set legs and raise shoulders to avoid hitting itself
-        # t_pose = np.array([motor.q for motor in self.low_state.motor_state])
-        t_pose = np.array([self.low_state.motor_state[i].q for i in range(27)])
-        t_pose[leg_joint_idx] = self.default_joint_pos[leg_joint_idx]
-        t_pose[self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint")] = 0.6
-        t_pose[self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint")] = -0.6
-        self.move_to_pos(range(27), t_pose, 2)
+        shoulder_idx = [
+            self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint"),
+            self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint"),
+        ]
+        t_pose = default_joint_pos.copy()
+        t_pose[shoulder_idx[0]] = 0.6
+        t_pose[shoulder_idx[1]] = -0.6
+        self.move_to_pos(range(27), t_pose, init_kps, init_kds, 0.02, 2)
 
         # Then set up the default position
-        self.move_to_pos(arm_joint_idx, self.default_joint_pos[arm_joint_idx], 2)
+        self.move_to_pos(shoulder_idx, default_joint_pos[shoulder_idx], init_kps, init_kds, 0.02, 1.5)
 
         print("Reached default pos state.")
         if self.input_device is not None:
@@ -144,16 +142,16 @@ class H12Real(Robot):
             "qvel": qvel,
         }
 
-    def step(self, q_ref):
+    def step(self, dt: float, q_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
         self.set_motor_commands(
-            self.enabled_joint_idx,
-            q_ref,
-            self.joint_kp[self.enabled_joint_idx],
-            self.joint_kd[self.enabled_joint_idx],
+            motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
+            positions=q_ref,
+            kps=kps,
+            kds=kds,
         )
         self.send_cmd(self.low_cmd)
 
-        time_to_wait = self.control_dt - (time.perf_counter() - self.step_time)
+        time_to_wait = dt - (time.perf_counter() - self.step_time)
         if time_to_wait > 0:
             time.sleep(time_to_wait)
         self.step_time = time.perf_counter()
@@ -169,7 +167,7 @@ class H12Real(Robot):
 
     def wait_for_low_state(self):
         while self.low_state.tick == 0:
-            time.sleep(self.control_dt)
+            time.sleep(0.02)
         print("Successfully connected to the robot.")
 
     def set_motor_commands(self, motor_indices, positions, kps, kds):
@@ -198,12 +196,12 @@ class H12Real(Robot):
         )
 
     def _get_joint_state(self):
-        n = len(self.enabled_joint_idx)
-        qpos = np.empty(n)
-        qvel = np.empty(n)
-        for i in range(n):
-            qpos[i] = self.low_state.motor_state[self.enabled_joint_idx[i]].q
-            qvel[i] = self.low_state.motor_state[self.enabled_joint_idx[i]].dq
+        num_joints = len(self.REAL_JOINT_NAME_ORDER)
+        qpos = np.empty(num_joints)
+        qvel = np.empty(num_joints)
+        for i in range(num_joints):
+            qpos[i] = self.low_state.motor_state[i].q
+            qvel[i] = self.low_state.motor_state[i].dq
 
         return (qpos, qvel)
 
@@ -234,10 +232,8 @@ class H12Real(Robot):
         )
         self.send_cmd(self.low_cmd)
 
-    def move_to_pos(self, joint_idx, pos, duration):
-        num_step = int(duration / self.control_dt)
-        kp = self.joint_kp[joint_idx]
-        kd = self.joint_kd[joint_idx]
+    def move_to_pos(self, joint_idx, pos, kps, kds, dt, duration):
+        num_step = int(duration / dt)
 
         # Record the current pos
         init_dof_pos = np.array([self.low_state.motor_state[i].q for i in joint_idx])
@@ -246,11 +242,10 @@ class H12Real(Robot):
         for i in range(num_step):
             alpha = i / num_step
             target_pos = init_dof_pos * (1 - alpha) + pos * alpha
-            self.set_motor_commands(joint_idx, target_pos, kp, kd)
+            self.set_motor_commands(joint_idx, target_pos, kps, kds)
             self.send_cmd(self.low_cmd)
-            time.sleep(self.control_dt)
-
-        self.set_motor_commands(joint_idx, pos, kp, kd)
+            time.sleep(dt)
+        self.set_motor_commands(joint_idx, pos, kps, kds)
         self.send_cmd(self.low_cmd)
 
     def close(self):

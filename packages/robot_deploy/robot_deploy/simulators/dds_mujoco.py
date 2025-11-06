@@ -2,6 +2,7 @@ import argparse
 import contextlib
 import threading
 import time
+import yaml
 from pathlib import Path
 
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelPublisher, ChannelSubscriber
@@ -9,7 +10,6 @@ from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowState_ as LowState
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
-from robot_deploy.controllers.policy_controller import PolicyController
 from robot_deploy.input_devices import InputDevice
 from robot_deploy.simulators.sim_mujoco import MujocoSim
 
@@ -18,11 +18,12 @@ TOPIC_LOWSTATE = "rt/lowstate"
 
 
 class DDSToMujoco:
-    def __init__(self, config: dict, input_device: InputDevice | None = None):
+    def __init__(self, config: dict, sim_dt: float, input_device: InputDevice | None = None):
         config["mujoco"]["real_time"] = True
-        self.simulator = MujocoSim(config, input_device)
+        self.simulator = MujocoSim(config["mujoco"], input_device)
 
-        self.num_motor = len(config["joints"])
+        self.sim_dt = sim_dt
+        self.num_motor = self.simulator.model.nu
 
         with contextlib.suppress(Exception):
             ChannelFactoryInitialize(0, config["real"]["net_interface"])
@@ -42,7 +43,7 @@ class DDSToMujoco:
         self.close_event = threading.Event()
         self.sim_thread = threading.Thread(target=self.run_sim, args=(self.close_event,))
 
-        self.state_thread = RecurrentThread(interval=config["control_dt"] / 5, target=self.publish_low_state)
+        self.state_thread = RecurrentThread(interval=sim_dt, target=self.publish_low_state)
 
         self.sim_thread.start()
         self.state_thread.Start()
@@ -88,7 +89,7 @@ class DDSToMujoco:
     def run_sim(self, close_event):
         while not close_event.is_set():
             torques = self.pd_control()
-            self.simulator.sim_step(torques)
+            self.simulator.sim_step(self.sim_dt, torques)
 
     def close(self, log_dir=None):
         self.simulator.close(log_dir)
@@ -101,11 +102,10 @@ if __name__ == "__main__":
     parser.add_argument("config_path", type=Path, help="Path to config file")
     args = parser.parse_args()
 
-    config_path = args.config_path
-    policy_controller = PolicyController(config_path)
-    config = policy_controller.get_config()
+    with args.config_path.open() as file:
+        config = yaml.safe_load(file)
 
-    simulator = DDSToMujoco(config)
+    simulator = DDSToMujoco(config, 0.001)
     print("Running Mujoco simulator")
     try:
         while True:

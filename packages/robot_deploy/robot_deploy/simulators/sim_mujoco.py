@@ -45,28 +45,26 @@ class ElasticBand:
 
 class MujocoSim:
     def __init__(self, config: dict, input_device: InputDevice | None = None):
-        mj_config = config["mujoco"]
-        scene_path = SCENE_PATHS[mj_config["robot_name"]][mj_config["scene_name"]]
+        scene_path = SCENE_PATHS[config["robot_name"]][config["scene_name"]]
 
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
-        self.model.opt.timestep = config["control_dt"] / mj_config["decimation"]
         self.current_time = 0
-        self.episode_length = mj_config["episode_length"]
+        self.episode_length = config["episode_length"]
         self.data = mujoco.MjData(self.model)
 
-        self.real_time = mj_config["real_time"]
-        self.render_dt = mj_config["render_dt"]
+        self.real_time = config["real_time"]
+        self.render_dt = config["render_dt"]
 
         self.sim_lock = threading.Lock()
 
-        self.log_data = mj_config["log_data"]
+        self.log_data = config["log_data"]
         if self.log_data:
             self.logger = MJLogger(self.model, self.data)
             self.logger.record_limits()
 
         # Enable the weld constraint
-        self.model.eq_active0[0] = 1 if mj_config["fix_base"] else 0
+        self.model.eq_active0[0] = 1 if config["fix_base"] else 0
 
         self.reset()
 
@@ -92,7 +90,7 @@ class MujocoSim:
                 raise ConfigError(err_msg)
             self.ctrl_idx[jnt_id - 1] = act_id
 
-        self.elastic_band = ElasticBand(mj_config["elastic_band"])
+        self.elastic_band = ElasticBand(config["elastic_band"])
         self.band_attached_link = self.model.body("torso_link").id
 
         if input_device is not None:
@@ -100,7 +98,7 @@ class MujocoSim:
             input_device.bind(Button.L1, self.elastic_band.shrink)
             input_device.bind(Button.R1, self.elastic_band.extend)
 
-        self.enable_GUI = mj_config["enable_GUI"]
+        self.enable_GUI = config["enable_GUI"]
         if self.enable_GUI:
             self.close_event = threading.Event()
             key_callback = input_device.key_callback if isinstance(input_device, MujocoDevice) else None
@@ -111,7 +109,8 @@ class MujocoSim:
         with self.sim_lock:
             mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
 
-    def sim_step(self, torques):
+    def sim_step(self, dt, torques):
+        self.model.opt.timestep = dt
         step_start = time.perf_counter()
         with self.sim_lock:
             self._apply_torques(torques)
