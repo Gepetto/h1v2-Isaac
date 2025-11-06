@@ -6,7 +6,7 @@ import mujoco
 import mujoco.viewer
 
 from robot_assets import SCENE_PATHS
-from robot_deploy.input_devices import Button, InputDevice
+from robot_deploy.input_devices import Button, InputDevice, MujocoDevice
 from robot_deploy.utils.mj_logger import MJLogger
 
 
@@ -103,7 +103,8 @@ class MujocoSim:
         self.enable_GUI = mj_config["enable_GUI"]
         if self.enable_GUI:
             self.close_event = threading.Event()
-            self.viewer_thread = threading.Thread(target=self.run_render, args=(self.close_event, input_device))
+            key_callback = input_device.key_callback if isinstance(input_device, MujocoDevice) else None
+            self.viewer_thread = threading.Thread(target=self.run_render, args=(self.close_event, key_callback))
             self.viewer_thread.start()
 
     def reset(self):
@@ -152,10 +153,9 @@ class MujocoSim:
                 "qvel": self.data.qvel[6:],
             }
 
-    def run_render(self, close_event, input_device):
-        key_cb = input_device.key_callback if input_device is not None else None
+    def run_render(self, close_event, key_callback):
         with self.sim_lock:
-            viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_cb)
+            viewer = mujoco.viewer.launch_passive(self.model, self.data, key_callback=key_callback)
 
         while viewer.is_running() and not close_event.is_set():
             with self.sim_lock:
