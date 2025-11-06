@@ -28,7 +28,7 @@ class ElasticBand:
         self.length += 0.1
 
     def shrink(self):
-        self.length = max(0, self.length - 0.1)
+        self.length -= 0.1
 
     def advance(self, x, v):
         """
