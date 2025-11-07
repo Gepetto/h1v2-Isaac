@@ -3,7 +3,7 @@ import yaml
 from pathlib import Path
 
 from robot_deploy.controllers.policy_controller import PolicyController
-from robot_deploy.input_devices import MujocoDevice, UnitreeRemoteDevice
+from robot_deploy.input_devices import Button, MujocoDevice, UnitreeRemoteDevice
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 from robot_deploy.robots.h12_real import H12Real
 from robot_deploy.simulators.dds_mujoco import DDSToMujoco
@@ -51,6 +51,9 @@ if __name__ == "__main__":
 
     robot = H12Mujoco(config, input_device) if args.sim else H12Real(config, input_device)
     policy_controller = PolicyController(robot, policy_dir, config["policy_names"])
+
+    input_device.bind(Button.L1, policy_controller.select_prev_policy)
+    input_device.bind(Button.R1, policy_controller.select_next_policy)
 
     try:
         robot.initialize()
