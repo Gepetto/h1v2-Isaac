@@ -3,7 +3,7 @@ import yaml
 from pathlib import Path
 
 from robot_deploy.controllers.policy_controller import PolicyController
-from robot_deploy.input_devices import Button, MujocoDevice, UnitreeRemoteDevice
+from robot_deploy.input_devices import Button, GamepadDevice, MujocoDevice, UnitreeRemoteDevice
 from robot_deploy.robots.h12_mujoco import H12Mujoco
 from robot_deploy.robots.h12_real import H12Real
 from robot_deploy.simulators.dds_mujoco import DDSToMujoco
@@ -45,7 +45,13 @@ if __name__ == "__main__":
     config = load_config(config_path)
 
     use_bridge = not args.sim and config["real"]["use_mujoco"]
-    input_device = MujocoDevice() if (args.sim or use_bridge) else UnitreeRemoteDevice(config["real"]["net_interface"])
+    if not (args.sim or use_bridge):
+        input_device = UnitreeRemoteDevice(config["real"]["net_interface"])
+    else:
+        try:
+            input_device = GamepadDevice()
+        except ConnectionError:
+            input_device = MujocoDevice()
     if use_bridge:
         simulator = DDSToMujoco(config, 0.001, input_device)
 
@@ -73,6 +79,7 @@ if __name__ == "__main__":
         print("Interruption")
 
     finally:
+        input_device.close()
         robot.close()
         if use_bridge:
             simulator.close()

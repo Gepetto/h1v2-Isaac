@@ -52,3 +52,6 @@ class InputDevice(ABC):
         print(f"Waiting for button {button_repr}...")
         while not self.is_pressed(*buttons):
             time.sleep(0.02)
+
+    def close(self) -> None:  # noqa
+        pass
