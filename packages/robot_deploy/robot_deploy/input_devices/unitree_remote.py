@@ -30,6 +30,7 @@ REMOTE_BUTTON_ORDER = [
 class UnitreeRemoteDevice(InputDevice):
     def __init__(self, net_interface: str | None) -> None:
         super().__init__()
+        self.button_press = [False] * len(Button)
 
         self.lx = 0
         self.ly = 0
@@ -46,15 +47,24 @@ class UnitreeRemoteDevice(InputDevice):
         with self.lock:
             return np.clip([self.ly, -self.lx, -self.rx], -1, 1)
 
+    def is_pressed(self, *buttons: Button) -> bool:
+        with self.lock:
+            return any(self.button_press[button.value] for button in buttons)
+
     def _read_command_cb(self, msg: LowStateHG) -> None:
         data = msg.wireless_remote
         keys = struct.unpack("H", data[2:4])[0]
+        callback_fns = []
         with self.lock:
             for i, button in enumerate(REMOTE_BUTTON_ORDER):
                 if keys & (1 << i):
-                    self._press_button(button)
+                    self.button_press[button.value] = True
+                    callback_fns.extend(self.bindings[button.value])
 
             self.lx = struct.unpack("f", data[4:8])[0]
             self.rx = struct.unpack("f", data[8:12])[0]
             self.ry = struct.unpack("f", data[12:16])[0]
             self.ly = struct.unpack("f", data[20:24])[0]
+
+        for callback in callback_fns:
+            callback()

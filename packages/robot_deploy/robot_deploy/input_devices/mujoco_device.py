@@ -22,6 +22,7 @@ BUTTON_RESET_TIME = 0.1
 class MujocoDevice(InputDevice):
     def __init__(self) -> None:
         super().__init__()
+        self.button_press = [False] * len(Button)
         self.command = np.zeros(3)
         self.last_press_times = [time.perf_counter()] * len(Button)
 
@@ -36,13 +37,10 @@ class MujocoDevice(InputDevice):
             for i in range(len(Button)):
                 if self.button_press[i] and press_time - self.last_press_times[i] > BUTTON_RESET_TIME:
                     self.button_press[i] = False
-        return super().is_pressed(*buttons)
-
-    def _press_button(self, button) -> None:
-        super()._press_button(button)
-        self.last_press_times[button.value] = time.perf_counter()
+        return any(self.button_press[button.value] for button in buttons)
 
     def key_callback(self, key) -> None:
+        callback_fns = []
         with self.lock:
             match key:
                 case glfw.KEY_UP | glfw.KEY_KP_8:
@@ -59,4 +57,11 @@ class MujocoDevice(InputDevice):
                     self.command[2] -= 0.1
 
             if key in BUTTON_KEYMAP:
-                self._press_button(BUTTON_KEYMAP[key])
+                button = BUTTON_KEYMAP[key]
+                self.button_press[button.value] = True
+                self.last_press_times[button.value] = time.perf_counter()
+                callback_fns = self.bindings[button.value]
+
+        # Run callbacks after releasing the lock
+        for callback in callback_fns:
+            callback()

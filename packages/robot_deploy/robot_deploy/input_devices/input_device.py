@@ -33,7 +33,6 @@ class Button(Enum):
 
 class InputDevice(ABC):
     def __init__(self) -> None:
-        self.button_press = [False] * len(Button)
         self.bindings = [[] for _ in Button]
         self.lock = Lock()
 
@@ -41,9 +40,9 @@ class InputDevice(ABC):
     def get_command(self) -> np.ndarray:
         pass
 
+    @abstractmethod
     def is_pressed(self, *buttons: Button) -> bool:
-        with self.lock:
-            return any(self.button_press[button.value] for button in buttons)
+        pass
 
     def bind(self, button: Button, callback: Callable[[], None]) -> None:
         self.bindings[button.value].append(callback)
@@ -53,9 +52,3 @@ class InputDevice(ABC):
         print(f"Waiting for button {button_repr}...")
         while not self.is_pressed(*buttons):
             time.sleep(0.02)
-
-    def _press_button(self, button) -> None:
-        # Don't get lock as this is called in functions that already get it
-        self.button_press[button.value] = True
-        for callback in self.bindings[button.value]:
-            callback()
