@@ -25,6 +25,10 @@ class MujocoDevice(InputDevice):
         with self.lock:
             return self.command
 
+    def wait_for(self, *buttons: Button) -> None:
+        self.button_press = [False] * len(Button)
+        super().wait_for(*buttons)
+
     def key_callback(self, key) -> None:
         with self.lock:
             match key:
