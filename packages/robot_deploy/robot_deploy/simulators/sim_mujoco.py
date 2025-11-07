@@ -50,6 +50,7 @@ class MujocoSim:
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
         self.current_time = 0
+        self.step_time = time.perf_counter()
         self.episode_length = config["episode_length"]
         self.data = mujoco.MjData(self.model)
 
@@ -111,7 +112,6 @@ class MujocoSim:
 
     def sim_step(self, dt, torques):
         self.model.opt.timestep = dt
-        step_start = time.perf_counter()
         with self.sim_lock:
             self._apply_torques(torques)
             if self.log_data:
@@ -126,8 +126,10 @@ class MujocoSim:
                 )
 
         if self.real_time:
-            time_to_wait = max(0, step_start - time.perf_counter() + self.model.opt.timestep)
-            time.sleep(time_to_wait)
+            time_to_wait = dt - (time.perf_counter() - self.step_time)
+            if time_to_wait > 0:
+                time.sleep(time_to_wait)
+            self.step_time = time.perf_counter()
 
         self.current_time += self.model.opt.timestep
 
