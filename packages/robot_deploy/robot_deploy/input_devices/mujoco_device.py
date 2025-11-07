@@ -6,8 +6,10 @@ import glfw
 from .input_device import Button, InputDevice
 
 BUTTON_KEYMAP = {
-    glfw.KEY_R: Button.R1,
-    glfw.KEY_L: Button.L1,
+    glfw.KEY_J: Button.L1,
+    glfw.KEY_K: Button.R1,
+    glfw.KEY_I: Button.L2,
+    glfw.KEY_O: Button.R2,
     glfw.KEY_ENTER: Button.start,
     glfw.KEY_ESCAPE: Button.select,
     glfw.KEY_A: Button.A,

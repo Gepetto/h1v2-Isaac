@@ -96,8 +96,8 @@ class MujocoSim:
 
         if input_device is not None:
             input_device.bind(Button.B, self.elastic_band.toggle)
-            input_device.bind(Button.L1, self.elastic_band.shrink)
-            input_device.bind(Button.R1, self.elastic_band.extend)
+            input_device.bind(Button.L2, self.elastic_band.shrink)
+            input_device.bind(Button.R2, self.elastic_band.extend)
 
         self.enable_GUI = config["enable_GUI"]
         if self.enable_GUI:
