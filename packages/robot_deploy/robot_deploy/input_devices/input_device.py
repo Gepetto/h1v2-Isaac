@@ -35,7 +35,6 @@ class InputDevice(ABC):
     def __init__(self) -> None:
         self.button_press = [False] * len(Button)
         self.bindings = [[] for _ in Button]
-
         self.lock = Lock()
 
     @abstractmethod
@@ -43,13 +42,8 @@ class InputDevice(ABC):
         pass
 
     def is_pressed(self, *buttons: Button) -> bool:
-        button_pressed = False
         with self.lock:
-            for button in buttons:
-                if self.button_press[button.value]:
-                    button_pressed = True
-                    self.button_press[button.value] = False
-        return button_pressed
+            return any(self.button_press[button.value] for button in buttons)
 
     def bind(self, button: Button, callback: Callable[[], None]) -> None:
         self.bindings[button.value].append(callback)
@@ -58,9 +52,10 @@ class InputDevice(ABC):
         button_repr = " | ".join([f"'{button}'" for button in buttons])
         print(f"Waiting for button {button_repr}...")
         while not self.is_pressed(*buttons):
-            time.sleep(0.1)
+            time.sleep(0.02)
 
     def _press_button(self, button) -> None:
+        # Don't get lock as this is called in functions that already get it
         self.button_press[button.value] = True
         for callback in self.bindings[button.value]:
             callback()

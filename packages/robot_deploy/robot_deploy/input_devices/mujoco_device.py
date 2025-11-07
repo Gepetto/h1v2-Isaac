@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 import glfw
 
@@ -15,19 +16,31 @@ BUTTON_KEYMAP = {
     glfw.KEY_Y: Button.Y,
 }
 
+BUTTON_RESET_TIME = 0.1
+
 
 class MujocoDevice(InputDevice):
     def __init__(self) -> None:
         super().__init__()
         self.command = np.zeros(3)
+        self.last_press_times = [time.perf_counter()] * len(Button)
 
     def get_command(self) -> np.ndarray:
         with self.lock:
             return self.command
 
-    def wait_for(self, *buttons: Button) -> None:
-        self.button_press = [False] * len(Button)
-        super().wait_for(*buttons)
+    def is_pressed(self, *buttons: Button) -> bool:
+        with self.lock:
+            # Reset all buttons that have been pressed more than BUTTON_RESET_TIME ago
+            press_time = time.perf_counter()
+            for i in range(len(Button)):
+                if self.button_press[i] and press_time - self.last_press_times[i] > BUTTON_RESET_TIME:
+                    self.button_press[i] = False
+        return super().is_pressed(*buttons)
+
+    def _press_button(self, button) -> None:
+        super()._press_button(button)
+        self.last_press_times[button.value] = time.perf_counter()
 
     def key_callback(self, key) -> None:
         with self.lock:
