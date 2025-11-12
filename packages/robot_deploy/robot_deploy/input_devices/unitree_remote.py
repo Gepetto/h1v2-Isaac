@@ -57,9 +57,11 @@ class UnitreeRemoteDevice(InputDevice):
         callback_fns = []
         with self.lock:
             for i, button in enumerate(REMOTE_BUTTON_ORDER):
-                if keys & (1 << i):
-                    self.button_press[button.value] = True
+                key_pressed = bool(keys & (1 << i))
+                # Only run callbacks when button was not pressed on previous timestep
+                if key_pressed and not self.button_press[button.value]:
                     callback_fns.extend(self.bindings[button.value])
+                self.button_press[button.value] = key_pressed
 
             self.lx = struct.unpack("f", data[4:8])[0]
             self.rx = struct.unpack("f", data[8:12])[0]
