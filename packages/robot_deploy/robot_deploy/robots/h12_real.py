@@ -129,7 +129,11 @@ class H12Real(Robot):
 
         print("Reached default pos state.")
         if self.input_device is not None:
-            self.input_device.wait_for(Button.A)
+            # We must send commands to the robot so that it doesn't go into safety mode
+            print("Waiting for button A...")
+            while not self.input_device.is_pressed(Button.A):
+                self.send_cmd(self.low_cmd)
+                time.sleep(0.02)
 
     def get_robot_state(self):
         base_orientation, base_angular_vel = self._get_base_state()
