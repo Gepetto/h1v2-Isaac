@@ -27,9 +27,9 @@ class H12Mujoco(MujocoSim, Robot):
         if self.input_device is not None:
             self.input_device.wait_for(Button.start)
 
-    def step(self, dt: float, q_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
+    def step(self, dt: float, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
         for _ in range(self.decimation):
-            torques = self._pd_control(q_ref, kps, kds)
+            torques = self._pd_control(q_ref, dq_ref, kps, kds)
             self.sim_step(dt / self.decimation, torques)
 
     def should_quit(self) -> bool:
@@ -37,9 +37,9 @@ class H12Mujoco(MujocoSim, Robot):
             return self.input_device.is_pressed(Button.select)
         return self.current_time > self.episode_length
 
-    def _pd_control(self, q_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> np.ndarray:
+    def _pd_control(self, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> np.ndarray:
         state = super().get_robot_state()
 
         q_err = q_ref - state["qpos"]
-        q_err_dot = np.zeros_like(q_ref) - state["qvel"]
+        q_err_dot = dq_ref - state["qvel"]
         return kps * q_err + kds * q_err_dot

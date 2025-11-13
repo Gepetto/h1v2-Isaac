@@ -172,14 +172,17 @@ class RLPolicy(Policy):
         if self.log_data:
             self.logger = RLLogger()
 
-    def step(self, state: dict, command: np.ndarray | None = None) -> tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+    def step(
+        self, state: dict, command: np.ndarray | None = None
+    ) -> tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         state["qpos"] = state["qpos"][self.enabled_joints_idx]
         state["qvel"] = state["qvel"][self.enabled_joints_idx]
 
         q_ref = self._policy_step(state, command)
         q_whole = self.default_joint_pos.copy()
         q_whole[self.enabled_joints_idx] = q_ref
-        return self.control_dt, q_whole, self.kps, self.kds
+        dq_ref = np.zeros_like(q_whole)
+        return self.control_dt, q_whole, dq_ref, self.kps, self.kds
 
     def save_data(self, log_dir=None):
         if log_dir is not None:

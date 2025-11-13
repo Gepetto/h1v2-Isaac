@@ -69,8 +69,8 @@ if __name__ == "__main__":
             command = input_device.get_command()
             state = robot.get_robot_state()
 
-            dt, q_ref, kps, kds = policy_controller.step(state, command)
-            robot.step(dt, q_ref, kps, kds)
+            dt, q_ref, dq_ref, kps, kds = policy_controller.step(state, command)
+            robot.step(dt, q_ref, dq_ref, kps, kds)
 
             if robot.should_quit():
                 break

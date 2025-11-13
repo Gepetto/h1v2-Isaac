@@ -22,7 +22,7 @@ class Robot(ABC):
         pass
 
     @abstractmethod
-    def step(self, dt: float, q_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
+    def step(self, dt: float, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
         pass
 
     @abstractmethod

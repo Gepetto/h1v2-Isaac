@@ -142,10 +142,11 @@ class H12Real(Robot):
             "qvel": qvel,
         }
 
-    def step(self, dt: float, q_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
+    def step(self, dt: float, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
         self.set_motor_commands(
             motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
             positions=q_ref,
+            velocities=dq_ref,
             kps=kps,
             kds=kds,
         )
@@ -170,10 +171,10 @@ class H12Real(Robot):
             time.sleep(0.02)
         print("Successfully connected to the robot.")
 
-    def set_motor_commands(self, motor_indices, positions, kps, kds):
+    def set_motor_commands(self, motor_indices, positions, velocities, kps, kds):
         for i, motor_idx in enumerate(motor_indices):
             self.low_cmd.motor_cmd[motor_idx].q = positions[i]
-            self.low_cmd.motor_cmd[motor_idx].dq = 0
+            self.low_cmd.motor_cmd[motor_idx].dq = velocities[i]
             self.low_cmd.motor_cmd[motor_idx].kp = kps[i]
             self.low_cmd.motor_cmd[motor_idx].kd = kds[i]
             self.low_cmd.motor_cmd[motor_idx].tau = 0
@@ -217,6 +218,7 @@ class H12Real(Robot):
         self.set_motor_commands(
             motor_indices=range(self.num_joints_total),
             positions=np.zeros(self.num_joints_total),
+            velocities=np.zeros(self.num_joints_total),
             kps=np.zeros(self.num_joints_total),
             kds=np.zeros(self.num_joints_total),
         )
@@ -227,6 +229,7 @@ class H12Real(Robot):
         self.set_motor_commands(
             motor_indices=range(self.num_joints_total),
             positions=np.zeros(self.num_joints_total),
+            velocities=np.zeros(self.num_joints_total),
             kps=np.zeros(self.num_joints_total),
             kds=8 * np.ones(self.num_joints_total),
         )
@@ -242,10 +245,10 @@ class H12Real(Robot):
         for i in range(num_step):
             alpha = i / num_step
             target_pos = init_dof_pos * (1 - alpha) + pos * alpha
-            self.set_motor_commands(joint_idx, target_pos, kps, kds)
+            self.set_motor_commands(joint_idx, target_pos, np.zeros_like(target_pos), kps, kds)
             self.send_cmd(self.low_cmd)
             time.sleep(dt)
-        self.set_motor_commands(joint_idx, pos, kps, kds)
+        self.set_motor_commands(joint_idx, pos, np.zeros_like(pos), kps, kds)
         self.send_cmd(self.low_cmd)
 
     def close(self):
