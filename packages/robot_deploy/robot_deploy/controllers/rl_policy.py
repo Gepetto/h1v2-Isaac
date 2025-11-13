@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import yaml
 from collections import deque
 from pathlib import Path
 
@@ -136,8 +137,11 @@ class ActionHandler:
 
 class RLPolicy(Policy):
     def __init__(self, robot: Robot, policy_dir: Path, log_data: bool = False):
-        super().__init__(robot, policy_dir, log_data)
+        self._load_config(policy_dir)
+        self._get_policy_path(policy_dir)
         self._get_joint_config(robot)
+
+        self.log_data = log_data
         self.control_dt = self.config["control_dt"]
 
         enabled_default_joint_pos = self.default_joint_pos[self.enabled_joints_idx]
@@ -187,6 +191,25 @@ class RLPolicy(Policy):
     def save_data(self, log_dir=None):
         if log_dir is not None:
             self.logger.save_data(log_dir=log_dir)
+
+    def _load_config(self, policy_dir: Path):
+        config_path = policy_dir / "env.yaml"
+        if not config_path.exists():
+            err_msg = f'No policy config `env.yaml` found in directory "{policy_dir}"'
+            raise ConfigError(err_msg)
+
+        with config_path.open() as f:
+            self.config = yaml.load(f, Loader=yaml.UnsafeLoader)
+
+    def _get_policy_path(self, policy_dir: Path) -> None:
+        policy_paths = [path for path in policy_dir.iterdir() if path.is_file() and path.suffix in (".pt", ".onnx")]
+        if len(policy_paths) != 1:
+            if len(policy_paths) == 0:
+                err_msg = f'No policy file found in directory "{policy_dir}" (no `.pt` or `.onnx` file)'
+            else:
+                err_msg = f'Multiple policy file found in directory "{policy_dir}": {", ".join(map(str, policy_paths))}'
+            raise ConfigError(err_msg) from None
+        self.policy_path = policy_paths[0]
 
     def _get_joint_config(self, robot: Robot) -> None:
         robot_joints = robot.get_joint_names()
