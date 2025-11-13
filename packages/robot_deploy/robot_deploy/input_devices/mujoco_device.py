@@ -24,22 +24,18 @@ BUTTON_RESET_TIME = 0.1
 class MujocoDevice(InputDevice):
     def __init__(self) -> None:
         super().__init__()
-        self.button_press = [False] * len(Button)
         self.command = np.zeros(3)
-        self.last_press_times = [time.perf_counter()] * len(Button)
+        self.last_press_times = [0.0] * len(Button)
 
     def get_command(self) -> np.ndarray:
         with self.lock:
             return self.command
 
     def is_pressed(self, *buttons: Button) -> bool:
+        press_time = time.perf_counter()
         with self.lock:
-            # Reset all buttons that have been pressed more than BUTTON_RESET_TIME ago
-            press_time = time.perf_counter()
-            for i in range(len(Button)):
-                if self.button_press[i] and press_time - self.last_press_times[i] > BUTTON_RESET_TIME:
-                    self.button_press[i] = False
-        return any(self.button_press[button.value] for button in buttons)
+            # Check if any button have been pressed less than BUTTON_RESET_TIME ago
+            return any(press_time - self.last_press_times[button.value] < BUTTON_RESET_TIME for button in buttons)
 
     def key_callback(self, key) -> None:
         callback_fns = []
@@ -60,7 +56,6 @@ class MujocoDevice(InputDevice):
 
             if key in BUTTON_KEYMAP:
                 button = BUTTON_KEYMAP[key]
-                self.button_press[button.value] = True
                 self.last_press_times[button.value] = time.perf_counter()
                 callback_fns = self.bindings[button.value]
 
