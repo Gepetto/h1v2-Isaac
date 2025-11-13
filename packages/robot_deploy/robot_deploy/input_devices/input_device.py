@@ -44,11 +44,15 @@ class InputDevice(ABC):
     def is_pressed(self, *buttons: Button) -> bool:
         pass
 
+    @abstractmethod
+    def get_button_repr(self, button: Button) -> str:
+        pass
+
     def bind(self, button: Button, callback: Callable[[], None]) -> None:
         self.bindings[button.value].append(callback)
 
     def wait_for(self, *buttons: Button) -> None:
-        button_repr = " | ".join([f"'{button}'" for button in buttons])
+        button_repr = " | ".join([f"'{self.get_button_repr(button)}'" for button in buttons])
         print(f"Waiting for button {button_repr}...")
         while not self.is_pressed(*buttons):
             time.sleep(0.02)

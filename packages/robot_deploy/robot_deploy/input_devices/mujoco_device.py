@@ -37,6 +37,17 @@ class MujocoDevice(InputDevice):
             # Check if any button have been pressed less than BUTTON_RESET_TIME ago
             return any(press_time - self.last_press_times[button.value] < BUTTON_RESET_TIME for button in buttons)
 
+    def get_button_repr(self, button: Button) -> str:
+        button_inv_keymaps = {value: key for key, value in BUTTON_KEYMAP.items()}
+        if button not in button_inv_keymaps:
+            return button.name.capitalize()
+        glfw_key = button_inv_keymaps[button]
+        if glfw_key == glfw.KEY_ENTER:
+            return "Enter"
+        if glfw_key == glfw.KEY_ESCAPE:
+            return "Escape"
+        return chr(glfw_key)
+
     def key_callback(self, key) -> None:
         callback_fns = []
         with self.lock:

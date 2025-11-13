@@ -51,6 +51,9 @@ class UnitreeRemoteDevice(InputDevice):
         with self.lock:
             return any(self.button_press[button.value] for button in buttons)
 
+    def get_button_repr(self, button: Button) -> str:
+        return button.name.capitalize()
+
     def _read_command_cb(self, msg: LowStateHG) -> None:
         data = msg.wireless_remote
         keys = struct.unpack("H", data[2:4])[0]

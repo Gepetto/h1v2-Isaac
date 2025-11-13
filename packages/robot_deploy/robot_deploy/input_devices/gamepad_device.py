@@ -80,6 +80,9 @@ class GamepadDevice(InputDevice):
             return False
         return any(is_button_pressed(state, button) for button in buttons)
 
+    def get_button_repr(self, button: Button) -> str:
+        return button.name.capitalize()
+
     def close(self) -> None:
         self.close_event.set()
 
