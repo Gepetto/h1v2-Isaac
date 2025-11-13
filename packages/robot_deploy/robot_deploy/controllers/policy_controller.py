@@ -40,7 +40,10 @@ class PolicyController:
         if self.curr_merging_step == 0:
             return self.policies[self.curr_policy_index].step(state, command)
 
-        dt1, q_ref1, dq_ref1, kps1, kds1 = self.policies[self.curr_policy_index].step(state, command)
+        # We must make a copy of the state because otherwise, the first `step` call can change its value
+        # (as it is a dict, it is "passed by value")
+        state_copy = {key: value.copy() for key, value in state.items()}
+        dt1, q_ref1, dq_ref1, kps1, kds1 = self.policies[self.curr_policy_index].step(state_copy, command)
         dt2, q_ref2, dq_ref2, kps2, kds2 = self.policies[self.next_policy_index].step(state, command)
 
         alpha = self.curr_merging_step / self.total_merging_steps
