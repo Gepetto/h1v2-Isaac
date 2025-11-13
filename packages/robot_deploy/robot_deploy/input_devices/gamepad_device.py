@@ -1,5 +1,6 @@
 import numpy as np
 import time
+from pathlib import Path
 from threading import Event, Thread
 
 import glfw
@@ -41,7 +42,11 @@ class GamepadDevice(InputDevice):
     def __init__(self) -> None:
         super().__init__()
 
+        with (Path(__file__).parent / "gamecontrollerdb.txt").open() as file:
+            gamepad_mappings = file.read()
+
         glfw.init()
+        glfw.update_gamepad_mappings(gamepad_mappings)
 
         self.joystick_id = None
         for i in range(glfw.JOYSTICK_1, glfw.JOYSTICK_LAST + 1):
