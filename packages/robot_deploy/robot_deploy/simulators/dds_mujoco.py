@@ -18,11 +18,11 @@ TOPIC_LOWSTATE = "rt/lowstate"
 
 
 class DDSToMujoco:
-    def __init__(self, config: dict, sim_dt: float, input_device: InputDevice | None = None):
+    def __init__(self, config: dict, input_device: InputDevice | None = None):
         config["mujoco"]["real_time"] = True
         self.simulator = MujocoSim(config["mujoco"], input_device)
+        self.sim_dt = config["mujoco"]["simulation_dt"]
 
-        self.sim_dt = sim_dt
         self.num_motor = self.simulator.model.nu
 
         with contextlib.suppress(Exception):
@@ -43,7 +43,7 @@ class DDSToMujoco:
         self.close_event = threading.Event()
         self.sim_thread = threading.Thread(target=self.run_sim, args=(self.close_event,))
 
-        self.state_thread = RecurrentThread(interval=sim_dt, target=self.publish_low_state)
+        self.state_thread = RecurrentThread(interval=self.sim_dt, target=self.publish_low_state)
 
         self.sim_thread.start()
         self.state_thread.Start()
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     with args.config_path.open() as file:
         config = yaml.safe_load(file)
 
-    simulator = DDSToMujoco(config, 0.001)
+    simulator = DDSToMujoco(config)
     print("Running Mujoco simulator")
     try:
         while True:

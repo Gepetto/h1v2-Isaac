@@ -14,7 +14,7 @@ class H12Mujoco(MujocoSim, Robot):
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         super().__init__(config["mujoco"], input_device)
         self.input_device = input_device
-        self.decimation = config["mujoco"]["decimation"]
+        self.sim_dt = config["mujoco"]["simulation_dt"]
 
     def get_joint_names(self) -> list[str]:
         return [
@@ -28,9 +28,9 @@ class H12Mujoco(MujocoSim, Robot):
             self.input_device.wait_for(Button.start)
 
     def step(self, dt: float, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
-        for _ in range(self.decimation):
+        for _ in range(int(dt / self.sim_dt)):
             torques = self._pd_control(q_ref, dq_ref, kps, kds)
-            self.sim_step(dt / self.decimation, torques)
+            self.sim_step(self.sim_dt, torques)
 
     def should_quit(self) -> bool:
         if self.input_device is not None:

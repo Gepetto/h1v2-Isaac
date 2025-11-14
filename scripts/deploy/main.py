@@ -53,7 +53,7 @@ if __name__ == "__main__":
         except ConnectionError:
             input_device = MujocoDevice()
     if use_bridge:
-        simulator = DDSToMujoco(config, 0.001, input_device)
+        simulator = DDSToMujoco(config, input_device)
 
     robot = H12Mujoco(config, input_device) if args.sim else H12Real(config, input_device)
     policy_controller = PolicyController(robot, policy_dir, config["policy_names"])

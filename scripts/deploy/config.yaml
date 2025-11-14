@@ -6,8 +6,8 @@ mujoco:
   experiment_name: "h12_locomotion"
 
   render_dt: 0.02
-  decimation: 20
   episode_length: 5
+  simulation_dt: 0.001
 
   enable_GUI: True
   fix_base: False
