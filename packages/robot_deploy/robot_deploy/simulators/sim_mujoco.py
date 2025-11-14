@@ -16,8 +16,8 @@ class ConfigError(Exception): ...
 class ElasticBand:
     def __init__(self, enabled):
         self.enabled = enabled
-        self.stiffness = 200
-        self.damping = 100
+        self.stiffness = 300
+        self.damping = 50
         self.point = np.array([0, 0, 3])
         self.length = 0.0
 

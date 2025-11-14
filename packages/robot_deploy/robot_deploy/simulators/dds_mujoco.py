@@ -23,6 +23,9 @@ class DDSToMujoco:
         self.simulator = MujocoSim(config["mujoco"], input_device)
         self.sim_dt = config["mujoco"]["simulation_dt"]
 
+        # Start with robot attached, as in real life
+        self.simulator.elastic_band.enabled = True
+
         self.num_motor = self.simulator.model.nu
 
         with contextlib.suppress(Exception):
