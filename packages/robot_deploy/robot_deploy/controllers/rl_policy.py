@@ -199,7 +199,7 @@ class RLPolicy(Policy):
             raise ConfigError(err_msg)
 
         with config_path.open() as f:
-            self.config = yaml.load(f, Loader=yaml.UnsafeLoader)
+            self.config = yaml.safe_load(f)
 
     def _get_policy_path(self, policy_dir: Path) -> None:
         policy_paths = [path for path in policy_dir.iterdir() if path.is_file() and path.suffix in (".pt", ".onnx")]
