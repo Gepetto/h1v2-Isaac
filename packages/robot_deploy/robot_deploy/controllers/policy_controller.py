@@ -1,9 +1,10 @@
 import numpy as np
 from pathlib import Path
 
-from robot_deploy.controllers.policy import Policy
-from robot_deploy.controllers.rl_policy import RLPolicy
-from robot_deploy.robots.robot import Robot
+from robot_deploy.robots import Robot
+
+from .policy import Policy
+from .rl_policy import RLPolicy
 
 
 class ConfigError(Exception): ...

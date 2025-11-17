@@ -3,8 +3,9 @@ import numpy as np
 import mujoco
 
 from robot_deploy.input_devices import Button, InputDevice
-from robot_deploy.robots.robot import Robot
-from robot_deploy.simulators.sim_mujoco import MujocoSim
+from robot_deploy.simulators import MujocoSim
+
+from .robot import Robot
 
 
 class ConfigError(Exception): ...

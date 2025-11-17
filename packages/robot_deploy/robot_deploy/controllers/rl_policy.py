@@ -6,9 +6,10 @@ from pathlib import Path
 
 import onnxruntime as ort
 
-from robot_deploy.controllers.policy import Policy
-from robot_deploy.robots.robot import Robot
+from robot_deploy.robots import Robot
 from robot_deploy.utils.rl_logger import RLLogger
+
+from .policy import Policy
 
 
 class ConfigError(Exception): ...

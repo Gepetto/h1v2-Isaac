@@ -8,7 +8,7 @@ from pathlib import Path
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelSubscriber
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 
-from robot_deploy.robots.h12_real import H12Real
+from robot_deploy.robots import H12Real
 
 
 @dataclass

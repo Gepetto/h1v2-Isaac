@@ -1,8 +1,9 @@
 import json
 from pathlib import Path
 
-from safety_checker import SafetyChecker
 from tabulate import tabulate
+
+from .safety_checker import SafetyChecker
 
 
 def extract_contact_force(data):

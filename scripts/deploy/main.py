@@ -2,11 +2,10 @@ import argparse
 import yaml
 from pathlib import Path
 
-from robot_deploy.controllers.policy_controller import PolicyController
+from robot_deploy.controllers import PolicyController
 from robot_deploy.input_devices import Button, GamepadDevice, MujocoDevice, UnitreeRemoteDevice
-from robot_deploy.robots.h12_mujoco import H12Mujoco
-from robot_deploy.robots.h12_real import H12Real
-from robot_deploy.simulators.dds_mujoco import DDSToMujoco
+from robot_deploy.robots import H12Mujoco, H12Real
+from robot_deploy.simulators import DDSToMujoco
 
 
 class ConfigError(Exception): ...

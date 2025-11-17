@@ -16,8 +16,9 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 from unitree_sdk2py.utils.crc import CRC
 
 from robot_deploy.input_devices import Button, InputDevice
-from robot_deploy.robots.robot import Robot
 from robot_deploy.utils.rotation import transform_imu_data
+
+from .robot import Robot
 
 
 class ConfigError(Exception): ...
