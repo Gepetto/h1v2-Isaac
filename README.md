@@ -44,6 +44,11 @@ uv run scripts/deploy/sim2sim.py
 ```
 This command runs the trained policy inside of MuJoCo.
 
+Alternatively if you do not plan to train the robot and just want to install the necessary dependencies to make it run only with MuJoCo:
+```bash
+uv run --package biped_deploy scripts/deploy/sim2sim.py
+```
+
 For the sim2real:
 ```bash
 uv run scripts/deploy/sim2real.py
