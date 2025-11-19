@@ -21,7 +21,6 @@ from robot_deploy.utils.rotation import transform_imu_data
 from .robot import Robot
 
 
-class ConfigError(Exception): ...
 
 
 class H12Real(Robot):

@@ -7,9 +7,6 @@ from .policy import Policy
 from .rl_policy import RLPolicy
 
 
-class ConfigError(Exception): ...
-
-
 class PolicyController:
     def __init__(self, robot: Robot, policy_dir: Path, policy_names: list[str], log_data: bool = False) -> None:
         self.policy_names = policy_names

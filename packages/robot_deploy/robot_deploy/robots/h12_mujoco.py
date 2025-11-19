@@ -8,9 +8,6 @@ from robot_deploy.simulators import MujocoSim
 from .robot import Robot
 
 
-class ConfigError(Exception): ...
-
-
 class H12Mujoco(MujocoSim, Robot):
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         super().__init__(config["mujoco"], input_device)

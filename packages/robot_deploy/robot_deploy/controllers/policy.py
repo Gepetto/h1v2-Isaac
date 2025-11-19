@@ -7,9 +7,6 @@ if TYPE_CHECKING:
     import numpy as np
 
 
-class ConfigError(Exception): ...
-
-
 class Policy(ABC):
     @abstractmethod
     def step(self, state: dict, command: np.ndarray) -> tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
