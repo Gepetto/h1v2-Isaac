@@ -8,7 +8,7 @@ from pathlib import Path
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelSubscriber
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 
-from robot_deploy.robots import H12Real
+from robot_deploy.robots.h12_real import REAL_JOINT_NAME_ORDER, TOPIC_LOWCMD, TOPIC_LOWSTATE
 
 
 @dataclass
@@ -61,7 +61,7 @@ class UnitreeLogger:
         """
         self._setup_logging(log_level)
 
-        self.joint_names = H12Real.REAL_JOINT_NAME_ORDER
+        self.joint_names = REAL_JOINT_NAME_ORDER
 
         # --- Data Storage ---
         self.cmd_data: list[LowCmdMetrics] = []
@@ -78,14 +78,14 @@ class UnitreeLogger:
             raise
 
         # --- Command Subscriber ---
-        self.lowcmd_subscriber = ChannelSubscriber("rt/lowcmd", LowCmd_)
+        self.lowcmd_subscriber = ChannelSubscriber(TOPIC_LOWCMD, LowCmd_)
         self.lowcmd_subscriber.Init(self._low_cmd_handler, 10)
-        self._log.info("Subscribed to rt/lowcmd")
+        self._log.info(f"Subscribed to {TOPIC_LOWCMD}")
 
         # --- State Subscriber ---
-        self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowState_)
+        self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, LowState_)
         self.lowstate_subscriber.Init(self._low_state_handler, 10)
-        self._log.info("Subscribed to rt/lowstate")
+        self._log.info(f"Subscribed to {TOPIC_LOWSTATE}")
 
     def _setup_logging(self, log_level: int):
         """Setup logging configuration for this instance."""

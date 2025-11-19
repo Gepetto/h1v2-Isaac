@@ -5,6 +5,8 @@ import struct
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelSubscriber
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_ as LowStateHG
 
+from robot_deploy.robots.h12_real import TOPIC_LOWSTATE
+
 from .input_device import Button, InputDevice
 
 REMOTE_BUTTON_ORDER = [
@@ -40,7 +42,7 @@ class UnitreeRemoteDevice(InputDevice):
         if net_interface is not None:
             with contextlib.suppress(Exception):
                 ChannelFactoryInitialize(0, net_interface)
-        self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
+        self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, LowStateHG)
         self.lowstate_subscriber.Init(self._read_command_cb, 10)
 
     def get_command(self) -> np.ndarray:

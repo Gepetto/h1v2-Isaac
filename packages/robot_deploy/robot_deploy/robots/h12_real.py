@@ -20,40 +20,41 @@ from robot_deploy.utils.rotation import transform_imu_data
 
 from .robot import Robot
 
+TOPIC_LOWCMD = "rt/lowcmd"
+TOPIC_LOWSTATE = "rt/lowstate"
 
+REAL_JOINT_NAME_ORDER = (
+    "left_hip_yaw_joint",
+    "left_hip_pitch_joint",
+    "left_hip_roll_joint",
+    "left_knee_joint",
+    "left_ankle_pitch_joint",
+    "left_ankle_roll_joint",
+    "right_hip_yaw_joint",
+    "right_hip_pitch_joint",
+    "right_hip_roll_joint",
+    "right_knee_joint",
+    "right_ankle_pitch_joint",
+    "right_ankle_roll_joint",
+    "torso_joint",
+    "left_shoulder_pitch_joint",
+    "left_shoulder_roll_joint",
+    "left_shoulder_yaw_joint",
+    "left_elbow_joint",
+    "left_wrist_roll_joint",
+    "left_wrist_pitch_joint",
+    "left_wrist_yaw_joint",
+    "right_shoulder_pitch_joint",
+    "right_shoulder_roll_joint",
+    "right_shoulder_yaw_joint",
+    "right_elbow_joint",
+    "right_wrist_roll_joint",
+    "right_wrist_pitch_joint",
+    "right_wrist_yaw_joint",
+)
 
 
 class H12Real(Robot):
-    REAL_JOINT_NAME_ORDER = (
-        "left_hip_yaw_joint",
-        "left_hip_pitch_joint",
-        "left_hip_roll_joint",
-        "left_knee_joint",
-        "left_ankle_pitch_joint",
-        "left_ankle_roll_joint",
-        "right_hip_yaw_joint",
-        "right_hip_pitch_joint",
-        "right_hip_roll_joint",
-        "right_knee_joint",
-        "right_ankle_pitch_joint",
-        "right_ankle_roll_joint",
-        "torso_joint",
-        "left_shoulder_pitch_joint",
-        "left_shoulder_roll_joint",
-        "left_shoulder_yaw_joint",
-        "left_elbow_joint",
-        "left_wrist_roll_joint",
-        "left_wrist_pitch_joint",
-        "left_wrist_yaw_joint",
-        "right_shoulder_pitch_joint",
-        "right_shoulder_roll_joint",
-        "right_shoulder_yaw_joint",
-        "right_elbow_joint",
-        "right_wrist_roll_joint",
-        "right_wrist_pitch_joint",
-        "right_wrist_yaw_joint",
-    )
-
     def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         super().__init__(config, input_device)
         self.input_device = input_device
@@ -68,10 +69,10 @@ class H12Real(Robot):
         self.mode_pr_ = 0  # MotorMode.PR in unitree code
         self.mode_machine_ = 0
 
-        self.lowcmd_publisher_ = ChannelPublisher("rt/lowcmd", LowCmdHG)
+        self.lowcmd_publisher_ = ChannelPublisher(TOPIC_LOWCMD, LowCmdHG)
         self.lowcmd_publisher_.Init()
 
-        self.lowstate_subscriber = ChannelSubscriber("rt/lowstate", LowStateHG)
+        self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, LowStateHG)
         self.lowstate_subscriber.Init(self.low_state_handler, 10)
 
         self.num_joints_total = len(self.low_cmd.motor_cmd)  # type: ignore
@@ -82,7 +83,7 @@ class H12Real(Robot):
         self.init_cmd_hg(self.low_cmd, self.mode_machine_, self.mode_pr_)
 
     def get_joint_names(self) -> list[str]:
-        return list(self.REAL_JOINT_NAME_ORDER)
+        return list(REAL_JOINT_NAME_ORDER)
 
     def initialize(self) -> None:
         if self.input_device is not None:
@@ -116,8 +117,8 @@ class H12Real(Robot):
 
         # First, set legs and raise shoulders to avoid hitting itself
         shoulder_idx = [
-            self.REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint"),
-            self.REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint"),
+            REAL_JOINT_NAME_ORDER.index("left_shoulder_roll_joint"),
+            REAL_JOINT_NAME_ORDER.index("right_shoulder_roll_joint"),
         ]
         t_pose = default_joint_pos.copy()
         t_pose[shoulder_idx[0]] = 0.6
@@ -148,7 +149,7 @@ class H12Real(Robot):
 
     def step(self, dt: float, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
         self.set_motor_commands(
-            motor_indices=range(len(self.REAL_JOINT_NAME_ORDER)),
+            motor_indices=range(len(REAL_JOINT_NAME_ORDER)),
             positions=q_ref,
             velocities=dq_ref,
             kps=kps,
@@ -201,7 +202,7 @@ class H12Real(Robot):
         )
 
     def _get_joint_state(self):
-        num_joints = len(self.REAL_JOINT_NAME_ORDER)
+        num_joints = len(REAL_JOINT_NAME_ORDER)
         qpos = np.empty(num_joints)
         qvel = np.empty(num_joints)
         for i in range(num_joints):

@@ -11,11 +11,9 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
 from robot_deploy.input_devices import InputDevice
+from robot_deploy.robots.h12_real import TOPIC_LOWCMD, TOPIC_LOWSTATE
 
 from .sim_mujoco import MujocoSim
-
-TOPIC_LOWCMD = "rt/lowcmd"
-TOPIC_LOWSTATE = "rt/lowstate"
 
 
 class DDSToMujoco:
