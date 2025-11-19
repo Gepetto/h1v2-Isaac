@@ -12,7 +12,6 @@ mujoco:
   enable_GUI: True
   fix_base: False
   real_time: False
-  enable_keyboard: True
   log_data: False
   elastic_band: False
 
