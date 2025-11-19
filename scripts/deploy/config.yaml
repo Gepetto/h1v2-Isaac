@@ -1,4 +1,5 @@
-policy_names: "unitree"
+policy_names: ["unitree"]
+policy_merge_steps: 50
 
 mujoco:
   robot_name: "h12"

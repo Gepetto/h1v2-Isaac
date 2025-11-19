@@ -8,7 +8,9 @@ from .rl_policy import RLPolicy
 
 
 class PolicyController:
-    def __init__(self, robot: Robot, policy_dir: Path, policy_names: list[str], log_data: bool = False) -> None:
+    def __init__(
+        self, robot: Robot, policy_dir: Path, policy_names: list[str], policy_merge_steps: int, log_data: bool = False
+    ) -> None:
         self.policy_names = policy_names
         self.policies: list[Policy] = []
         for policy_name in policy_names:
@@ -19,7 +21,7 @@ class PolicyController:
         self.curr_policy_index = 0
         self.next_policy_index = 0
 
-        self.total_merging_steps = 200
+        self.total_merging_steps = policy_merge_steps
         self.curr_merging_step = 0
 
     def select_next_policy(self):

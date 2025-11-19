@@ -55,7 +55,7 @@ if __name__ == "__main__":
         simulator = DDSToMujoco(config, input_device)
 
     robot = H12Mujoco(config, input_device) if args.sim else H12Real(config, input_device)
-    policy_controller = PolicyController(robot, policy_dir, config["policy_names"])
+    policy_controller = PolicyController(robot, policy_dir, config["policy_names"], config["policy_merge_steps"])
 
     input_device.bind(Button.L1, policy_controller.select_prev_policy)
     input_device.bind(Button.R1, policy_controller.select_next_policy)
