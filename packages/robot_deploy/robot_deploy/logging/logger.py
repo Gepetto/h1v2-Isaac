@@ -51,7 +51,7 @@ class UnitreeLogger:
     Data is serialized to binary format when the save_data() method is called.
     """
 
-    def __init__(self, net_interface: str, log_level: int = logging.INFO):
+    def __init__(self, channel_id: int, net_interface: str, log_level: int = logging.INFO):
         """
         Initialize the logger and subscribers.
 
@@ -71,7 +71,7 @@ class UnitreeLogger:
 
         # --- Initialize Unitree SDK ---
         try:
-            ChannelFactoryInitialize(0, net_interface)
+            ChannelFactoryInitialize(channel_id, net_interface)
             self._log.info(f"ChannelFactory initialized on interface {net_interface}")
         except Exception as e:
             self._log.error(f"Failed to initialize ChannelFactory: {e}")

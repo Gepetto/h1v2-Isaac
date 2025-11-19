@@ -30,7 +30,7 @@ REMOTE_BUTTON_ORDER = [
 
 
 class UnitreeRemoteDevice(InputDevice):
-    def __init__(self, net_interface: str | None) -> None:
+    def __init__(self, channel_id: int, net_interface: str | None) -> None:
         super().__init__()
         self.button_press = [False] * len(Button)
 
@@ -41,7 +41,7 @@ class UnitreeRemoteDevice(InputDevice):
 
         if net_interface is not None:
             with contextlib.suppress(Exception):
-                ChannelFactoryInitialize(0, net_interface)
+                ChannelFactoryInitialize(channel_id, net_interface)
         self.lowstate_subscriber = ChannelSubscriber(TOPIC_LOWSTATE, LowStateHG)
         self.lowstate_subscriber.Init(self._read_command_cb, 10)
 

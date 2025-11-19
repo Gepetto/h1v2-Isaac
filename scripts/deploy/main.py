@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     use_bridge = not args.sim and config["real"]["use_mujoco"]
     if not (args.sim or use_bridge):
-        input_device = UnitreeRemoteDevice(config["real"]["net_interface"])
+        input_device = UnitreeRemoteDevice(config["real"]["channel_id"], config["real"]["net_interface"])
     else:
         try:
             input_device = GamepadDevice()

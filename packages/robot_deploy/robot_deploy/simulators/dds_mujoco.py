@@ -27,7 +27,7 @@ class DDSToMujoco:
         self.num_motor = self.simulator.model.nu
 
         with contextlib.suppress(Exception):
-            ChannelFactoryInitialize(0, config["real"]["net_interface"])
+            ChannelFactoryInitialize(config["real"]["channel_id"], config["real"]["net_interface"])
 
         # Unitree sdk2 message
         self.low_state = LowState_default()

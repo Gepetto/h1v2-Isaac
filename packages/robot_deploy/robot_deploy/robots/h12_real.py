@@ -60,7 +60,7 @@ class H12Real(Robot):
         self.input_device = input_device
 
         with contextlib.suppress(Exception):
-            ChannelFactoryInitialize(0, config["real"]["net_interface"])
+            ChannelFactoryInitialize(config["real"]["channel_id"], config["real"]["net_interface"])
 
         self.step_time = time.perf_counter()
 

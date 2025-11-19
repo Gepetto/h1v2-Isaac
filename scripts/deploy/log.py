@@ -31,7 +31,7 @@ if __name__ == "__main__":
         config = yaml.safe_load(file)
 
     try:
-        logger_instance = UnitreeLogger(config["real"]["net_interface"])
+        logger_instance = UnitreeLogger(config["real"]["channel_id"], config["real"]["net_interface"])
 
         logger.info("Logging commands and states... Press Ctrl+C to stop.")
         while True:

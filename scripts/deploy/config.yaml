@@ -16,5 +16,6 @@ mujoco:
   elastic_band: False
 
 real:
+  channel_id: 1
   net_interface: eth0
   use_mujoco: True
