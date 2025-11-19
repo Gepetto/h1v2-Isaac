@@ -38,19 +38,15 @@ uv run scripts/rsl_rl/train.py --task Isaac-Velocity-Flat-H12_12dof-v0
 ```
 This command initiates the training process for the specified task.
 
-For the sim2sim:
+To deploy a trained policy onto a real robot, use
 ```bash
-uv run scripts/deploy/sim2sim.py
+uv run --package robot_deploy scripts/deploy/main.py
 ```
-This command runs the trained policy inside of MuJoCo.
+**Note:** the `--package robot_deploy` flag avoids pulling the dependencies from the `robot_tasks` package used for training (e.g. `isaacsim`, `isaaclab`...).
 
-For the sim2real:
-```bash
-uv run scripts/deploy/sim2real.py
-```
-This command can be used to deploy the trained policy onto a real robot.
+To evaluate a policy in simulation, set the `use_mujoco` flag to True in the `config.yaml` file before running the `main.py` script: it will spawn a MuJoCo simulator instance in the background and communicate with it through DDS, as when deploying on a real robot.
 
-Note: in order to avoid installing `isaacsim` for deployment, add `--package robot_deploy` to the uv command.
+It's also possible to run the trained policy in simulation directly (i.e. without using DDS) by passing the flag `--sim` to the `main.py` script, in this case the policy is synchronously run in the simulator.
 
 ## License
 
