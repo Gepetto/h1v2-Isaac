@@ -49,13 +49,22 @@ class MujocoSim:
 
         self.model = mujoco.MjModel.from_xml_path(scene_path)
         self.model.opt.integrator = 3
-        self.current_time = 0
-        self.step_time = time.perf_counter()
-        self.episode_length = config["episode_length"]
         self.data = mujoco.MjData(self.model)
 
+        self.reset_keyframe = config["reset_keyframe"]
+        try:
+            keyframe = self.model.keyframe(self.reset_keyframe)
+        except KeyError as err:
+            err_msg = f"Reset keyframe {self.reset_keyframe} does not exist in the scene file ({scene_path})"
+            raise ConfigError(err_msg) from err
+        self.keyframe_id = keyframe.id
+
+        self.episode_length = config["episode_length"]
         self.real_time = config["real_time"]
         self.render_dt = config["render_dt"]
+
+        self.current_time = 0
+        self.step_time = time.perf_counter()
 
         self.sim_lock = threading.Lock()
 
@@ -65,7 +74,11 @@ class MujocoSim:
             self.logger.record_limits()
 
         # Enable the weld constraint
-        self.model.eq_active0[0] = 1 if config["fix_base"] else 0
+        if config["fix_base"]:
+            self.model.eq_active0[0] = True
+            self.model.eq_data[0, 3:10] = keyframe.qpos[:7]
+        else:
+            self.model.eq_active0[0] = False
 
         self.reset()
 
@@ -108,7 +121,7 @@ class MujocoSim:
 
     def reset(self):
         with self.sim_lock:
-            mujoco.mj_resetDataKeyframe(self.model, self.data, 0)
+            mujoco.mj_resetDataKeyframe(self.model, self.data, self.keyframe_id)
 
     def sim_step(self, dt, torques):
         self.model.opt.timestep = dt

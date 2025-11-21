@@ -15,6 +15,7 @@ mujoco:
   real_time: False
   log_data: False
   elastic_band: False
+  reset_keyframe: "standing"  # "standing" or "lying"
 
 real:
   channel_id: 1
