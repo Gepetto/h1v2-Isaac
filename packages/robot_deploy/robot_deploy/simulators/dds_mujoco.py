@@ -1,23 +1,28 @@
 import argparse
 import contextlib
+import numpy as np
 import threading
 import time
 import yaml
 from pathlib import Path
 
+import mujoco
 from unitree_sdk2py.core.channel import ChannelFactoryInitialize, ChannelPublisher, ChannelSubscriber
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowState_ as LowState_default
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
 
 from robot_deploy.input_devices import InputDevice
-from robot_deploy.robots.h12_real import TOPIC_LOWCMD, TOPIC_LOWSTATE
+from robot_deploy.robots.h12_real import REAL_JOINT_NAME_ORDER, TOPIC_LOWCMD, TOPIC_LOWSTATE
 
 from .sim_mujoco import MujocoSim
 
 
+class ConfigError(Exception): ...
+
+
 class DDSToMujoco:
-    def __init__(self, config: dict, input_device: InputDevice | None = None):
+    def __init__(self, config: dict, input_device: InputDevice | None = None) -> None:
         config["mujoco"]["real_time"] = True
         config["mujoco"]["elastic_band"] = True  # Start with robot attached, as in real life
 
@@ -25,6 +30,8 @@ class DDSToMujoco:
         self.sim_dt = config["mujoco"]["simulation_dt"]
 
         self.num_motor = self.simulator.model.nu
+        self.sim2real_idx: np.ndarray  # Indices to translate from MuJoCo joint order to real joint order
+        self._get_control_idx()
 
         with contextlib.suppress(Exception):
             ChannelFactoryInitialize(config["real"]["channel_id"], config["real"]["net_interface"])
@@ -49,14 +56,31 @@ class DDSToMujoco:
         self.sim_thread.start()
         self.state_thread.Start()
 
-    def low_cmd_handler(self, msg: LowCmd_):
+    def _get_control_idx(self) -> None:
+        robot_joints = list(REAL_JOINT_NAME_ORDER)
+        mujoco_joints = [
+            mujoco.mj_id2name(self.simulator.model, mujoco.mjtObj.mjOBJ_JOINT, joint_id + 1)
+            for joint_id in range(self.simulator.model.njnt - 1)
+        ]
+        if len(robot_joints) != len(mujoco_joints):
+            err_msg = f"Different joint numbers in real robot and in MuJoCo model ({len(robot_joints)} != {len(mujoco_joints)})"
+            raise ConfigError(err_msg)
+        self.sim2real_idx = np.zeros_like(robot_joints, dtype=np.int64)
+        for real_id, real_name in enumerate(robot_joints):
+            try:
+                self.sim2real_idx[mujoco_joints.index(real_name)] = real_id
+            except ValueError:
+                err_msg = f"Real joint {real_name} not found in MuJoCo model"
+                raise ConfigError(err_msg) from None
+
+    def low_cmd_handler(self, msg: LowCmd_) -> None:
         with self.motor_cmd_lock:
             self.motor_cmd = msg.motor_cmd
 
-    def publish_low_state(self):
+    def publish_low_state(self) -> None:
         state = self.simulator.get_robot_state()
-        qpos = state["qpos"]
-        qvel = state["qvel"]
+        qpos = state["qpos"][self.sim2real_idx]
+        qvel = state["qvel"][self.sim2real_idx]
 
         for i in range(self.num_motor):
             motor_state = self.low_state.motor_state[i]
@@ -69,7 +93,7 @@ class DDSToMujoco:
 
         self.low_state_puber.Write(self.low_state)
 
-    def pd_control(self):
+    def pd_control(self) -> list[float]:
         state = self.simulator.get_robot_state()
         qpos = state["qpos"]
         qvel = state["qvel"]
@@ -81,18 +105,18 @@ class DDSToMujoco:
         with self.motor_cmd_lock:
             motor_cmd = self.motor_cmd.copy()
 
-        for i in range(self.num_motor):
-            motor = motor_cmd[i]
-            torques[i] = motor.tau + motor.kp * (motor.q - qpos[i]) + motor.kd * (motor.dq - qvel[i])
+        for real_id, sim_id in enumerate(self.sim2real_idx):
+            motor = motor_cmd[real_id]
+            torques[sim_id] = motor.tau + motor.kp * (motor.q - qpos[sim_id]) + motor.kd * (motor.dq - qvel[sim_id])
 
         return torques
 
-    def run_sim(self, close_event):
+    def run_sim(self, close_event) -> None:
         while not close_event.is_set():
             torques = self.pd_control()
             self.simulator.sim_step(self.sim_dt, torques)
 
-    def close(self, log_dir=None):
+    def close(self, log_dir=None) -> None:
         self.simulator.close(log_dir)
         self.close_event.set()
         self.sim_thread.join()
