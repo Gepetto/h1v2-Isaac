@@ -26,7 +26,10 @@ class H12Mujoco(MujocoSim, Robot):
             self.input_device.wait_for(Button.start)
 
     def step(self, dt: float, q_ref: np.ndarray, dq_ref: np.ndarray, kps: np.ndarray, kds: np.ndarray) -> None:
-        for _ in range(int(dt / self.sim_dt)):
+        nb_steps = int(dt / self.sim_dt)
+        assert nb_steps > 0, "Simulation dt smaller than control dt"
+
+        for _ in range(nb_steps):
             torques = self._pd_control(q_ref, dq_ref, kps, kds)
             self.sim_step(self.sim_dt, torques)
 
