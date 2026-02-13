@@ -45,7 +45,7 @@ def main():
         scene_path = SCENE_PATHS[robot_name][scene_name]
     except Exception:
         logger.error(
-            "Could not retrieve scene_path from SCENE_PATHS. Please check 'biped_assets.assets' or manually define the scene_path."
+            "Could not retrieve scene_path from SCENE_PATHS. Please check 'robot_assets.assets' or manually define the scene_path."
         )
         return
 
