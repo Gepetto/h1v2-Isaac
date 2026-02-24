@@ -35,13 +35,13 @@ def feet_air_time(
     return reward
 
 
-def feet_air_time_positive_robot(
+def feet_air_time_positive_biped(
     env: ManagerBasedRLEnv,
     command_name: str,
     threshold: float,
     sensor_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
-    """Reward long steps taken by the feet for robots.
+    """Reward long steps taken by the feet for bipeds.
 
     This function rewards the agent for taking steps up to a specified threshold and also keep one foot at
     a time in the air.

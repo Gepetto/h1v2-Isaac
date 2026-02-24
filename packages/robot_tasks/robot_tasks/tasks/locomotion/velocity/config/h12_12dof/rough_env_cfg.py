@@ -32,7 +32,7 @@ class H12_12dof_Rewards(RewardsCfg):
         params={"command_name": "base_velocity", "std": 0.5},
     )
     feet_air_time = RewTerm(
-        func=mdp.feet_air_time_positive_robot,
+        func=mdp.feet_air_time_positive_biped,
         weight=0.25,
         params={
             "command_name": "base_velocity",
