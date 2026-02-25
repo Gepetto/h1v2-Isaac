@@ -79,10 +79,16 @@ class H12RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
+
         # Scene
         self.scene.robot = ROBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
         if self.scene.height_scanner:
             self.scene.height_scanner.prim_path = "{ENV_REGEX_NS}/Robot/torso_link"
+
+        # Observations
+        self.observations.policy.base_lin_vel = None
+        self.observations.policy.history_length = 10
+        self.observations.policy.enable_corruption = True
 
         # Randomization
         self.events.push_robot = None
