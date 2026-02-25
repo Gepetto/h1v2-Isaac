@@ -13,5 +13,5 @@ class Policy(ABC):
         pass
 
     @abstractmethod
-    def save_data(self, log_dir=None):
+    def save_data(self, log_dir: str | None = None) -> None:
         pass

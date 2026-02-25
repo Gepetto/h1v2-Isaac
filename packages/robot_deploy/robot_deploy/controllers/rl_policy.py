@@ -16,11 +16,11 @@ class ConfigError(Exception): ...
 
 
 class InferenceHandlerONNX:
-    def __init__(self, policy_path):
+    def __init__(self, policy_path: Path) -> None:
         self.ort_sess = ort.InferenceSession(policy_path)
         self.input_name = self.ort_sess.get_inputs()[0].name
 
-    def __call__(self, observations):
+    def __call__(self, observations: np.ndarray) -> np.ndarray:
         observations_unsqueezed = np.expand_dims(observations, axis=0)
         actions = self.ort_sess.run(None, {self.input_name: observations_unsqueezed})[0]
 
@@ -28,10 +28,10 @@ class InferenceHandlerONNX:
 
 
 class InferenceHandlerTorch:
-    def __init__(self, policy_path):
-        self.policy = torch.jit.load(policy_path).to("cpu")
+    def __init__(self, policy_path: Path) -> None:
+        self.policy = torch.jit.load(str(policy_path)).to("cpu")
 
-    def __call__(self, observations):
+    def __call__(self, observations: np.ndarray) -> np.ndarray:
         obs_tensor = torch.from_numpy(observations).unsqueeze(0)
         actions = self.policy(obs_tensor).detach().numpy().squeeze()
         return actions
@@ -40,30 +40,35 @@ class InferenceHandlerTorch:
 class ObservationHandler:
     def __init__(
         self,
-        observations_func,
-        observations_scale,
-        history_length,
-        default_joint_pos,
-        commands_ranges,
-        default_joint_vel=None,
-    ):
-        self.observations_func = [getattr(self, func_name) for func_name in observations_func]
-        self.observations_scale = observations_scale
-        self.history_length = history_length
+        observation_func_names: list[str],
+        observation_scales: list[int | float],
+        history_length: int,
+        default_joint_pos: np.ndarray,
+        command_ranges: dict[str, np.ndarray | float],
+        default_joint_vel: np.ndarray | None = None,
+    ) -> None:
+        self.observation_funcs = [getattr(self, func_name) for func_name in observation_func_names]
+        self.observation_scales = observation_scales
+        self.observation_histories: list[deque] = [deque(maxlen=history_length) for _ in observation_func_names]
+
         self.default_joint_pos = default_joint_pos
-        self.commands_ranges = commands_ranges
+        self.command_ranges = command_ranges
         self.default_joint_vel = (
             default_joint_vel if default_joint_vel is not None else np.zeros_like(default_joint_pos)
         )
-        self.observation_histories = {}
         self.command = np.array([0.0, 0.0, 0.0])
         self.counter = 0
+
+        self.state: np.ndarray
+        self.actions: np.ndarray
 
         # Hard-coded parameters for the phase
         self.period = 0.8
         self.control_dt = 0.02
 
-    def get_observations(self, state, actions, command):
+    def get_observations(
+        self, state: dict[str, np.ndarray], actions: np.ndarray, command: np.ndarray | None
+    ) -> np.ndarray:
         self.counter += 1
 
         self.state = state.copy()
@@ -71,25 +76,24 @@ class ObservationHandler:
         if command is not None:
             self.command = command
 
-        for i, element in enumerate(self.observations_func):
-            if i not in self.observation_histories:
-                self.observation_histories[i] = deque(maxlen=self.history_length)
-                self.observation_histories[i].extend([element() * self.observations_scale[i]] * self.history_length)
+        for obs_fn, scale, history in zip(
+            self.observation_funcs, self.observation_scales, self.observation_histories, strict=True
+        ):
+            obs = scale * obs_fn()
+            if not history:
+                history.extend([obs] * history.maxlen)  # pyright: ignore
             else:
-                self.observation_histories[i].append(element() * self.observations_scale[i])
+                history.append(obs)
 
         observation_history = np.concatenate(
-            [
-                np.array(list(self.observation_histories[i]), dtype=np.float32).flatten()
-                for i in range(len(self.observations_func))
-            ],
+            [np.array(history, dtype=np.float32).flatten() for history in self.observation_histories]
         )
         return observation_history
 
-    def base_ang_vel(self):
+    def base_ang_vel(self) -> np.ndarray:
         return self.state["base_angular_vel"]
 
-    def projected_gravity(self):
+    def projected_gravity(self) -> np.ndarray:
         qw, qx, qy, qz = self.state["base_orientation"]
 
         gravity_orientation = np.zeros(3)
@@ -100,44 +104,44 @@ class ObservationHandler:
 
         return gravity_orientation
 
-    def generated_commands(self):
+    def generated_commands(self) -> np.ndarray:
         scaled_command = (self.command + 1) / 2 * (
-            self.commands_ranges["upper"] - self.commands_ranges["lower"]
-        ) + self.commands_ranges["lower"]
-        scaled_command[np.abs(scaled_command) < self.commands_ranges["velocity_deadzone"]] = 0.0
+            self.command_ranges["upper"] - self.command_ranges["lower"]
+        ) + self.command_ranges["lower"]
+        scaled_command[np.abs(scaled_command) < self.command_ranges["velocity_deadzone"]] = 0.0
         return scaled_command
 
-    def joint_pos_rel(self):
+    def joint_pos_rel(self) -> np.ndarray:
         return self.state["qpos"] - self.default_joint_pos
 
-    def joint_vel_rel(self):
+    def joint_vel_rel(self) -> np.ndarray:
         return self.state["qvel"] - self.default_joint_vel
 
-    def last_action(self):
+    def last_action(self) -> np.ndarray:
         return self.actions
 
-    def cos_phase(self):
+    def cos_phase(self) -> float:
         count = self.counter * self.control_dt
         phase = count % self.period / self.period
         return np.cos(2 * np.pi * phase)
 
-    def sin_phase(self):
+    def sin_phase(self) -> float:
         count = self.counter * self.control_dt
         phase = count % self.period / self.period
         return np.sin(2 * np.pi * phase)
 
 
 class ActionHandler:
-    def __init__(self, action_scale, default_joint_pos):
+    def __init__(self, action_scale: float, default_joint_pos: np.ndarray) -> None:
         self.action_scale = action_scale
         self.default_joint_pos = default_joint_pos
 
-    def get_scaled_action(self, action) -> np.ndarray:
+    def get_scaled_action(self, action: np.ndarray) -> np.ndarray:
         return self.action_scale * action + self.default_joint_pos
 
 
 class RLPolicy(Policy):
-    def __init__(self, robot: Robot, policy_dir: Path, log_data: bool = False):
+    def __init__(self, robot: Robot, policy_dir: Path, log_data: bool = False) -> None:
         self._load_config(policy_dir)
         self._get_policy_path(policy_dir)
         self._get_joint_config(robot)
@@ -154,31 +158,31 @@ class RLPolicy(Policy):
             "upper": np.array([cmd_range[1] for cmd_range in self.config["command_ranges"].values()]),
             "velocity_deadzone": self.config["velocity_deadzone"],
         }
-        observations_func = [obs["name"] for obs in self.config["observations"]]
-        observations_scale = [obs.get("scale") or 1 for obs in self.config["observations"]]
+        observation_func_names = [obs["name"] for obs in self.config["observations"]]
+        observation_scales = [obs.get("scale", 1) for obs in self.config["observations"]]
 
         if self.policy_path.suffix == ".pt":
-            self.policy = InferenceHandlerTorch(policy_path=(self.policy_path))
+            self.policy = InferenceHandlerTorch(self.policy_path)
         elif self.policy_path.suffix == ".onnx":
-            self.policy = InferenceHandlerONNX(policy_path=str(self.policy_path))
+            self.policy = InferenceHandlerONNX(self.policy_path)
         else:
             msg = f"Unsupported file extension for policy_path: {self.policy_path}. Only .pt and .onnx are supported."
             raise ValueError(msg)
         self.observation_handler = ObservationHandler(
-            observations_func,
-            observations_scale,
+            observation_func_names,
+            observation_scales,
             history_length,
             enabled_default_joint_pos,
             command_ranges,
         )
         self.action_handler = ActionHandler(action_scale, enabled_default_joint_pos)
-        self.actions = np.zeros_like(enabled_default_joint_pos)
+        self.prev_actions = np.zeros_like(enabled_default_joint_pos)
 
         if self.log_data:
             self.logger = RLLogger()
 
     def step(
-        self, state: dict, command: np.ndarray | None = None
+        self, state: dict[str, np.ndarray], command: np.ndarray | None = None
     ) -> tuple[float, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         state["qpos"] = state["qpos"][self.enabled_joints_idx]
         state["qvel"] = state["qvel"][self.enabled_joints_idx]
@@ -189,11 +193,11 @@ class RLPolicy(Policy):
         dq_ref = np.zeros_like(q_whole)
         return self.control_dt, q_whole, dq_ref, self.kps, self.kds
 
-    def save_data(self, log_dir=None):
+    def save_data(self, log_dir: str | None = None) -> None:
         if log_dir is not None:
             self.logger.save_data(log_dir=log_dir)
 
-    def _load_config(self, policy_dir: Path):
+    def _load_config(self, policy_dir: Path) -> None:
         config_path = policy_dir / "env.yaml"
         if not config_path.exists():
             err_msg = f'No policy config `env.yaml` found in directory "{policy_dir}"'
@@ -244,11 +248,12 @@ class RLPolicy(Policy):
             enabled_joints_idx.append(joint_id)
         self.enabled_joints_idx = np.array(enabled_joints_idx)
 
-    def _policy_step(self, state: dict, command: np.ndarray | None) -> np.ndarray:
-        observations = self.observation_handler.get_observations(state, self.actions, command)
-        self.actions = self.policy(observations)
+    def _policy_step(self, state: dict[str, np.ndarray], command: np.ndarray | None) -> np.ndarray:
+        observations = self.observation_handler.get_observations(state, self.prev_actions, command)
+        actions = self.policy(observations)
+        self.prev_actions = actions
 
         if self.log_data:
-            self.logger.record_metrics(observations=observations, actions=self.actions)
+            self.logger.record_metrics(observations=observations, actions=actions)
 
-        return self.action_handler.get_scaled_action(self.actions)
+        return self.action_handler.get_scaled_action(actions)
