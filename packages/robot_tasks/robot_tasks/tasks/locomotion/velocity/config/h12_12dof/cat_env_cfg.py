@@ -9,21 +9,11 @@ import isaaclab.sim as sim_utils
 import isaaclab_tasks.manager_based.locomotion.velocity.mdp as mdp
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
-from isaaclab.managers import (
-    CurriculumTermCfg as CurrTerm,
-)
-from isaaclab.managers import (
-    EventTermCfg as EventTerm,
-)
-from isaaclab.managers import (
-    RewardTermCfg as RewTerm,
-)
-from isaaclab.managers import (
-    SceneEntityCfg,
-)
-from isaaclab.managers import (
-    TerminationTermCfg as DoneTerm,
-)
+from isaaclab.managers import CurriculumTermCfg as CurrTerm
+from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import RewardTermCfg as RewTerm
+from isaaclab.managers import SceneEntityCfg
+from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.terrains import TerrainImporterCfg
@@ -34,12 +24,8 @@ import robot_tasks.utils.cat.constraints as constraints
 import robot_tasks.utils.cat.curriculums as curriculums
 import robot_tasks.utils.mdp.commands as commands
 from robot_tasks.utils.cat.manager_constraint_cfg import ConstraintTermCfg as ConstraintTerm
-from robot_tasks.utils.history.manager_term_cfg import (
-    ObservationGroupCfg as ObsGroup,
-)
-from robot_tasks.utils.history.manager_term_cfg import (
-    ObservationTermCfg as ObsTerm,
-)
+from robot_tasks.utils.history.hstep_manager_term_cfg import HStepObservationGroupCfg as ObsGroup
+from robot_tasks.utils.history.hstep_manager_term_cfg import HStepObservationTermCfg as ObsTerm
 
 from robot_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 
