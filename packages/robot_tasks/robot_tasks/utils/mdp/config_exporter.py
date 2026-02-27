@@ -49,7 +49,6 @@ def get_deploy_config(config):
     return {
         "control_dt": config.sim.dt * config.decimation,
         "history_length": config.observations.policy.history_length,
-        "history_step": config.observations.policy.history_step,
         "action_scale": config.actions.joint_pos.scale,
         "velocity_deadzone": config.commands.base_velocity.velocity_deadzone,
         "command_ranges": command_ranges,

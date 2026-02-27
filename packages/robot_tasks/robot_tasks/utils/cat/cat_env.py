@@ -24,7 +24,6 @@ from isaaclab.managers import (
 )
 
 from robot_tasks.utils.cat.constraint_manager import ConstraintManager
-from robot_tasks.utils.history.hstep_observation_manager import HstepObservationManager
 
 
 class CaTEnv(ManagerBasedRLEnv):
@@ -55,7 +54,7 @@ class CaTEnv(ManagerBasedRLEnv):
         self.action_manager = ActionManager(self.cfg.actions, self)
         print("[INFO] Action Manager: ", self.action_manager)
         # -- observation manager
-        self.observation_manager = HStepObservationManager(self.cfg.observations, self)
+        self.observation_manager = ObservationManager(self.cfg.observations, self)
         print("[INFO] Observation Manager:", self.observation_manager)
         # -- event manager
         self.event_manager = EventManager(self.cfg.events, self)

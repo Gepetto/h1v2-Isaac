@@ -11,6 +11,8 @@ from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
+from isaaclab.managers import ObservationGroupCfg as ObsGroup
+from isaaclab.managers import ObservationTermCfg as ObsTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import TerminationTermCfg as DoneTerm
@@ -24,8 +26,6 @@ import robot_tasks.utils.cat.constraints as constraints
 import robot_tasks.utils.cat.curriculums as curriculums
 import robot_tasks.utils.mdp.commands as commands
 from robot_tasks.utils.cat.manager_constraint_cfg import ConstraintTermCfg as ConstraintTerm
-from robot_tasks.utils.history.hstep_manager_term_cfg import HStepObservationGroupCfg as ObsGroup
-from robot_tasks.utils.history.hstep_manager_term_cfg import HStepObservationTermCfg as ObsTerm
 
 from robot_assets.robots.h12 import H12_12DOF as ROBOT_CFG  # isort: skip
 
@@ -200,7 +200,6 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
             self.history_length = 6
-            self.history_step = 1
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
