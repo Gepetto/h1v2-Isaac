@@ -25,6 +25,7 @@ parser.add_argument("--num_envs", type=int, default=None, help="Number of enviro
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
+parser.add_argument("--save_interval", type=int, default=None, help="Interval between model save (in iterations)")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -44,6 +45,7 @@ simulation_app = app_launcher.app
 
 """Rest everything follows."""
 
+import contextlib
 import gymnasium as gym
 import os
 import torch
@@ -60,12 +62,13 @@ from isaaclab.envs import (
 )
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_pickle, dump_yaml
-from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper
+from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlVecEnvWrapper, export_policy_as_jit, export_policy_as_onnx
 from isaaclab_tasks.utils import get_checkpoint_path
 from isaaclab_tasks.utils.hydra import hydra_task_config
 
 # Import extensions to set up environment tasks
 import robot_tasks.tasks  # noqa: F401
+from robot_tasks.utils.mdp.config_exporter import get_deploy_config
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -82,6 +85,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg.max_iterations = (
         args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg.max_iterations
     )
+    agent_cfg.save_interval = args_cli.save_interval if args_cli.save_interval is not None else agent_cfg.save_interval
+    agent_cfg.device = args_cli.device if args_cli.device is not None else agent_cfg.device
 
     # set the environment seed
     # note: certain randomizations occur in the environment initialization so we set the seed here
@@ -137,11 +142,30 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     dump_pickle(os.path.join(log_dir, "params", "env.pkl"), env_cfg)
     dump_pickle(os.path.join(log_dir, "params", "agent.pkl"), agent_cfg)
 
+    deploy_config = get_deploy_config(env_cfg)
+    dump_yaml(os.path.join(log_root_path, log_dir, "params", "deploy_config.yaml"), deploy_config)
+
     # run training
-    runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
+    with contextlib.suppress(KeyboardInterrupt):
+        runner.learn(num_learning_iterations=agent_cfg.max_iterations, init_at_random_ep_len=True)
 
     # close the simulator
     env.close()
+
+    # export policy to onnx/jit
+    export_model_dir = os.path.join(log_dir, "exported")
+    export_policy_as_jit(
+        runner.alg.policy,
+        runner.obs_normalizer,
+        path=export_model_dir,
+        filename="policy.pt",
+    )
+    export_policy_as_onnx(
+        runner.alg.policy,
+        normalizer=runner.obs_normalizer,
+        path=export_model_dir,
+        filename="policy.onnx",
+    )
 
 
 if __name__ == "__main__":
