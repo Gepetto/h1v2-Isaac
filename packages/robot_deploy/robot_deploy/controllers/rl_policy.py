@@ -42,14 +42,17 @@ class ObservationHandler:
         self,
         observation_func_names: list[str],
         observation_scales: list[int | float],
-        history_length: int,
+        history_length: int | None,
         default_joint_pos: np.ndarray,
         command_ranges: dict[str, np.ndarray | float],
         default_joint_vel: np.ndarray | None = None,
     ) -> None:
         self.observation_funcs = [getattr(self, func_name) for func_name in observation_func_names]
         self.observation_scales = observation_scales
-        self.observation_histories: list[deque] = [deque(maxlen=history_length) for _ in observation_func_names]
+
+        self.use_history = history_length is not None and history_length > 1
+        if self.use_history:
+            self.observation_histories: list[deque] = [deque(maxlen=history_length) for _ in observation_func_names]
 
         self.default_joint_pos = default_joint_pos
         self.command_ranges = command_ranges
@@ -75,6 +78,15 @@ class ObservationHandler:
         self.actions = actions.copy()
         if command is not None:
             self.command = command
+
+        if not self.use_history:
+            return np.hstack(
+                [
+                    scale * obs_fn()
+                    for obs_fn, scale in zip(self.observation_funcs, self.observation_scales, strict=True)
+                ],
+                dtype=np.float32,
+            )
 
         for obs_fn, scale, history in zip(
             self.observation_funcs, self.observation_scales, self.observation_histories, strict=True
