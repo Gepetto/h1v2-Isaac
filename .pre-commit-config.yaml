@@ -6,7 +6,7 @@ repos:
     args:
     - --py37-plus
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.1
+  rev: v0.15.8
   hooks:
   - id: ruff
     args:
@@ -19,7 +19,7 @@ repos:
   hooks:
   - id: pre-commit-sort
 - repo: https://github.com/pappasam/toml-sort
-  rev: v0.24.3
+  rev: v0.24.4
   hooks:
   - id: toml-sort-fix
     exclude: uv.lock
