@@ -7,10 +7,16 @@ from .policy import Policy
 from .rl_policy import RLPolicy
 
 
+class ConfigError(Exception): ...
+
+
 class PolicyController:
     def __init__(
         self, robot: Robot, policy_dir: Path, policy_names: list[str], policy_merge_steps: int, log_data: bool = False
     ) -> None:
+        if policy_merge_steps < 0:
+            err_msg = f"policy_merge_steps must be a positive integer, but got {policy_merge_steps}"
+            raise ConfigError(err_msg)
         self.policy_names = policy_names
         self.policies: list[Policy] = []
         for policy_name in policy_names:
