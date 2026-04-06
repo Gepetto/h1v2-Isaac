@@ -6,7 +6,7 @@ repos:
     args:
     - --py37-plus
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.15.8
+  rev: v0.15.9
   hooks:
   - id: ruff
     args:
@@ -15,7 +15,7 @@ repos:
     - --select=I
   - id: ruff-format
 - repo: https://github.com/nim65s/pre-commit-sort
-  rev: v0.4.0
+  rev: v1.0.0
   hooks:
   - id: pre-commit-sort
 - repo: https://github.com/pappasam/toml-sort
