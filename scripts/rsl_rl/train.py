@@ -68,7 +68,7 @@ from isaaclab_tasks.utils.hydra import hydra_task_config
 
 # Import extensions to set up environment tasks
 import robot_tasks.tasks  # noqa: F401
-from robot_tasks.utils.mdp.config_exporter import get_deploy_config
+from robot_tasks.utils.config_exporter import get_deploy_config
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
