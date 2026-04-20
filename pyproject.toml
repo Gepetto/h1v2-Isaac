@@ -105,6 +105,9 @@ max-complexity = 30
 all = true
 overrides."tool.ruff.lint.isort.section-order".inline_arrays = false
 
+[tool.uv]
+override-dependencies = ["flatdict==4.1.0"]
+
 [tool.uv.sources]
 robot-deploy = {workspace = true}
 robot-tasks = {workspace = true}
