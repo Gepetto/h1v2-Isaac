@@ -1,5 +1,5 @@
 [project]
-authors = [{email = "cperrot@laas.fr", name = "Côme Perrot"}]
+authors = [{ email = "cperrot@laas.fr", name = "Côme Perrot" }]
 dependencies = ["robot-deploy", "robot-tasks"]
 description = "Reinforcement Learning pipeline for the h1v2"
 name = "h1v2-isaac"
@@ -109,8 +109,8 @@ overrides."tool.ruff.lint.isort.section-order".inline_arrays = false
 override-dependencies = ["flatdict==4.1.0"]
 
 [tool.uv.sources]
-robot-deploy = {workspace = true}
-robot-tasks = {workspace = true}
+robot-deploy = { workspace = true }
+robot-tasks = { workspace = true }
 
 [tool.uv.workspace]
 members = [

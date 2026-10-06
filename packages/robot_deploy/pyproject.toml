@@ -20,5 +20,5 @@ version = "0.1.0"
 module-root = ""
 
 [tool.uv.sources]
-robot-assets = {workspace = true}
-unitree-sdk2py = {git = "https://github.com/ComePerrot/unitree_sdk2_python.git"}
+robot-assets = { workspace = true }
+unitree-sdk2py = { git = "https://github.com/ComePerrot/unitree_sdk2_python.git" }
