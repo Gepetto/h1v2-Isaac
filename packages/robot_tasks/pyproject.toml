@@ -16,4 +16,4 @@ version = "0.1.0"
 module-root = ""
 
 [tool.uv.sources]
-robot-assets = {workspace = true}
+robot-assets = { workspace = true }
